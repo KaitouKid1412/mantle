@@ -1,6 +1,6 @@
 # Request 04 → 01: user-message fields on `ext.Prompt` (additive)
 
-**From:** plan 04 (input). **To:** plan 01 (pkg/ext steward). **Status:** open.
+**From:** plan 04 (input). **To:** plan 01 (pkg/ext steward). **Status:** done. The fields are in pkg/ext (integration-1); features/input sets them.
 
 ## What
 
