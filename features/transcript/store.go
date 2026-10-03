@@ -36,16 +36,16 @@ type Store struct {
 	rev       int // bumped on every change
 
 	// streaming state, per parent_tool_use_id ("" = main thread)
-	curMsg  map[string]string             // parent → message.id of the message being streamed
-	blocks  map[blockKey]*ext.Item        // (parent, message.id, index) → item
-	pending map[msgKey][]*ext.Item        // streamed items not yet matched by an assistant message
-	inputs  map[string]*strings.Builder   // tool_use id → partial input JSON
-	uuids   map[string][]string           // assistant message uuid → item IDs (supersedes)
-	tools   map[string]*ToolInfo          // tool_use id → progress
-	tasks   map[string]string             // task_id → tool_use id
-	retry   *ext.Item                     // the live api_retry item, if any
-	hooks   map[string]*ext.Item          // hook_id → item
-	notes   []string                      // pending markers for the commit policy
+	curMsg  map[string]string           // parent → message.id of the message being streamed
+	blocks  map[blockKey]*ext.Item      // (parent, message.id, index) → item
+	pending map[msgKey][]*ext.Item      // streamed items not yet matched by an assistant message
+	inputs  map[string]*strings.Builder // tool_use id → partial input JSON
+	uuids   map[string][]string         // assistant message uuid → item IDs (supersedes)
+	tools   map[string]*ToolInfo        // tool_use id → progress
+	tasks   map[string]string           // task_id → tool_use id
+	retry   *ext.Item                   // the live api_retry item, if any
+	hooks   map[string]*ext.Item        // hook_id → item
+	notes   []string                    // pending markers for the commit policy
 	_       struct{}
 }
 

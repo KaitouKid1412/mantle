@@ -1,6 +1,6 @@
 # 03 → 01: transcript attach and reprint hand-off
 
-**Status:** open (2026-10-03).
+**Status:** resolved 2026-10-03 in `contracts-v1.1` (`ext.TranscriptAttachMsg`, `ext.ScreenClearedMsg`, `Ctx.Renderer`), as proposed.
 
 Plan 03 owns the transcript store and the commit policy; the host owns `Ctx.Transcript()`,
 `Ctx.Print` and `Ctx.Reprint`. Two hand-offs are not in `contracts-v1` yet. Both are

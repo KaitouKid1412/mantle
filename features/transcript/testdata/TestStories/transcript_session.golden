@@ -1,0 +1,282 @@
+── width 60 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at              [m
+[48;2;38;38;44m  internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m            [m
+
+[3;38;2;139;139;147m✻ Thought[m[38;2;139;139;147m (ctrl+o to expand)[m
+
+[38;2;230;227;222m⏺[m I'll start by reading the worker and searching for the
+  retry path.
+
+[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+  ⎿  [38;2;139;139;147mRead 5 lines (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mSearch[m(pattern: "enqueue\(", path: "internal")
+  ⎿  [38;2;139;139;147mFound 2 files (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mSearch[m(pattern: "**/*_test.go")
+  ⎿  [38;2;139;139;147mFound 1 file (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mBash[m(go test ./internal/queue/... -run TestRetry -count=1)
+  ⎿  === RUN   TestRetryBackoff
+         worker_test.go:41: retried after 0s, want >= 200ms
+     --- FAIL: TestRetryBackoff (0.00s)
+     === RUN   TestRetryLimit
+     --- PASS: TestRetryLimit (0.00s)
+     [38;2;139;139;147m… +3 lines (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mUpdate[m(internal/queue/worker.go)
+  ⎿  [38;2;230;227;222mUpdated internal/queue/worker.go with 1 addition and 1[m
+     [38;2;230;227;222mremoval[m
+     [38;2;139;139;147m2 [m  
+     [38;2;139;139;147m3 [m  [38;2;194;123;219mfunc[m[38;2;230;227;222m [m[38;2;170;176;188m([m[38;2;230;227;222mw [m[38;2;90;181;192m*[m[38;2;230;227;222mWorker[m[38;2;170;176;188m)[m[38;2;230;227;222m [m[38;2;98;173;236mhandle[m[38;2;170;176;188m([m[38;2;230;227;222mjob [m[38;2;90;181;192m*[m[38;2;230;227;222mJob[m[38;2;170;176;188m)[m[38;2;230;227;222m [m[38;2;170;176;188m{[m
+     [38;2;139;139;147m4 [m[48;2;75;36;41m- [m[38;2;230;227;222;48;2;75;36;41m    w[m[38;2;170;176;188;48;2;75;36;41m.[m[38;2;98;173;236;48;2;75;36;41menqueue[m[38;2;170;176;188;48;2;75;36;41m([m[38;2;230;227;222;48;2;75;36;41mjob[m[38;2;170;176;188;48;2;75;36;41m)[m[48;2;75;36;41m                                 [m
+     [38;2;139;139;147m4 [m[48;2;32;64;43m+ [m[38;2;230;227;222;48;2;32;64;43m    w[m[38;2;170;176;188;48;2;32;64;43m.[m[38;2;98;173;236;48;2;32;64;43menqueueAfter[m[38;2;170;176;188;48;2;32;64;43m([m[38;2;230;227;222;48;2;32;64;43mjob[m[38;2;170;176;188;48;2;32;64;43m,[m[38;2;230;227;222;48;2;32;64;43m [m[38;2;98;173;236;48;2;32;64;43mbackoff[m[38;2;170;176;188;48;2;32;64;43m([m[38;2;230;227;222;48;2;32;64;43mjob[m[38;2;170;176;188;48;2;32;64;43m.[m[38;2;230;227;222;48;2;32;64;43mAttempts[m[38;2;170;176;188;48;2;32;64;43m))[m[48;2;32;64;43m     [m
+     [38;2;139;139;147m5 [m  [38;2;170;176;188m}[m
+
+[38;2;111;194;139m⏺[m [1mWrite[m(internal/queue/backoff.go)
+  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
+     [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
+     [38;2;139;139;147m2[m 
+     [38;2;139;139;147m3[m [38;2;194;123;219mimport[m[38;2;230;227;222m [m[38;2;147;196;125m"time"[m
+     [38;2;139;139;147m4[m 
+     [38;2;139;139;147m5[m [3;38;2;125;130;140m// backoff returns the delay before retry attempt n.[m
+     [38;2;139;139;147m6[m [38;2;194;123;219mfunc[m[38;2;230;227;222m [m[38;2;98;173;236mbackoff[m[38;2;170;176;188m([m[38;2;230;227;222mn [m[38;2;227;192;126mint[m[38;2;170;176;188m)[m[38;2;230;227;222m time[m[38;2;170;176;188m.[m[38;2;230;227;222mDuration [m[38;2;170;176;188m{[m
+     [38;2;139;139;147m7[m [38;2;230;227;222m    [m[38;2;194;123;219mreturn[m[38;2;230;227;222m [m[38;2;211;154;104m200[m[38;2;230;227;222m [m[38;2;90;181;192m*[m[38;2;230;227;222m time[m[38;2;170;176;188m.[m[38;2;230;227;222mMillisecond [m[38;2;90;181;192m<<[m[38;2;230;227;222m [m[38;2;90;181;192mmin[m[38;2;170;176;188m([m[38;2;230;227;222mn[m[38;2;170;176;188m,[m[38;2;230;227;222m [m[38;2;211;154;104m8[m[38;2;170;176;188m)[m
+     [38;2;139;139;147m8[m [38;2;170;176;188m}[m
+
+[38;2;111;194;139m⏺[m [1mUpdate Todos[m
+  ⎿  [38;2;139;139;147m☒ [m[9;38;2;139;139;147mRead the worker[m
+     [1m◼ Add exponential backoff[m
+     ☐ Run the tests
+
+[38;2;111;194;139m⏺[m [1mExplore[m(Find other retry loops)
+  ⎿  [38;2;139;139;147mDone (2 tool uses · 18.4k tokens · 14s)[m
+
+[38;2;111;194;139m⏺[m [1mtracker - get_issue (MCP)[m(id: "APP-12")
+  ⎿  APP-12: Worker retries too fast
+
+[38;2;111;194;139m⏺[m [1mtracker - add_comment (MCP)[m(body: "Fix in progress", id:
+  "APP-12")
+  ⎿  ok
+
+[38;2;111;194;139m⏺[m [1mFetch[m(https://example.com/docs/backoff)
+  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
+
+[38;2;239;122;128m⏺[m [1mRead[m(missing.go)
+  ⎿  [38;2;239;122;128mFile does not exist.[m
+
+[38;2;111;194;139m⏺[m [1mQuestions answered[m
+  ⎿  · Fix internal/sync too? [38;2;139;139;147m→[m [1mYes[m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mContext is 80% full; consider /compact.[m
+
+[38;2;230;227;222m⏺[m Fixed. The worker now waits before retrying:
+
+  - [1mBackoff[m starts at 200ms and doubles per attempt, capped
+    at 8 doublings.
+  - The failing test [38;2;158;166;243mTestRetryBackoff[m now passes.
+
+  [38;2;85;85;92m┌────────────┬───────────────────┐[m
+  [38;2;85;85;92m│[m [1mFile[m       [38;2;85;85;92m│[m [1mChange[m            [38;2;85;85;92m│[m
+  [38;2;85;85;92m├────────────┼───────────────────┤[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mworker.go[m  [38;2;85;85;92m│[m uses [38;2;158;166;243menqueueAfter[m [38;2;85;85;92m│[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mbackoff.go[m [38;2;85;85;92m│[m new helper        [38;2;85;85;92m│[m
+  [38;2;85;85;92m└────────────┴───────────────────┘[m
+
+  I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I
+  can fix that next.
+
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
+[38;2;139;139;147m✻ Churned for 1m 6s[m
+
+[38;2;139;139;147mConversation compacted (48.2k → 7.9k tokens) · ctrl+o for h…[m
+
+[38;2;239;122;128m⏺[m [38;2;239;122;128mRate limited. Wait a moment, or check /usage.[m
+  ⎿  [38;2;139;139;147mAPI Error: 429 rate limited[m
+
+  ⎿  [38;2;139;139;147mContext usage: 7.9k / 200k tokens (4%)[m
+── width 100 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m       [m
+
+[3;38;2;139;139;147m✻ Thought[m[38;2;139;139;147m (ctrl+o to expand)[m
+
+[38;2;230;227;222m⏺[m I'll start by reading the worker and searching for the retry path.
+
+[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+  ⎿  [38;2;139;139;147mRead 5 lines (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mSearch[m(pattern: "enqueue\(", path: "internal")
+  ⎿  [38;2;139;139;147mFound 2 files (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mSearch[m(pattern: "**/*_test.go")
+  ⎿  [38;2;139;139;147mFound 1 file (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mBash[m(go test ./internal/queue/... -run TestRetry -count=1)
+  ⎿  === RUN   TestRetryBackoff
+         worker_test.go:41: retried after 0s, want >= 200ms
+     --- FAIL: TestRetryBackoff (0.00s)
+     === RUN   TestRetryLimit
+     --- PASS: TestRetryLimit (0.00s)
+     [38;2;139;139;147m… +3 lines (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mUpdate[m(internal/queue/worker.go)
+  ⎿  [38;2;230;227;222mUpdated internal/queue/worker.go with 1 addition and 1 removal[m
+     [38;2;139;139;147m2 [m  
+     [38;2;139;139;147m3 [m  [38;2;194;123;219mfunc[m[38;2;230;227;222m [m[38;2;170;176;188m([m[38;2;230;227;222mw [m[38;2;90;181;192m*[m[38;2;230;227;222mWorker[m[38;2;170;176;188m)[m[38;2;230;227;222m [m[38;2;98;173;236mhandle[m[38;2;170;176;188m([m[38;2;230;227;222mjob [m[38;2;90;181;192m*[m[38;2;230;227;222mJob[m[38;2;170;176;188m)[m[38;2;230;227;222m [m[38;2;170;176;188m{[m
+     [38;2;139;139;147m4 [m[48;2;75;36;41m- [m[38;2;230;227;222;48;2;75;36;41m    w[m[38;2;170;176;188;48;2;75;36;41m.[m[38;2;98;173;236;48;2;75;36;41menqueue[m[38;2;170;176;188;48;2;75;36;41m([m[38;2;230;227;222;48;2;75;36;41mjob[m[38;2;170;176;188;48;2;75;36;41m)[m[48;2;75;36;41m                                                                         [m
+     [38;2;139;139;147m4 [m[48;2;32;64;43m+ [m[38;2;230;227;222;48;2;32;64;43m    w[m[38;2;170;176;188;48;2;32;64;43m.[m[38;2;98;173;236;48;2;32;64;43menqueueAfter[m[38;2;170;176;188;48;2;32;64;43m([m[38;2;230;227;222;48;2;32;64;43mjob[m[38;2;170;176;188;48;2;32;64;43m,[m[38;2;230;227;222;48;2;32;64;43m [m[38;2;98;173;236;48;2;32;64;43mbackoff[m[38;2;170;176;188;48;2;32;64;43m([m[38;2;230;227;222;48;2;32;64;43mjob[m[38;2;170;176;188;48;2;32;64;43m.[m[38;2;230;227;222;48;2;32;64;43mAttempts[m[38;2;170;176;188;48;2;32;64;43m))[m[48;2;32;64;43m                                             [m
+     [38;2;139;139;147m5 [m  [38;2;170;176;188m}[m
+
+[38;2;111;194;139m⏺[m [1mWrite[m(internal/queue/backoff.go)
+  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
+     [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
+     [38;2;139;139;147m2[m 
+     [38;2;139;139;147m3[m [38;2;194;123;219mimport[m[38;2;230;227;222m [m[38;2;147;196;125m"time"[m
+     [38;2;139;139;147m4[m 
+     [38;2;139;139;147m5[m [3;38;2;125;130;140m// backoff returns the delay before retry attempt n.[m
+     [38;2;139;139;147m6[m [38;2;194;123;219mfunc[m[38;2;230;227;222m [m[38;2;98;173;236mbackoff[m[38;2;170;176;188m([m[38;2;230;227;222mn [m[38;2;227;192;126mint[m[38;2;170;176;188m)[m[38;2;230;227;222m time[m[38;2;170;176;188m.[m[38;2;230;227;222mDuration [m[38;2;170;176;188m{[m
+     [38;2;139;139;147m7[m [38;2;230;227;222m    [m[38;2;194;123;219mreturn[m[38;2;230;227;222m [m[38;2;211;154;104m200[m[38;2;230;227;222m [m[38;2;90;181;192m*[m[38;2;230;227;222m time[m[38;2;170;176;188m.[m[38;2;230;227;222mMillisecond [m[38;2;90;181;192m<<[m[38;2;230;227;222m [m[38;2;90;181;192mmin[m[38;2;170;176;188m([m[38;2;230;227;222mn[m[38;2;170;176;188m,[m[38;2;230;227;222m [m[38;2;211;154;104m8[m[38;2;170;176;188m)[m
+     [38;2;139;139;147m8[m [38;2;170;176;188m}[m
+
+[38;2;111;194;139m⏺[m [1mUpdate Todos[m
+  ⎿  [38;2;139;139;147m☒ [m[9;38;2;139;139;147mRead the worker[m
+     [1m◼ Add exponential backoff[m
+     ☐ Run the tests
+
+[38;2;111;194;139m⏺[m [1mExplore[m(Find other retry loops)
+  ⎿  [38;2;139;139;147mDone (2 tool uses · 18.4k tokens · 14s)[m
+
+[38;2;111;194;139m⏺[m [1mtracker - get_issue (MCP)[m(id: "APP-12")
+  ⎿  APP-12: Worker retries too fast
+
+[38;2;111;194;139m⏺[m [1mtracker - add_comment (MCP)[m(body: "Fix in progress", id: "APP-12")
+  ⎿  ok
+
+[38;2;111;194;139m⏺[m [1mFetch[m(https://example.com/docs/backoff)
+  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
+
+[38;2;239;122;128m⏺[m [1mRead[m(missing.go)
+  ⎿  [38;2;239;122;128mFile does not exist.[m
+
+[38;2;111;194;139m⏺[m [1mQuestions answered[m
+  ⎿  · Fix internal/sync too? [38;2;139;139;147m→[m [1mYes[m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mContext is 80% full; consider /compact.[m
+
+[38;2;230;227;222m⏺[m Fixed. The worker now waits before retrying:
+
+  - [1mBackoff[m starts at 200ms and doubles per attempt, capped at 8 doublings.
+  - The failing test [38;2;158;166;243mTestRetryBackoff[m now passes.
+
+  [38;2;85;85;92m┌────────────┬───────────────────┐[m
+  [38;2;85;85;92m│[m [1mFile[m       [38;2;85;85;92m│[m [1mChange[m            [38;2;85;85;92m│[m
+  [38;2;85;85;92m├────────────┼───────────────────┤[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mworker.go[m  [38;2;85;85;92m│[m uses [38;2;158;166;243menqueueAfter[m [38;2;85;85;92m│[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mbackoff.go[m [38;2;85;85;92m│[m new helper        [38;2;85;85;92m│[m
+  [38;2;85;85;92m└────────────┴───────────────────┘[m
+
+  I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I can fix that next.
+
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
+[38;2;139;139;147m✻ Churned for 1m 6s[m
+
+[38;2;139;139;147m══════ Conversation compacted (48.2k → 7.9k tokens) · ctrl+o for history ══════[m
+
+[38;2;239;122;128m⏺[m [38;2;239;122;128mRate limited. Wait a moment, or check /usage.[m
+  ⎿  [38;2;139;139;147mAPI Error: 429 rate limited[m
+
+  ⎿  [38;2;139;139;147mContext usage: 7.9k / 200k tokens (4%)[m
+── width 160 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m                                                                   [m
+
+[3;38;2;139;139;147m✻ Thought[m[38;2;139;139;147m (ctrl+o to expand)[m
+
+[38;2;230;227;222m⏺[m I'll start by reading the worker and searching for the retry path.
+
+[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+  ⎿  [38;2;139;139;147mRead 5 lines (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mSearch[m(pattern: "enqueue\(", path: "internal")
+  ⎿  [38;2;139;139;147mFound 2 files (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mSearch[m(pattern: "**/*_test.go")
+  ⎿  [38;2;139;139;147mFound 1 file (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mBash[m(go test ./internal/queue/... -run TestRetry -count=1)
+  ⎿  === RUN   TestRetryBackoff
+         worker_test.go:41: retried after 0s, want >= 200ms
+     --- FAIL: TestRetryBackoff (0.00s)
+     === RUN   TestRetryLimit
+     --- PASS: TestRetryLimit (0.00s)
+     [38;2;139;139;147m… +3 lines (ctrl+o to expand)[m
+
+[38;2;111;194;139m⏺[m [1mUpdate[m(internal/queue/worker.go)
+  ⎿  [38;2;230;227;222mUpdated internal/queue/worker.go with 1 addition and 1 removal[m
+     [38;2;139;139;147m2 [m  
+     [38;2;139;139;147m3 [m  [38;2;194;123;219mfunc[m[38;2;230;227;222m [m[38;2;170;176;188m([m[38;2;230;227;222mw [m[38;2;90;181;192m*[m[38;2;230;227;222mWorker[m[38;2;170;176;188m)[m[38;2;230;227;222m [m[38;2;98;173;236mhandle[m[38;2;170;176;188m([m[38;2;230;227;222mjob [m[38;2;90;181;192m*[m[38;2;230;227;222mJob[m[38;2;170;176;188m)[m[38;2;230;227;222m [m[38;2;170;176;188m{[m
+     [38;2;139;139;147m4 [m[48;2;75;36;41m- [m[38;2;230;227;222;48;2;75;36;41m    w[m[38;2;170;176;188;48;2;75;36;41m.[m[38;2;98;173;236;48;2;75;36;41menqueue[m[38;2;170;176;188;48;2;75;36;41m([m[38;2;230;227;222;48;2;75;36;41mjob[m[38;2;170;176;188;48;2;75;36;41m)[m[48;2;75;36;41m                                                                                                                                     [m
+     [38;2;139;139;147m4 [m[48;2;32;64;43m+ [m[38;2;230;227;222;48;2;32;64;43m    w[m[38;2;170;176;188;48;2;32;64;43m.[m[38;2;98;173;236;48;2;32;64;43menqueueAfter[m[38;2;170;176;188;48;2;32;64;43m([m[38;2;230;227;222;48;2;32;64;43mjob[m[38;2;170;176;188;48;2;32;64;43m,[m[38;2;230;227;222;48;2;32;64;43m [m[38;2;98;173;236;48;2;32;64;43mbackoff[m[38;2;170;176;188;48;2;32;64;43m([m[38;2;230;227;222;48;2;32;64;43mjob[m[38;2;170;176;188;48;2;32;64;43m.[m[38;2;230;227;222;48;2;32;64;43mAttempts[m[38;2;170;176;188;48;2;32;64;43m))[m[48;2;32;64;43m                                                                                                         [m
+     [38;2;139;139;147m5 [m  [38;2;170;176;188m}[m
+
+[38;2;111;194;139m⏺[m [1mWrite[m(internal/queue/backoff.go)
+  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
+     [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
+     [38;2;139;139;147m2[m 
+     [38;2;139;139;147m3[m [38;2;194;123;219mimport[m[38;2;230;227;222m [m[38;2;147;196;125m"time"[m
+     [38;2;139;139;147m4[m 
+     [38;2;139;139;147m5[m [3;38;2;125;130;140m// backoff returns the delay before retry attempt n.[m
+     [38;2;139;139;147m6[m [38;2;194;123;219mfunc[m[38;2;230;227;222m [m[38;2;98;173;236mbackoff[m[38;2;170;176;188m([m[38;2;230;227;222mn [m[38;2;227;192;126mint[m[38;2;170;176;188m)[m[38;2;230;227;222m time[m[38;2;170;176;188m.[m[38;2;230;227;222mDuration [m[38;2;170;176;188m{[m
+     [38;2;139;139;147m7[m [38;2;230;227;222m    [m[38;2;194;123;219mreturn[m[38;2;230;227;222m [m[38;2;211;154;104m200[m[38;2;230;227;222m [m[38;2;90;181;192m*[m[38;2;230;227;222m time[m[38;2;170;176;188m.[m[38;2;230;227;222mMillisecond [m[38;2;90;181;192m<<[m[38;2;230;227;222m [m[38;2;90;181;192mmin[m[38;2;170;176;188m([m[38;2;230;227;222mn[m[38;2;170;176;188m,[m[38;2;230;227;222m [m[38;2;211;154;104m8[m[38;2;170;176;188m)[m
+     [38;2;139;139;147m8[m [38;2;170;176;188m}[m
+
+[38;2;111;194;139m⏺[m [1mUpdate Todos[m
+  ⎿  [38;2;139;139;147m☒ [m[9;38;2;139;139;147mRead the worker[m
+     [1m◼ Add exponential backoff[m
+     ☐ Run the tests
+
+[38;2;111;194;139m⏺[m [1mExplore[m(Find other retry loops)
+  ⎿  [38;2;139;139;147mDone (2 tool uses · 18.4k tokens · 14s)[m
+
+[38;2;111;194;139m⏺[m [1mtracker - get_issue (MCP)[m(id: "APP-12")
+  ⎿  APP-12: Worker retries too fast
+
+[38;2;111;194;139m⏺[m [1mtracker - add_comment (MCP)[m(body: "Fix in progress", id: "APP-12")
+  ⎿  ok
+
+[38;2;111;194;139m⏺[m [1mFetch[m(https://example.com/docs/backoff)
+  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
+
+[38;2;239;122;128m⏺[m [1mRead[m(missing.go)
+  ⎿  [38;2;239;122;128mFile does not exist.[m
+
+[38;2;111;194;139m⏺[m [1mQuestions answered[m
+  ⎿  · Fix internal/sync too? [38;2;139;139;147m→[m [1mYes[m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mContext is 80% full; consider /compact.[m
+
+[38;2;230;227;222m⏺[m Fixed. The worker now waits before retrying:
+
+  - [1mBackoff[m starts at 200ms and doubles per attempt, capped at 8 doublings.
+  - The failing test [38;2;158;166;243mTestRetryBackoff[m now passes.
+
+  [38;2;85;85;92m┌────────────┬───────────────────┐[m
+  [38;2;85;85;92m│[m [1mFile[m       [38;2;85;85;92m│[m [1mChange[m            [38;2;85;85;92m│[m
+  [38;2;85;85;92m├────────────┼───────────────────┤[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mworker.go[m  [38;2;85;85;92m│[m uses [38;2;158;166;243menqueueAfter[m [38;2;85;85;92m│[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mbackoff.go[m [38;2;85;85;92m│[m new helper        [38;2;85;85;92m│[m
+  [38;2;85;85;92m└────────────┴───────────────────┘[m
+
+  I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I can fix that next.
+
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
+[38;2;139;139;147m✻ Churned for 1m 6s[m
+
+[38;2;139;139;147m══════ Conversation compacted (48.2k → 7.9k tokens) · ctrl+o for history ══════[m
+
+[38;2;239;122;128m⏺[m [38;2;239;122;128mRate limited. Wait a moment, or check /usage.[m
+  ⎿  [38;2;139;139;147mAPI Error: 429 rate limited[m
+
+  ⎿  [38;2;139;139;147mContext usage: 7.9k / 200k tokens (4%)[m

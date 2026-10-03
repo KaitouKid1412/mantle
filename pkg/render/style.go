@@ -27,7 +27,11 @@ func (m MapPalette) Color(token string) color.Color { return m[token] }
 
 // NoColor is a palette that resolves every token to the terminal default. Text
 // attributes (bold, italic, …) still apply.
-var NoColor Palette = MapPalette(nil)
+var NoColor Palette = noColor{}
+
+type noColor struct{}
+
+func (noColor) Color(string) color.Color { return nil }
 
 // Theme token names used by the render kit. They are the strings pkg/theme
 // defines, mirrored here so pkg/render has no compile-time dependency on the
