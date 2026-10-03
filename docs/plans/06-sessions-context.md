@@ -175,7 +175,7 @@ Everything about conversations as objects:
 - [x] **B5 [M1] Generic H handoff command** (`ext.Command` helper used by plans 08 and 09
   for any not-yet-native `local-jsx` command). Procedure as above, with a notice "Opening in
   Claude Code; exit to return to mantle".
-- [ ] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
+- [x] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
   on an empty prompt).**
   - A message selector (context `MessageSelector`) over user turns, with a diff summary from
     `rewind_files` dry-run.

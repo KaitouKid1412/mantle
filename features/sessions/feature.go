@@ -113,6 +113,7 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerExport(r)
 	f.registerContext(r)
 	f.registerUsage(r)
+	f.registerRewind(r)
 	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
 	ext.Subscribe(r, "sessions.notify", f.onNotify)
 	ext.Subscribe(r, "sessions.cwd-changed", f.onCwdChanged)
