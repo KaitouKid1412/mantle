@@ -194,7 +194,7 @@ Also provide:
   - **Exceptions:** anything that appears in `initialize.commands` (headless-capable, e.g.
     `/ultrareview`, `/list-agents`, `/stop`) is E, not H. Decide at runtime from the engine's
     list, with this table as the default.
-- [ ] **B11 [M2] Agent view.** A read-only list of background sessions from `claude agents
+- [x] **B11 [M2] Agent view.** A read-only list of background sessions from `claude agents
   --json [--all]`. Attach is H via ExecProcess `claude attach <id>`; logs via `claude logs
   <id>`; stop via `claude stop <id>`.
 
