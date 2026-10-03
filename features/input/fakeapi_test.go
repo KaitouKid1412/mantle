@@ -168,3 +168,37 @@ func TestRealEngineBashMode(t *testing.T) {
 	r.keys("'what did it print?'", "enter")
 	re.waitBody(t, "what did it print", "MARKER-42", "bash-input")
 }
+
+// TestRealEngineFileMentions checks @ completion against the real engine's
+// file_suggestions.
+func TestRealEngineFileMentions(t *testing.T) {
+	re := startRealEngine(t)
+	for _, f := range []string{"main.go", "manual.md", "other.txt"} {
+		if err := os.WriteFile(filepath.Join(re.work, f), []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	r := newRig(t, nil)
+	r.c.Engines[ext.MainEngine] = re.eng
+	r.s.cwd = re.work
+	r.event(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: re.eng}) // warms the index
+	r.keys("'read @ma'")
+	for i := 0; i < 50 && !r.s.comp.open(); i++ {
+		time.Sleep(100 * time.Millisecond) // index still building: type on
+		r.keys("backspace", "'a'")
+	}
+	if !r.s.comp.open() || r.s.comp.kind != compFile {
+		t.Fatalf("no @ menu; items %+v", r.s.comp.items)
+	}
+	var got []string
+	for _, it := range r.s.comp.items {
+		got = append(got, it.value)
+	}
+	if strings.Join(got, ",") != "main.go,manual.md" && strings.Join(got, ",") != "manual.md,main.go" {
+		t.Fatalf("suggestions %v", got)
+	}
+	r.keys("tab")
+	if !strings.HasPrefix(r.text(), "read @ma") || !strings.HasSuffix(r.text(), " ") {
+		t.Fatalf("accept: %q", r.text())
+	}
+}

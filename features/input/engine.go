@@ -81,6 +81,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		if m.EngineID == ext.MainEngine {
 			return s.engineEvent(c, m.Event)
 		}
+	case ext.EngineAttachMsg:
+		if m.EngineID == ext.MainEngine {
+			return warmFiles(m.Engine)
+		}
 	case ext.EngineExitedMsg:
 		if m.EngineID == ext.MainEngine {
 			s.busy = false
