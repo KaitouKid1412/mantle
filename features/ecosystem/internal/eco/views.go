@@ -276,8 +276,8 @@ type FormView struct {
 
 func (f *FormView) Subtitle() string { return f.Sub }
 
-// Contexts: none, so letters reach the field instead of Select's j/k.
-func (f *FormView) Contexts() []string { return []string{ext.ContextSettings} }
+// Contexts: PaneField binds no letters or escape, so typing reaches the field.
+func (f *FormView) Contexts() []string { return []string{ext.ContextPaneField} }
 
 func (f *FormView) Action(ctx ext.Ctx, d *Dialog, a ext.ActionID) (bool, tea.Cmd) {
 	// Only navigation actions that don't collide with typing.

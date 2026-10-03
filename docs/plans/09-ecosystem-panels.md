@@ -137,7 +137,7 @@ Also provide:
     logout`), add (a small form that maps to `claude mcp add`/`add-json`), remove.
   - `/mcp reconnect|enable|disable <name>` with arguments goes to the engine (E).
   - Publish a "needs auth" count message for plan 07's footer.
-- [ ] **B2 [M2] `/plugin` manager** (aliases `/plugins`, `/marketplace`).
+- [x] **B2 [M2] `/plugin` manager** (aliases `/plugins`, `/marketplace`).
   - Tabs: Discover (`--available`), Installed, Marketplaces.
   - Plugin-context keys: space toggle, `i` install, `f` favorite, ctrl+s cycle marketplace.
   - Mutations via A2 with `-y`, then `reload_plugins`. If the result reports MCP or
