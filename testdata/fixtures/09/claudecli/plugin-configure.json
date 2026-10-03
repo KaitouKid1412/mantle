@@ -1,0 +1,26 @@
+{
+  "pluginId": "demo@example-market",
+  "displayName": "Demo",
+  "schema": {
+    "apiKey": {
+      "type": "string",
+      "title": "API key",
+      "description": "Key for the demo service",
+      "sensitive": true,
+      "required": true
+    },
+    "region": {
+      "type": "string",
+      "title": "Region",
+      "default": "eu"
+    }
+  },
+  "inputs": {},
+  "choices": {},
+  "configured": [
+    "region"
+  ],
+  "unconfigured": [
+    "apiKey"
+  ]
+}
