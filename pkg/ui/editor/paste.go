@@ -152,14 +152,9 @@ func (e *Editor) InsertPaste(content string) (PasteResult, tea.Cmd) {
 		}
 		if paths := ImagePaths(text, exists); len(paths) > 0 {
 			e.checkpoint(editOther)
-			e.group++
-			for i, p := range paths {
-				if i > 0 || (e.cur.Col > 0 && !e.lines[e.cur.Row].cells[e.cur.Col-1].isSpace()) {
-					e.insertFragment(fragment{toCells(" ")})
-				}
-				e.insertFragment(fragment{{chipCell(NewImageChip(e.NextChipID(), &Image{Path: p}))}})
+			for _, p := range paths {
+				e.insertImageChip(NewImageChip(e.NextChipID(), &Image{Path: p}))
 			}
-			e.group--
 			e.afterEdit()
 			return PastedImages, nil
 		}
@@ -207,7 +202,22 @@ func fileExists(p string) bool {
 // pasted bytes can never drive the terminal.
 func SanitizePaste(s string) string {
 	s = normalizeNewlines(s)
-	if strings.IndexByte(s, 0x1b) >= 0 || containsC1(s) {
+	if containsC1(s) {
+		// Some terminals act on UTF-8 encoded C1 controls (U+009B is CSI):
+		// rewrite them as their 7-bit forms so they are stripped as
+		// sequences, not left as parameter debris.
+		var b strings.Builder
+		for _, r := range s {
+			if r >= 0x80 && r < 0xa0 {
+				b.WriteByte(0x1b)
+				b.WriteRune(r - 0x40)
+				continue
+			}
+			b.WriteRune(r)
+		}
+		s = b.String()
+	}
+	if strings.IndexByte(s, 0x1b) >= 0 {
 		s = ansi.Strip(s)
 	}
 	clean := true

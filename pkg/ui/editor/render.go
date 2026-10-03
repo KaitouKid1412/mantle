@@ -129,7 +129,7 @@ func (e *Editor) Render() ([]string, *tea.Cursor) {
 func (e *Editor) render(draw bool) ([]string, *tea.Cursor) {
 	width := e.width
 	focused := e.focused
-	virtual := focused && e.VirtualCursor
+	virtual := focused && e.VirtualCursor && e.attach < 0
 
 	if e.showPlaceholder() {
 		var cur *tea.Cursor

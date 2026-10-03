@@ -35,17 +35,26 @@ func PasteImageCmd() tea.Cmd {
 	}
 }
 
-// InsertImage inserts an image chip at the cursor and returns it. A space
-// separates it from preceding text.
+// InsertImage inserts an image chip at the cursor and returns it. Like
+// Claude Code, the chip is set off from surrounding text by spaces.
 func (e *Editor) InsertImage(im *Image) *Chip {
 	ch := NewImageChip(e.NextChipID(), im)
 	e.checkpoint(editOther)
-	e.group++
-	if e.cur.Col > 0 && !e.lines[e.cur.Row].cells[e.cur.Col-1].isSpace() {
+	e.insertImageChip(ch)
+	e.afterEdit()
+	return ch
+}
+
+// insertImageChip inserts ch with a space before it (after text) and after
+// it (unless one follows already). It does not checkpoint.
+func (e *Editor) insertImageChip(ch *Chip) {
+	l := e.lines[e.cur.Row].cells
+	if e.cur.Col > 0 && !l[e.cur.Col-1].isSpace() {
 		e.insertFragment(fragment{toCells(" ")})
 	}
 	e.insertFragment(fragment{{chipCell(ch)}})
-	e.group--
-	e.afterEdit()
-	return ch
+	l = e.lines[e.cur.Row].cells
+	if e.cur.Col >= len(l) || !l[e.cur.Col].isSpace() {
+		e.insertFragment(fragment{toCells(" ")})
+	}
 }
