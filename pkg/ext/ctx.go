@@ -24,7 +24,10 @@ type Ctx interface {
 	Layout() LayoutMode
 	Invalidate(componentID string)
 	Print(blocks ...string) tea.Cmd // commit to scrollback (inline), chunked by host
-	Reprint() tea.Cmd               // clear screen and scrollback, then reprint the store
+	// Reprint clears the screen and scrollback (ESC[2J ESC[3J ESC[H), then delivers
+	// ScreenClearedMsg; the commit policy (plan 03) resets its watermark and prints
+	// everything finished again.
+	Reprint() tea.Cmd
 	Notify(Notice) tea.Cmd
 	OpenDialog(id string, args any) tea.Cmd
 	CloseDialog(id string) tea.Cmd
@@ -50,7 +53,49 @@ type Ctx interface {
 	Submit(Draft) tea.Cmd
 	// Log is mantle's debug log (~/.mantle/logs). Never write to stdout or stderr.
 	Log() *slog.Logger
+
+	// Since contracts-v1.1.
+
+	// Renderer returns the resolved renderer for a content key: exact key, then the
+	// longest wildcard, then "default", with mods' Replace/Wrap applied. Never nil.
+	Renderer(key ContentKey) Renderer
+	// Accessibility returns the resolved accessibility preferences.
+	Accessibility() Accessibility
 }
+
+// Accessibility preferences, resolved from flags, environment and settings
+// (--ax-screen-reader, CLAUDE_AX_SCREEN_READER, axScreenReader, prefersReducedMotion).
+type Accessibility struct {
+	ScreenReader  bool // flat, linear output; no spinners or redraw tricks
+	ReducedMotion bool // no shimmer or animation
+}
+
+// ScreenClearedMsg is delivered after Ctx.Reprint has cleared the screen and
+// scrollback. The clear is written to the terminal before this message is delivered.
+type ScreenClearedMsg struct{}
+
+// FirstFrameMsg is delivered once, after the first frame has been drawn.
+type FirstFrameMsg struct{}
+
+// TranscriptAttachMsg registers the transcript store with the host, so
+// Ctx.Transcript() returns it. features/transcript sends it from OnStart.
+type TranscriptAttachMsg struct{ Transcript Transcript }
+
+// EditorStateMsg reports the prompt editor's state (sent by input.editor on change);
+// chrome uses it for the prompt frame colour and the vim mode indicator.
+type EditorStateMsg struct {
+	Mode  string // "prompt" | "bash"
+	Vim   string // "" (vim off) | "INSERT" | "NORMAL" | "VISUAL" | "VISUAL LINE" | "REPLACE"
+	Empty bool
+}
+
+// EnvSafe is the environment variable `mantle --safe` sets: the host skips every
+// feature with Order >= ModOrder (user mods).
+const EnvSafe = "MANTLE_SAFE"
+
+// ExitUsage is the exit code for command-line usage errors (EX_USAGE); the launcher
+// shows mantle-ui's log instead of counting a crash.
+const ExitUsage = 64
 
 // LayoutMode is the host's rendering mode.
 type LayoutMode int
