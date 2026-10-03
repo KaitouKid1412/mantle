@@ -68,6 +68,7 @@ func (f *Feature) rendererTable() map[ext.ContentKey]ext.Renderer {
 		t[ext.ToolKey(name)] = f.renderOneLiner
 	}
 	t[ext.ToolKey("SendUserMessage")] = f.renderSendUserMessage
+	t[ext.ToolKey("Brief")] = f.renderSendUserMessage // alias
 	return t
 }
 

@@ -33,6 +33,7 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	switch {
 	case r.Interrupted():
 		lines = append(lines, result(rc, st.err, "Interrupted by user")...)
+	case r.IsError && f.store.ErrorShown(r.UUID):
 	case r.IsError:
 		msg := strings.TrimSpace(r.Result)
 		if len(r.Errors) > 0 {
@@ -52,7 +53,7 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 		lines = append(lines, truncLines(render.WrapWith(st.dim.Render(clean(text)), render.WrapOptions{Width: rc.Width, First: st.err.Render(glyphDot) + " ", Rest: dotIndent}), rc.Width)...)
 	}
-	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() {
+	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() && !r.IsError {
 		line := glyphThought + " " + pickVerb(r.UUID+it.ID) + " for " + formatDuration(msToDuration(r.DurationMS))
 		if t := f.clockTime(it.End); t != "" {
 			line += " · done " + t

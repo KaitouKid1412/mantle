@@ -48,6 +48,7 @@ type Store struct {
 	notes      []string                    // pending markers for the commit policy
 	rateStatus string                      // last rate_limit_event status
 	models     map[string]string           // item ID → model that wrote it
+	shown      map[string]bool             // result uuid → its error is already on screen
 	_          struct{}
 }
 
@@ -92,6 +93,7 @@ func (s *Store) reset() {
 	s.tasks = map[string]string{}
 	s.hooks = map[string]*ext.Item{}
 	s.models = map[string]string{}
+	s.shown = map[string]bool{}
 	s.retry = nil
 	s.rev++
 }
@@ -115,6 +117,10 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// ErrorShown reports whether a failed result's error is already shown by the
+// item before it.
+func (s *Store) ErrorShown(resultUUID string) bool { return s.shown[resultUUID] }
 
 // Model returns the model that produced an assistant item ("" if unknown).
 func (s *Store) Model(id string) string { return s.models[id] }
@@ -686,6 +692,10 @@ func (s *Store) applyHook(e *proto.Hook) {
 }
 
 func (s *Store) applyResult(e *proto.Result) {
+	// An API failure already shown as an error item needs no second copy.
+	if n := len(s.items); n > 0 && e.IsError && !e.Interrupted() && s.items[n-1].Key == ext.KeySystemError {
+		s.shown[e.UUID] = true
+	}
 	st := ext.Done
 	if e.Interrupted() {
 		st = ext.Interrupted
