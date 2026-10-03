@@ -72,7 +72,8 @@ func Script(entries []Entry, o ScriptOptions) (*enginefake.Script, error) {
 			}
 			if h.Type == "control_response" {
 				if sub, ok := clientReq[h.Response.RequestID]; ok {
-					if !ruled[sub] {
+					// end_session stays with the fake's built-in rule, which also ends the run.
+					if !ruled[sub] && sub != "end_session" {
 						ruled[sub] = true
 						s.Rules = append(s.Rules, ruleFor(sub, e.Msg))
 					}
