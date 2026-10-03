@@ -79,6 +79,32 @@ func init() {
 		},
 	})
 	ext.Register(ext.Feature{
+		ID: WelcomeID, Order: order,
+		Parity: []string{"CH-08", "CH-09", "CH-20"},
+		Setup: func(r ext.Registrar) error {
+			w := newWelcome()
+			ext.Subscribe(r, WelcomeID+".session", func(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd { return w.Update(ctx, m) })
+			ext.Subscribe(r, WelcomeID+".control", func(ctx ext.Ctx, m ext.ControlResultMsg) tea.Cmd { return w.Update(ctx, m) })
+			ext.Subscribe(r, WelcomeID+".engine", func(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd { return w.Update(ctx, m) })
+			addStories(r, welcomeStories())
+			return nil
+		},
+	})
+	ext.Register(ext.Feature{
+		ID: ReleaseNotesID, Order: order,
+		Parity: []string{"CH-21", "CH-22"},
+		Setup: func(r ext.Registrar) error {
+			rn := newReleaseNotes(terminal.OS())
+			ext.Subscribe(r, ReleaseNotesID+".session", rn.onSession)
+			r.AddCommand(ext.Command{
+				Name: "release-notes", Source: ext.SourceBuiltin,
+				Description: "Show what changed in Claude Code and mantle",
+				Run:         rn.command,
+			})
+			return nil
+		},
+	})
+	ext.Register(ext.Feature{
 		ID: TerminalID, Order: order,
 		Parity: []string{"CH-23", "CH-24", "CH-25", "CH-26", "CH-29", "CH-30"},
 		Setup: func(r ext.Registrar) error {

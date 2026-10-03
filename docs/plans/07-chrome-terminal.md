@@ -224,13 +224,13 @@ Notes:
   - Write via `tea.Raw`.
   - Don't double-notify if spike S4 shows the engine's own Notification hooks already ran a
     `terminal_bell`.
-- [ ] **B10 [M2] Welcome banner and notices.**
+- [x] **B10 [M2] Welcome banner and notices.**
   - mantle's own design (don't copy the Clawd art): version (mantle and engine), model,
     cwd, account (from `initialize.account`).
   - Startup notices: `companyAnnouncements`, MCP servers needing auth, invalid settings,
     engine pinned.
   - Shown once per session start; printed into scrollback via the committer.
-- [ ] **B11 [M2] `/release-notes`** (native; Claude Code's is local-jsx). Show Claude Code's
+- [x] **B11 [M2] `/release-notes`** (native; Claude Code's is local-jsx). Show Claude Code's
   changelog from `~/.claude/cache/changelog.md` (runtime read) for versions newer than the
   last seen one (stored in mantle state), plus mantle's own changelog.
 - [ ] **B12 [M2] ctrl+z suspend and `app:redraw`.** Suspend via `tea.Suspend`; on resume,
