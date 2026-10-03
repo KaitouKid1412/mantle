@@ -398,6 +398,43 @@ func tail(s string, n int) string {
 	return s
 }
 
+// TestSpikeS17DeltaRate measures the engine's peak stream_event rate (fakeapi sends
+// one rune per delta, as fast as possible) and how many UI messages the bridge makes.
+func TestSpikeS17DeltaRate(t *testing.T) {
+	spike(t)
+	long := strings.Repeat("abcdefghij ", 600) // 6600 runes -> 6600 deltas
+	r := NewReal(t, &fakeapi.Script{Turns: []fakeapi.Turn{fakeapi.TextTurn(long)}}, fakeapi.WithChunkRunes(1))
+	var mu sync.Mutex
+	var first, last time.Time
+	deltas := 0
+	r.Manager.Tap = func(dir engine.Direction, line []byte) {
+		if dir == engine.FromEngine && bytes.Contains(line, []byte(`"content_block_delta"`)) {
+			mu.Lock()
+			if deltas == 0 {
+				first = time.Now()
+			}
+			last = time.Now()
+			deltas++
+			mu.Unlock()
+		}
+	}
+	e, _ := r.Manager.Start("", r.Opts())
+	u := "11111111-1111-4111-8111-111111111111"
+	e.Send(ext.Prompt{UUID: u, Blocks: text("go")})()
+	r.Rec.WaitFor(t, resultFor(u))
+	ui := 0
+	for _, ev := range Events(r.Rec.Msgs()) {
+		if se, ok := ev.(*proto.StreamEvent); ok && se.IsDelta() {
+			ui++
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	span := last.Sub(first)
+	t.Logf("S17 engine printed %d deltas in %v (%.0f/s); bridge delivered %d delta messages (16 ms coalescing)",
+		deltas, span.Round(time.Millisecond), float64(deltas)/span.Seconds(), ui)
+}
+
 func TestSpikeS12Subagent(t *testing.T) {
 	spike(t)
 	r := NewReal(t, &fakeapi.Script{Turns: []fakeapi.Turn{
