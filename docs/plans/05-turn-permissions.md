@@ -183,9 +183,9 @@ Everything that decides *whether* and *how* Claude proceeds:
   - Label with the engine (main / "Builder <id>" / subagent name from `agent_id`).
   - Queue several pending requests in order.
   - Close on `control_cancel_request`.
-  - On (re)initialize, recover `pending_permission_requests`. *(Needs the engine bridge to
-    surface the envelope field: `docs/plans/requests/05-02-pending-permission-requests.md`;
-    the queue already accepts the resulting `PermissionMsg`s.)*
+  - On (re)initialize, recover `pending_permission_requests`. *(Plan 02's bridge re-raises
+    them as ordinary `PermissionMsg` / `ControlRequestMsg`, once per `request_id`; the
+    queue handles them unchanged. See `docs/plans/requests/05-02-pending-permission-requests.md`.)*
 - [x] **B2 [M1] AskUserQuestion and plan approval dialogs** wired the same way (dialog IDs
   `dialog.askUserQuestion`, `dialog.planApproval`).
 - [x] **B3 [M1] Mode cycling.** `chat:cycleMode` (shift+tab) and `confirm:cycleMode` in
