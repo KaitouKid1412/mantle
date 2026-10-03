@@ -259,6 +259,7 @@ type TaskUpdated struct {
 type TaskNotification struct {
 	Envelope
 	TaskID     string     `json:"task_id"`
+	ToolUseID  string     `json:"tool_use_id,omitempty"`
 	Status     string     `json:"status"` // completed | failed | stopped
 	OutputFile string     `json:"output_file,omitempty"`
 	Summary    string     `json:"summary,omitempty"`
@@ -313,8 +314,9 @@ type Notification struct {
 // ThinkingTokens estimates thinking tokens so far.
 type ThinkingTokens struct {
 	Envelope
-	EstimatedTokens      int64 `json:"estimated_tokens"`
-	EstimatedTokensDelta int64 `json:"estimated_tokens_delta"`
+	EstimatedTokens      int64  `json:"estimated_tokens"`
+	EstimatedTokensDelta int64  `json:"estimated_tokens_delta"`
+	UserMessageUUID      string `json:"user_message_uuid,omitempty"`
 }
 
 // PermissionDenied reports a tool call denied without asking.
