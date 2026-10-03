@@ -320,4 +320,18 @@ func TestHandleStartStopAndCommands(t *testing.T) {
 	if m.Handle(ext.SessionChangedMsg{}) != nil {
 		t.Error("other messages must return nil")
 	}
+
+	// Spawn/StopEngine (app.Options.Spawn/Stop): start, restart in place, stop.
+	if err := m.Spawn("btw", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Spawn("btw", ext.SpawnOpts{Model: "haiku"}); err != nil {
+		t.Fatal(err)
+	}
+	if specs := sp.Specs(); !strings.Contains(strings.Join(specs[len(specs)-1].Args, " "), "--model haiku") {
+		t.Error("restart did not use the new options")
+	}
+	if err := m.StopEngine("btw"); err != nil || m.Engine("btw") != nil {
+		t.Errorf("stop: %v", err)
+	}
 }
