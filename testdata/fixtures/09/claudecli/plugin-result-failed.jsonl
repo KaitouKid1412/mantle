@@ -1,0 +1,1 @@
+{"command": "enable", "outcome": "failed", "plugin": "nope", "message": "Plugin \"nope\" was not found in any editable scope.", "failureCode": "ambiguous_marketplace"}

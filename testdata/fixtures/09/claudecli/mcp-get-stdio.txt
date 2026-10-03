@@ -1,0 +1,11 @@
+filesystem:
+  Scope: Local config (private to you in this project)
+  Status: ✔ Connected
+  Type: stdio
+  Command: npx
+  Args: -y @example/server-filesystem /tmp/work
+  Environment:
+    LOG_LEVEL=debug
+    ROOT=/tmp/work
+
+To remove this server, run: claude mcp remove "filesystem" -s local

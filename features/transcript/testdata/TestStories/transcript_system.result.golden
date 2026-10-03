@@ -1,0 +1,9 @@
+── width 60 ──
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
+[38;2;139;139;147m✻ Churned for 1m 6s[m
+── width 100 ──
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
+[38;2;139;139;147m✻ Churned for 1m 6s[m
+── width 160 ──
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
+[38;2;139;139;147m✻ Churned for 1m 6s[m

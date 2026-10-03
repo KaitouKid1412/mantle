@@ -1,0 +1,15 @@
+╭─ MCP tool ───────────────────────────────────────────────────────────────────────────────────────╮
+│   server github (project)                                                                        │
+│   tool   create_issue                                                                            │
+│   {                                                                                              │
+│     "repo": "acme/app",                                                                          │
+│     "title": "Crash on start"                                                                    │
+│   }                                                                                              │
+│                                                                                                  │
+│ Do you want to proceed?                                                                          │
+│ ❯ 1. Yes                                                                                         │
+│   2. Yes, and switch to auto mode                                                                │
+│   3. No, and tell Claude what to do differently                                                  │
+│   4. No, and stop                                                                                │
+│ esc to deny · tab to amend · shift+tab to change mode                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

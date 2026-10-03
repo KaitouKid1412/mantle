@@ -1,0 +1,10 @@
+╭─ API key detected ───────────────────────────────────────╮
+│ ANTHROPIC_API_KEY is set in your environment:            │
+│   sk-ant-…ABCDEFGHIJKLMNOPQRST                           │
+│                                                          │
+│ Should Claude Code use this key? If not, it uses your    │
+│ Claude login.                                            │
+│                                                          │
+│   1. Yes, use this key                                   │
+│ ❯ 2. No, don't use it                                    │
+╰──────────────────────────────────────────────────────────╯

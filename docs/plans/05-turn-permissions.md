@@ -116,7 +116,7 @@ Everything that decides *whether* and *how* Claude proceeds:
 
 ## Part A: start immediately (pure packages, no `pkg/ext` until `contracts-v1`)
 
-- [ ] **A1 Gates (`features/turn/gates`).**
+- [x] **A1 Gates (`features/turn/gates`).**
   - `TrustState(cwd)`: read `~/.claude.json` (read-only, tolerant), mantle's trust store,
     parent-directory rule (per S10; default: exact path or a trusted ancestor if Claude
     Code does that).
@@ -126,7 +126,7 @@ Everything that decides *whether* and *how* Claude proceeds:
   - `BypassWarningNeeded(flags, settings)`.
   - What the trust dialog lists: project allow rules, hooks, env, helpers, additional
     directories, MCP servers. Collect these for the dialog view-model.
-- [ ] **A2 Dialog view-models (`features/turn/dialogs`), pure state plus key handling:**
+- [x] **A2 Dialog view-models (`features/turn/dialogs`), pure state plus key handling:**
   - **Permission prompt.** Options computed from `permission_suggestions` with readable
     labels (rule text such as `Bash(npm test:*)`, directories, mode). Deny with a feedback
     text field. Amend mode (edit tool input JSON or command). A `default_to_no` highlight.
@@ -143,12 +143,37 @@ Everything that decides *whether* and *how* Claude proceeds:
   - **Elicitation forms.** A JSON-schema subset (string, number, boolean, enum, required);
     URL mode (open the browser, confirm).
   - **Trust, `.mcp.json` approval and bypass-warning** view-models.
-- [ ] **A3 Mode-cycle function** `Next(mode, availability) Mode` and indicator text, with
+- [x] **A3 Mode-cycle function** `Next(mode, availability) Mode` and indicator text, with
   table tests.
-- [ ] **A4 Tests:** key-flow tests for each view-model (keys in, response JSON out),
+- [x] **A4 Tests:** key-flow tests for each view-model (keys in, response JSON out),
   including Esc → deny, tab amend, "don't ask again" mapping, multi-question answers;
   gate tests with a temp HOME (trusted, untrusted, parent-trusted, malformed
   `~/.claude.json`).
+
+### Part A notes (done)
+
+- Packages: `features/turn/mode` (A3), `features/turn/gates` (A1),
+  `features/turn/dialogs` (A2). All pure apart from file reads and mantle's own stores.
+- Trust store: `~/.mantle/trust.json` (the path in `00-overview.md` and plan 10's layout).
+  Other one-time answers (bypass warning, auto-mode prompt, API key as a SHA-256 hash) live
+  in `~/.mantle/state/gates.json`. `~/.claude.json` is only ever read.
+- Trust lookup, verified against the 2.1.288 binary: the project key (repository root; the
+  main worktree's root for a linked worktree; else cwd), then every directory from cwd up
+  to the repository root (or up to `/` outside a repository). Logical and symlink-resolved
+  paths are both tried. Home-directory trust is session-only. `CLAUDE_CODE_SANDBOXED`
+  counts as trusted, as in Claude Code. Spike S10 can still refine this.
+- `.mcp.json` files are read from cwd up to `/` (nearest wins). Decisions: disabled list →
+  rejected; enabled list or `enableAllProjectMcpServers` → approved; else pending. Lists
+  merge across every settings scope plus the legacy per-project entries in `~/.claude.json`.
+  `Report.Resolve` folds the user's own `--settings` with `disabledMcpjsonServers`.
+- `skipDangerousModePermissionPrompt` / `skipAutoPermissionPrompt` are honoured only from
+  user, flag and policy settings, so a repository can't silence the warnings for itself.
+- The API-key gate drops `ANTHROPIC_API_KEY` from the engine environment when rejected.
+- Dialog view-models take keys (`HandleKey`) or Claude Code action IDs (`Action`:
+  `confirm:*`, `select:*`, `tabs:*`), return an `Effect` (`Answered`, `CycleMode`,
+  `EditExternal`, `OpenURL`) and render through a `Styles` value (plain for goldens).
+  Responses marshal to the exact wire JSON; `permission_suggestions` are echoed byte for
+  byte. Goldens: `features/turn/dialogs/testdata/TestGolden/*` at 60 and 100 columns.
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
