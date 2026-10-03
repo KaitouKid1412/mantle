@@ -62,6 +62,7 @@ type engineState struct {
 	tasks   int    // running background tasks (not ambient ones)
 	session string // last session id seen
 	confirm map[string]time.Time
+	usage   *usage
 }
 
 func newFeature(l sessions.Layout, cachePath string) *feature {
@@ -101,12 +102,19 @@ func (f *feature) setup(r ext.Registrar) error {
 
 	ext.Subscribe(r, "sessions.engine-events", f.onEngineEvent)
 	ext.Subscribe(r, "sessions.session-changed", f.onSessionChanged)
+	ext.Subscribe(r, "sessions.context-usage", f.onContextUsage)
+	r.AddComponent(ext.SlotBelowInput, &contextWarning{f: f}, ext.SlotOpts{Weight: 900, MaxHeight: 1})
 	r.OnStart("sessions.startup-history", f.startupHistory)
 	return nil
 }
 
 // onEngineEvent tracks engine state and reacts to session-level events.
 func (f *feature) onEngineEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
+	measure := f.observeUsage(ctx, m.EngineID, m.Event)
+	return tea.Batch(measure, f.onSessionEvent(ctx, m))
+}
+
+func (f *feature) onSessionEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	st := f.engine(m.EngineID)
 	switch e := m.Event.(type) {
 	case *proto.SessionStateChanged:

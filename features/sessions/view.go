@@ -36,6 +36,9 @@ func pad(s string, width int) string {
 	return s
 }
 
+// visibleWidth is the width of a styled string in cells.
+func visibleWidth(s string) int { return ansi.StringWidth(s) }
+
 // oneLine collapses whitespace runs (newlines included) to single spaces.
 func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
