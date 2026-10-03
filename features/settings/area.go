@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -27,6 +28,10 @@ type area struct {
 	// mantleSpecs are the SettingSpecs this area registers, for /config's mantle
 	// section (the host does not list other features' specs yet).
 	mantleSpecs []ext.SettingSpec
+
+	// autoModeDefaults lists the auto-mode classifier's built-in rules through plan 09's
+	// safe claude runner; nil until that package is available on this branch.
+	autoModeDefaults func(context.Context) (AutoModeRules, error)
 
 	// endPreviewPending: a confirmed /theme preview waits for the settings reload.
 	endPreviewPending bool

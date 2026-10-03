@@ -12,6 +12,7 @@ type Env struct {
 	Home        string // $HOME
 	ConfigDir   string // $CLAUDE_CONFIG_DIR, or "" for the default ~/.claude
 	ProjectRoot string // project directory holding .claude/
+	Managed     string // managed settings file; "" = the OS default
 }
 
 // ClaudeDir is the directory holding user settings, keybindings, themes, etc.

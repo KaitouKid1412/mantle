@@ -35,7 +35,10 @@ func ReadScope(env patch.Env, scope patch.Scope) Source {
 	var path string
 	switch scope {
 	case patch.Policy:
-		path = ManagedPath(runtime.GOOS)
+		path = env.Managed
+		if path == "" {
+			path = ManagedPath(runtime.GOOS)
+		}
 	case patch.User:
 		path = filepath.Join(env.ClaudeDir(), "settings.json")
 	case patch.Project, patch.Local:
