@@ -3,26 +3,37 @@
 package model
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
+
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
-// Info mirrors the engine's ModelInfo (initialize.models and list_models). It is written
-// against the protocol notes; pkg/proto.ModelInfo replaces it once proto-v1 lands, with
-// the same JSON names.
-type Info struct {
-	Value                    string   `json:"value"`
-	ResolvedModel            string   `json:"resolvedModel,omitempty"`
-	DisplayName              string   `json:"displayName"`
-	Description              string   `json:"description"`
-	SupportsEffort           bool     `json:"supportsEffort,omitempty"`
-	SupportedEffortLevels    []string `json:"supportedEffortLevels,omitempty"`
-	SupportsAdaptiveThinking bool     `json:"supportsAdaptiveThinking,omitempty"`
-	SupportsFastMode         bool     `json:"supportsFastMode,omitempty"`
-	SupportsAutoMode         bool     `json:"supportsAutoMode,omitempty"`
-	// Disabled is set on entries of unavailable_models: visible but not selectable. The
-	// reason is folded into Description by the engine.
-	Disabled bool `json:"disabled,omitempty"`
+// Info is the engine's ModelInfo (initialize.models, list_models) with the picker's
+// helper methods. It converts freely to and from proto.ModelInfo.
+type Info proto.ModelInfo
+
+// FromProto converts the engine's model list.
+func FromProto(ms []proto.ModelInfo) []Info {
+	out := make([]Info, len(ms))
+	for i, m := range ms {
+		out[i] = Info(m)
+	}
+	return out
+}
+
+// ParseUnavailable decodes initialize.unavailable_models: ModelInfo entries the account
+// can see but not select. Anything unreadable yields no entries.
+func ParseUnavailable(raw json.RawMessage) []Info {
+	if len(raw) == 0 {
+		return nil
+	}
+	var ms []proto.ModelInfo
+	if err := json.Unmarshal(raw, &ms); err != nil {
+		return nil
+	}
+	return FromProto(ms)
 }
 
 // DefaultValue is the picker value that resets the session to the account default.

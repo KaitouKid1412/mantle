@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"github.com/KaitouKid1412/mantle/features/settings/patch"
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
 type initFixture struct {
-	Models      []Info `json:"models"`
-	Unavailable []Info `json:"unavailable_models"`
+	Models      []Info
+	Unavailable []Info
 }
 
 func loadFixture(t *testing.T) initFixture {
@@ -21,11 +22,21 @@ func loadFixture(t *testing.T) initFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var f initFixture
-	if err := json.Unmarshal(b, &f); err != nil {
+	var init proto.InitializeResponse
+	if err := json.Unmarshal(b, &init); err != nil {
 		t.Fatal(err)
 	}
-	return f
+	return initFixture{Models: FromProto(init.Models), Unavailable: ParseUnavailable(init.UnavailableModels)}
+}
+
+func TestParseUnavailable(t *testing.T) {
+	if ParseUnavailable(nil) != nil || ParseUnavailable(json.RawMessage(`{"not":"a list"}`)) != nil {
+		t.Error("bad input should yield nothing")
+	}
+	got := ParseUnavailable(json.RawMessage(`[{"value":"x","displayName":"X","disabled":true}]`))
+	if len(got) != 1 || got[0].Value != "x" {
+		t.Errorf("got %+v", got)
+	}
 }
 
 func settings(t *testing.T, s string) map[string]any {

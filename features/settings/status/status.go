@@ -8,17 +8,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
-// Account mirrors initialize.account.
-type Account struct {
-	Email            string `json:"email,omitempty"`
-	Organization     string `json:"organization,omitempty"`
-	SubscriptionType string `json:"subscriptionType,omitempty"`
-	TokenSource      string `json:"tokenSource,omitempty"`
-	APIKeySource     string `json:"apiKeySource,omitempty"`
-	APIProvider      string `json:"apiProvider,omitempty"`
-}
+// Account is initialize.account.
+type Account = proto.Account
 
 // MCPServer is one entry of system/init mcp_servers or the mcp_status response.
 type MCPServer struct {

@@ -82,7 +82,6 @@ func newRow(m Info, in EffortInputs) Row {
 		Label:       label,
 		Description: m.Description,
 		IsDefault:   m.IsDefault(),
-		Disabled:    m.Disabled,
 		Fast:        m.SupportsFastMode,
 		Auto:        m.SupportsAutoMode,
 	}

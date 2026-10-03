@@ -6,6 +6,8 @@ package help
 import (
 	"sort"
 	"strings"
+
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
 // Source is where a command comes from.
@@ -53,13 +55,7 @@ type Command struct {
 }
 
 // EngineCommand is an entry of initialize.commands / commands_changed.
-type EngineCommand struct {
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	ArgumentHint string   `json:"argumentHint,omitempty"`
-	Aliases      []string `json:"aliases,omitempty"`
-	Builtin      bool     `json:"builtin,omitempty"`
-}
+type EngineCommand = proto.SlashCommand
 
 // Known names the engine-side sets used to classify engine commands.
 type Known struct {
