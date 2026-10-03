@@ -149,7 +149,7 @@ Everything about conversations as objects:
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
-- [ ] **B1 [M1] Normalizer (`features/sessions/normalize.go`).** JSONL records → `ext.Item`s
+- [x] **B1 [M1] Normalizer (`features/sessions/normalize.go`).** JSONL records → `ext.Item`s
   with the same `ContentKey`s plan 03 uses (user.prompt, assistant.text, assistant.thinking,
   tool.<Name> with Result, system.*). Hide meta attachments; nest subagent items.
 - [ ] **B2 [M1] Resume flow.**
