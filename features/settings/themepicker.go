@@ -8,7 +8,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/editor"
 
 	"github.com/KaitouKid1412/mantle/features/settings/themes"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -160,11 +159,7 @@ func (p *themePicker) editCustom(c ext.Ctx) tea.Cmd {
 		return c.Notify(ext.Notice{Key: "settings.theme", Source: "settings",
 			Text: "Highlight a custom theme to edit it. Custom themes live in " + shortHome(p.dir, p.a.env(c).Home) + "."})
 	}
-	cmd, err := editor.Cmd("mantle", path)
-	if err != nil {
-		return c.Notify(ext.Notice{Key: "settings.theme", Level: ext.NoticeError, Source: "settings", Text: err.Error()})
-	}
-	return tea.ExecProcess(cmd, func(err error) tea.Msg { return ext.AddressedMsg{To: themeID, Msg: themeEditedMsg{err}} })
+	return p.a.openEditor(path, func(err error) tea.Msg { return ext.AddressedMsg{To: themeID, Msg: themeEditedMsg{err}} })
 }
 
 func shortHome(p, home string) string {

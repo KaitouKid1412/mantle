@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/KaitouKid1412/mantle/features/settings/patch"
+	"github.com/KaitouKid1412/mantle/features/settings/termsetup"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/ext/exttest"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -95,6 +96,7 @@ type rig struct {
 	dlgID  string
 	closed []ext.DialogClosedMsg
 	msgs   []tea.Msg // every message delivered, in order
+	edited []string  // files opened in the (stubbed) editor
 }
 
 // previews returns the ThemePreviewMsg names delivered so far.
@@ -118,6 +120,14 @@ func newRig(t *testing.T) *rig {
 		g.writes = append(g.writes, p)
 		return env.Path(p.Scope)
 	}
+	g.a.openEditor = func(path string, done func(error) tea.Msg) tea.Cmd {
+		g.edited = append(g.edited, path)
+		return func() tea.Msg { return done(nil) }
+	}
+	g.a.termLoad = func(string, bool) (termsetup.Proposal, error) {
+		return termsetup.Proposal{Status: termsetup.Unsupported, Summary: "stub"}, nil
+	}
+	g.a.termApply = func(string, termsetup.Proposal) (string, error) { return "", nil }
 	g.r = exttest.NewRegistrar()
 	for _, f := range g.a.features() {
 		g.r.Feature = f.ID

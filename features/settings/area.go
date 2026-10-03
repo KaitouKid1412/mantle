@@ -11,6 +11,7 @@ import (
 	"github.com/KaitouKid1412/mantle/features/settings/model"
 	"github.com/KaitouKid1412/mantle/features/settings/patch"
 	"github.com/KaitouKid1412/mantle/features/settings/settingsfile"
+	"github.com/KaitouKid1412/mantle/features/settings/termsetup"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
@@ -36,6 +37,14 @@ type area struct {
 	// endPreviewPending: a confirmed /theme preview waits for the settings reload.
 	endPreviewPending bool
 
+	// openEditor runs $EDITOR on a file (tea.ExecProcess); tests replace it.
+	openEditor func(path string, done func(error) tea.Msg) tea.Cmd
+	// termLoad and termApply run the /terminal-setup installers; tests replace them.
+	termLoad  func(home string, kittyKeyboard bool) (termsetup.Proposal, error)
+	termApply func(home string, p termsetup.Proposal) (string, error)
+	// kittyKeyboard: the terminal confirmed the kitty keyboard protocol.
+	kittyKeyboard bool
+
 	// Session overrides applied with apply_flag_settings (nil/"" = none).
 	sessionEffort    model.Effort
 	sessionUltracode *bool
@@ -55,7 +64,8 @@ type engineState struct {
 }
 
 func newArea() *area {
-	return &area{env: processEnv, write: writeFile}
+	return &area{env: processEnv, write: writeFile, openEditor: defaultOpenEditor,
+		termLoad: defaultTermLoad, termApply: defaultTermApply}
 }
 
 // processEnv reads HOME, CLAUDE_CONFIG_DIR and the session directory.

@@ -186,7 +186,7 @@ and `claude` is seamless.
     print config and don't call the model) through plan 09's safe runner
     `internal/claudecli`. Never build `claude` argv by hand: a stray positional word becomes
     a paid prompt. `critique` does call the model, so it's opt-in.
-- [ ] **B9 [M2] `/keybindings`, `/terminal-setup`, `/vim`.**
+- [x] **B9 [M2] `/keybindings`, `/terminal-setup`, `/vim`.**
   - `/keybindings` opens `~/.claude/keybindings.json` in `$EDITOR`, creating it with the
     `$schema`/`$docs` header and an empty `bindings` array if missing, and offers
     `~/.mantle/keybindings.json` for `mantle:*` actions. The hot reload is plan 01's.

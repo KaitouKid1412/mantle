@@ -37,5 +37,10 @@ func (a *area) features() []ext.Feature {
 			Parity: []string{"ST-21"}, Setup: a.setupOutputStyle},
 		{ID: "settings.permissions", Order: 400, After: []string{"settings.core"},
 			Parity: []string{"ST-22", "ST-23"}, Setup: a.setupPermissions},
+		{ID: "settings.tools", Order: 400, After: []string{"settings.core"},
+			Parity: []string{"ST-24", "ST-25", "ST-26"}, Setup: func(r ext.Registrar) error {
+				a.subscribeEditor(r)
+				return a.setupTools(r)
+			}},
 	}
 }
