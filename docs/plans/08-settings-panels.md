@@ -193,7 +193,7 @@ and `claude` is seamless.
   - `/terminal-setup` runs the A4 installer with a confirmation dialog.
   - `/vim` toggles `editorMode` between `normal` and `vim` (in 2.1.288 it is a "moved to
     /config" stub; mantle keeps it as a convenience).
-- [ ] **B10 [M2] Small commands.**
+- [x] **B10 [M2] Small commands.**
   - ~~`/focus`~~ and ~~`/scroll-speed`~~: dropped from plan 08 by the coordinator
     (2026-10-03). Plan 03 owns `/focus` (VW-10) and plan 12 owns `/scroll-speed` (VW-21);
     registering them here too would make the host report a command conflict.

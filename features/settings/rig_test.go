@@ -174,6 +174,10 @@ func (g *rig) run(cmd tea.Cmd) {
 
 func (g *rig) deliver(msg tea.Msg) { g.run(ext.Msg(msg)) }
 
+// runCmd executes a Cmd without delivering its messages (for messages only the host
+// handles, such as ExitMsg or a dialog another plan registers).
+func runCmd(cmd tea.Cmd) []tea.Msg { return exttest.Exec(cmd) }
+
 func (g *rig) deliverOne(msg tea.Msg) []tea.Msg {
 	g.msgs = append(g.msgs, msg)
 	switch m := msg.(type) {
