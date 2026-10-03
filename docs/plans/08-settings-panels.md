@@ -201,9 +201,10 @@ and `claude` is seamless.
     show a notice.
   - `/advisor [model|off]` and `/autocompact [auto|tokens]`: E passthrough plus a small
     picker when called without arguments.
-  - `/privacy-settings`: H (hand off via plan 06's generic handoff action).
-  - Ownership: PARITY.md CU-08 (`/autocompact`) and CL-24 (`/privacy-settings`) moved to
-    plan 08 by the coordinator (2026-10-03); neither 06's nor 09's plan file listed them.
+  - ~~`/privacy-settings`~~: plan 09 already registers it in its hand-off table
+    (`features/ecosystem/handoff`, CL-24), so plan 08 does not.
+  - Ownership: PARITY.md CU-08 (`/autocompact`) moved to plan 08 by the coordinator
+    (2026-10-03); plan 06's file did not list it.
 - [ ] **B11 [M2] Read-back test harness.** In a temp HOME / `CLAUDE_CONFIG_DIR`, perform
   every write path, then read effective settings back through real `claude` with a
   zero-token `initialize` + `get_settings` (the probe pattern from plan 02). Values must

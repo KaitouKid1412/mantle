@@ -19,10 +19,6 @@ const (
 	dialogAdvisor     = "dialog.advisor"
 	dialogAutocompact = "dialog.autocompact"
 	dialogSandbox     = "dialog.sandbox"
-
-	// dialogHandoff is plan 06's hand-off dialog; its argument is the extra claude
-	// arguments ([]string). See docs/plans/requests/08-06-handoff.md.
-	dialogHandoff = "dialog.handoff"
 )
 
 func (a *area) setupMisc(r ext.Registrar) error {
@@ -52,12 +48,6 @@ func (a *area) setupMisc(r ext.Registrar) error {
 	r.AddDialog(dialogSandbox, a.choiceFactory(dialogSandbox, a.sandboxChoices))
 	r.AddCommand(ext.Command{Name: "sandbox", Description: "Run shell commands in a sandbox",
 		Source: ext.SourceBuiltin, Run: func(c ext.Ctx, _ string) tea.Cmd { return c.OpenDialog(dialogSandbox, nil) }})
-
-	// /privacy-settings: the real claude shows it.
-	r.AddCommand(ext.Command{Name: "privacy-settings", Description: "Review privacy settings (opens Claude Code)",
-		Source: ext.SourceBuiltin, Run: func(c ext.Ctx, _ string) tea.Cmd {
-			return c.OpenDialog(dialogHandoff, []string{"/privacy-settings"})
-		}})
 
 	// /restart: the launcher restarts mantle (and resumes the session) on exit 75.
 	r.AddCommand(ext.Command{Name: "restart", Description: "Restart mantle and Claude Code, keeping this session",

@@ -43,6 +43,6 @@ func (a *area) features() []ext.Feature {
 				return a.setupTools(r)
 			}},
 		{ID: "settings.misc", Order: 400, After: []string{"settings.model"},
-			Parity: []string{"ST-27", "ST-31", "ST-32", "CU-08", "CL-24"}, Setup: a.setupMisc},
+			Parity: []string{"ST-27", "ST-31", "ST-32", "CU-08"}, Setup: a.setupMisc},
 	}
 }

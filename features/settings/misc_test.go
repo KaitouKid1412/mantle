@@ -74,14 +74,8 @@ func TestSandbox(t *testing.T) {
 	}
 }
 
-func TestPrivacyHandoffAndRestart(t *testing.T) {
+func TestRestart(t *testing.T) {
 	g := newRig(t)
-	// dialog.handoff is plan 06's; the rig only records that it was asked for.
-	cmd, _ := g.r.Command("privacy-settings")
-	msgs := runCmd(cmd.Run(g.c, ""))
-	if len(g.c.Opened) == 0 || g.c.Opened[0] != dialogHandoff || !reflect.DeepEqual(g.c.args[dialogHandoff], []string{"/privacy-settings"}) {
-		t.Errorf("handoff %v %v (%v)", g.c.Opened, g.c.args, msgs)
-	}
 	restart, _ := g.r.Command("restart")
 	var exit *ext.ExitMsg
 	for _, m := range runCmd(restart.Run(g.c, "")) {
