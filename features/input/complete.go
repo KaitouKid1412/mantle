@@ -2,6 +2,8 @@ package input
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +25,7 @@ const (
 	compArgs
 	compFile
 	compEmoji
+	compPath // local paths in ! mode
 )
 
 // Menu limits.
@@ -88,9 +91,12 @@ func (m *completion) update(c ext.Ctx, s *state) tea.Cmd {
 		return nil
 	}
 	m.dismissed = ""
-	if s.mode != modePrompt || s.ed.InAttachments() {
+	if s.ed.InAttachments() {
 		m.close()
 		return nil
+	}
+	if s.mode == modeBash {
+		return m.bash(s)
 	}
 	if tok == "" || !s.ed.TokenAtWordStart(start) {
 		return m.args(c, s)
@@ -320,6 +326,94 @@ func (m *completion) fileResults(c ext.Ctx, s *state, res ext.ControlResultMsg) 
 	return nil
 }
 
+// ---- ! mode ----
+
+// bash completes "!" commands: local paths for a path-like token, else the
+// newest earlier command that starts with the typed text, as ghost text.
+func (m *completion) bash(s *state) tea.Cmd {
+	tok, start := s.ed.TokenBeforeCursor()
+	if looksLikePath(tok) {
+		if items := pathItems(s.cwd, tok); len(items) > 0 {
+			m.kind, m.items, m.start, m.sel = compPath, items, start, 0
+			return nil
+		}
+	}
+	m.close()
+	if s.ed.LineCount() == 1 && s.ed.AtEnd() {
+		typed := s.ed.Line(0)
+		if cmd := s.bashHistoryMatch(typed); cmd != "" {
+			s.ed.SetGhost(cmd[len(typed):])
+		}
+	}
+	return nil
+}
+
+// bashHistoryMatch is the newest "!" command in this project that extends
+// typed.
+func (s *state) bashHistoryMatch(typed string) string {
+	if typed == "" {
+		return ""
+	}
+	for i := len(s.histAll) - 1; i >= 0; i-- {
+		e := s.histAll[i]
+		if e.Project != s.cwd || !strings.HasPrefix(e.Display, "!") || strings.Contains(e.Display, "\n") {
+			continue
+		}
+		if cmd := e.Display[1:]; len(cmd) > len(typed) && strings.HasPrefix(cmd, typed) {
+			return cmd
+		}
+	}
+	return ""
+}
+
+func looksLikePath(tok string) bool {
+	return strings.Contains(tok, "/") || strings.HasPrefix(tok, ".") || strings.HasPrefix(tok, "~")
+}
+
+// pathItems lists directory entries completing tok (relative to cwd).
+func pathItems(cwd, tok string) []compItem {
+	dirPart, base := filepath.Split(tok)
+	dir := dirPart
+	switch {
+	case strings.HasPrefix(dir, "~/") || dir == "~":
+		if home, err := os.UserHomeDir(); err == nil {
+			dir = filepath.Join(home, strings.TrimPrefix(dir, "~"))
+		}
+	case dir == "":
+		dir = cwd
+	case !filepath.IsAbs(dir):
+		dir = filepath.Join(cwd, dir)
+	}
+	if tok == "~" {
+		return []compItem{{value: "~/", label: "~/", dir: true}}
+	}
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var out []compItem
+	for _, e := range ents {
+		name := e.Name()
+		if !strings.HasPrefix(name, base) || (strings.HasPrefix(name, ".") && !strings.HasPrefix(base, ".")) {
+			continue
+		}
+		it := compItem{value: dirPart + name, label: name}
+		if e.IsDir() {
+			it.value += "/"
+			it.label += "/"
+			it.dir = true
+		}
+		out = append(out, it)
+		if len(out) >= maxItems {
+			break
+		}
+	}
+	if len(out) == 1 && out[0].value == tok {
+		return nil // already complete
+	}
+	return out
+}
+
 // ---- accepting ----
 
 // accept inserts the selected item. When submitting, a command gets no
@@ -348,6 +442,11 @@ func (m *completion) accept(c ext.Ctx, s *state, submitting bool) tea.Cmd {
 		}
 	case compEmoji:
 		text = it.value
+	case compPath:
+		text = it.value
+		if !it.dir {
+			text += " "
+		}
 	}
 	s.ed.ReplaceBeforeCursor(m.start, text)
 	m.close()

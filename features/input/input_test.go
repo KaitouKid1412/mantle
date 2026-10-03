@@ -420,6 +420,33 @@ func TestPrefill(t *testing.T) {
 	}
 }
 
+func TestBashCompletions(t *testing.T) {
+	r := newRig(t, nil)
+	dir := t.TempDir()
+	os.Mkdir(dir+"/src", 0o700)
+	os.WriteFile(dir+"/server.go", nil, 0o600)
+	os.WriteFile(dir+"/.hidden", nil, 0o600)
+	r.s.cwd = dir
+	r.s.histAll = []history.Entry{{Display: "!go test ./...", Project: dir}, {Display: "!git status", Project: dir}}
+	r.keys("'!'", "'go t'")
+	if r.s.ed.Ghost() != "est ./..." {
+		t.Fatalf("history ghost %q", r.s.ed.Ghost())
+	}
+	r.keys("tab")
+	if r.text() != "go test ./..." {
+		t.Fatalf("tab accepts: %q", r.text())
+	}
+	r.s.ed.Clear()
+	r.keys("'cat ./s'")
+	if r.s.comp.kind != compPath || len(r.s.comp.items) != 2 {
+		t.Fatalf("path items %+v", r.s.comp.items)
+	}
+	r.keys("tab")
+	if r.text() != "cat ./server.go " && r.text() != "cat ./src/" {
+		t.Fatalf("path accept: %q", r.text())
+	}
+}
+
 func TestInvisibleCharactersNeedSecondEnter(t *testing.T) {
 	r := newRig(t, nil)
 	r.s.ed.SetValue("hi​there")
