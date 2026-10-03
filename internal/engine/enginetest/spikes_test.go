@@ -236,7 +236,10 @@ func TestSpikeS9S10S11ProjectConfig(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r.Rec.WaitFor(t, func(m tea.Msg) bool { x, ok := m.(ext.ControlResultMsg); return ok && x.EngineID == id && x.Subtype == proto.SubInitialize })
+		r.Rec.WaitFor(t, func(m tea.Msg) bool {
+			x, ok := m.(ext.ControlResultMsg)
+			return ok && x.EngineID == id && x.Subtype == proto.SubInitialize
+		})
 		time.Sleep(500 * time.Millisecond)
 		var st proto.MCPStatusResponse
 		_ = json.Unmarshal(control(t, e, proto.MCPStatusRequest{}), &st)
