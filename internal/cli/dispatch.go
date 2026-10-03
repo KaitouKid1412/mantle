@@ -15,7 +15,7 @@ import (
 // mantle-ui's own developer commands (story, catalog, selftest) must be matched before
 // calling Dispatch, or they become a prompt just as `claude story` would.
 func Dispatch(ctx context.Context, argv []string, stdout, stderr io.Writer) (p Parsed, done bool, code int) {
-	p, err := Parse(argv)
+	p, err := ParseWith(argv, TableWithLearnt(DriftStatePath()))
 	if err != nil {
 		fmt.Fprintf(stderr, "mantle: %v\n", err)
 		return p, true, ExitUsage
