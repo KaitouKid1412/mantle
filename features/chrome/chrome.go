@@ -116,11 +116,7 @@ func init() {
 			tc := newTerminal(terminal.OS())
 			r.AddComponent(ext.SlotStatus, tc, ext.SlotOpts{Weight: 1000})
 			r.AddInterceptor("chrome.activity", -1000, tc.intercept)
-			r.AddAction(ext.Action{
-				ID: ext.ActAppRedraw, Context: ext.ContextGlobal,
-				Description: "Redraw the screen",
-				Run:         func(ctx ext.Ctx) (bool, tea.Cmd) { return true, ctx.Reprint() },
-			})
+			// app:redraw is the host's (core); chrome adds the clear-screen action.
 			r.AddAction(ext.Action{
 				ID: ext.ActChatClearScreen, Context: ext.ContextChat,
 				Description: "Clear the screen",

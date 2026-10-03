@@ -5,10 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/sessions"
 	"github.com/KaitouKid1412/mantle/internal/term/statusline"
 	"github.com/KaitouKid1412/mantle/internal/term/terminal"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -252,25 +254,35 @@ func modelDisplayName(id string) string {
 	return name
 }
 
-// transcriptPath is Claude Code's JSONL path for a session:
-// <config>/projects/<cwd with every non-alphanumeric character replaced by '-'>/<id>.jsonl.
-// TODO(07): after integration use plan 06's helpers (sessions.DefaultLayout,
-// sessions.SessionFile(l.ProjectDir(sessions.CanonicalPath(cwd)), id)); this local slug
-// differs for non-BMP characters and paths over 200 characters.
+// transcriptPath is the engine's JSONL path for a session, from plan 06's layout
+// (CLAUDE_CONFIG_DIR, CLAUDE_CODE_PROJECT_DIR_NAME, the engine's slug with its
+// long-path hashing, symlinks resolved). configDir, when set, overrides the config dir.
 func transcriptPath(configDir, projectDir, sessionID string) string {
 	if sessionID == "" || projectDir == "" {
 		return ""
 	}
-	if configDir == "" {
-		configDir = claudeConfigDir(terminal.OS())
+	l := sessions.DefaultLayout()
+	if configDir != "" {
+		l = sessions.Layout{ConfigDir: configDir}
 	}
-	slug := strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
-			return r
-		}
-		return '-'
-	}, projectDir)
-	return filepath.Join(configDir, "projects", slug, sessionID+".jsonl")
+	return sessions.SessionFile(l.ProjectDir(canonicalPath(projectDir)), sessionID)
+}
+
+var (
+	canonMu    sync.Mutex
+	canonCache = map[string]string{}
+)
+
+// canonicalPath memoises sessions.CanonicalPath (it resolves symlinks on disk).
+func canonicalPath(p string) string {
+	canonMu.Lock()
+	defer canonMu.Unlock()
+	c, ok := canonCache[p]
+	if !ok {
+		c = sessions.CanonicalPath(p)
+		canonCache[p] = c
+	}
+	return c
 }
 
 func claudeConfigDir(env terminal.Env) string {

@@ -180,8 +180,8 @@ Notes:
   `total_cost_usd` takes the latest `result.total_cost_usd`; line counts come from
   Edit/Write `structuredPatch`. Hook gates: with `disableAllHooks` (outside managed
   settings) or managed `allowManagedHooksOnly`, only a managed `statusLine` runs.
-  After integration, switch `transcript_path` to plan 06's `sessions.SessionFile` /
-  `sessions.Slug` (the local slug differs for non-BMP characters and paths > 200 chars).
+  `transcript_path` uses plan 06's `sessions.DefaultLayout` / `SessionFile` (the engine's
+  slug, long-path hashing, symlinks resolved).
 - Title/progress: `chrome.terminal` implements `ext.TerminalStater`. Progress is only
   sent to terminals that render OSC 9;4; `requires_action` shows the paused state; an
   error stays until the next turn or until the user types.
@@ -189,9 +189,9 @@ Notes:
   Footer navigation: `mantle:footerSelect` focuses the rows (plan 04's editor runs it
   when ↓ has no newer history); up/down, enter opens `dialog.subagentTranscript`, x
   stops (`stop_task`) or dismisses a finished row, esc returns to the prompt. The
-  transcript view draws the transcript store's items nested under the subagent's tool
-  call; after integration add plan 06's subagent JSONL as a fallback for resumed
-  sessions. `subagentStatusLine` runs once per change for all rows (see Part A notes).
+  transcript view draws the transcript store's items under the subagent's tool call,
+  deeper levels indented; on resume plan 06's normalizer nests the subagent JSONL there,
+  so no separate read is needed. `subagentStatusLine` runs once per change for all rows.
 - `/tasks` (B7) lists background work from `background_tasks_changed` plus
   backgrounded subagents; enter polls `get_task_output` every second; x stops.
 - Notifications (B9): spike S4 isn't recorded yet. In `-p` the engine drops hook
@@ -204,13 +204,18 @@ Notes:
 - Release notes (B11): the first run only records the engine version; after an upgrade
   a short "what's new" block (≤ 3 versions, ≤ 6 items each) is printed once.
 - Suspend (B12): the host returns `tea.Suspend` on ctrl+z (contracts-v1.1) and Bubble
-  Tea repaints the live area on resume, so no `Reprint` is needed; `app:redraw` reprints,
-  `chat:clearScreen` (cmd+k) clears the screen. ctrl+l stays `chat:clearInput` (plan 04).
+  Tea repaints the live area on resume, so no `Reprint` is needed. `app:redraw` is the
+  host core's; chrome registers `chat:clearScreen` (cmd+k). ctrl+l stays
+  `chat:clearInput` (plan 04).
 - Screen reader (B13): with `Ctx.Accessibility().ScreenReader` every chrome component
   renders plain text with no box drawing, rules, glyph art or colour
   (`TestScreenReaderStories`); chrome has no animation. The layout switch is the host's.
-- vt tests use `internal/testkit`; under `-race` its shutdown has a data race in the
-  harness itself (reported to plan 01), not in chrome.
+- vt tests use `internal/testkit`; its shutdown race under `-race` is fixed by plan 01
+  (commit 5224567, next integration tag).
+- Integration check (integration-1, every feature in one host): the only report is
+  `chrome.promptFrame: input.editor: wrap: no such ID`, because plan 04's `input.editor`
+  isn't wired yet. It clears once plan 04 lands; plan 04 agreed to send
+  `ext.EditorStateMsg` and to run `mantle:footerSelect` on ↓ with no newer history.
 
 - [x] **B1 [M1] Prompt frame.** The box around the input (slot `input` frame, owned
   together with plan 04's editor component): border colour per mode (bash mode border,
