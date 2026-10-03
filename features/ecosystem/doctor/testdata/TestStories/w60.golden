@@ -10,7 +10,7 @@
 
   [1;38;2;230;227;222mMore[m
     [38;2;230;227;222mRun Claude Code's installation check[m  [38;2;139;139;147mclaude doctor[m
-  [38;2;139;139;147m  Ask Claude to diagnose[m
+  [38;2;139;139;147m  Ask Claude to diagnose · runs the /doctor skill[m
     [38;2;230;227;222mUpdate Claude Code[m  [38;2;139;139;147mclaude update[m
     [38;2;230;227;222mRun the checks again[m
 

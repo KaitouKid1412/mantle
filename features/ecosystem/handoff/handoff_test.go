@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/KaitouKid1412/mantle/features/ecosystem/internal/ecotest"
 	"github.com/KaitouKid1412/mantle/internal/testkit"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -42,38 +40,34 @@ func TestRegistration(t *testing.T) {
 	}
 }
 
-func handoffCtx(t *testing.T) (*exttest.Ctx, *ecotest.Engine, *[]string) {
+func handoffCtx(t *testing.T) (*ecotest.Ctx, *ecotest.Engine) {
 	ecotest.ResetState(t)
 	eng := ecotest.NewEngine()
-	ctx := ecotest.NewCtx(eng, "/work")
-	var handed []string
-	ctx.CommandList = append(ctx.CommandList, ext.Command{Name: "handoff", Hidden: true,
-		Run: func(c ext.Ctx, args string) tea.Cmd { handed = append(handed, args); return nil }})
-	return ctx, eng, &handed
+	return ecotest.NewCtx(eng, "/work"), eng
 }
 
 func TestHandOffUnlessEngineAcceptsIt(t *testing.T) {
-	ctx, eng, handed := handoffCtx(t)
+	ctx, eng := handoffCtx(t)
 	Run("teleport")(ctx, "  abc123 ")
-	if !reflect.DeepEqual(*handed, []string{"/teleport abc123"}) || len(eng.Sent) != 0 {
-		t.Fatalf("handed=%q sent=%q", *handed, eng.Sent)
+	if !reflect.DeepEqual(ctx.Handoffs(), []string{"/teleport abc123"}) || len(eng.Sent) != 0 {
+		t.Fatalf("handed=%q sent=%q", ctx.Handoffs(), eng.Sent)
 	}
 	// The engine lists usage-credits as headless-capable: pass it through.
 	ecotest.Observe(&proto.SystemInit{SlashCommands: []string{"usage-credits"}})
 	Run("usage-credits")(ctx, "")
-	if !reflect.DeepEqual(eng.Sent, []string{"/usage-credits"}) || len(*handed) != 1 {
-		t.Fatalf("sent=%q handed=%q", eng.Sent, *handed)
+	if !reflect.DeepEqual(eng.Sent, []string{"/usage-credits"}) || len(ctx.Handoffs()) != 1 {
+		t.Fatalf("sent=%q handed=%q", eng.Sent, ctx.Handoffs())
 	}
 	// commands_changed replaces the list.
 	ecotest.Observe(&proto.CommandsChanged{Commands: []proto.SlashCommand{{Name: "stop"}}})
 	Run("usage-credits")(ctx, "")
-	if len(*handed) != 2 {
-		t.Errorf("after commands_changed usage-credits should hand off: %q", *handed)
+	if len(ctx.Handoffs()) != 2 {
+		t.Errorf("after commands_changed usage-credits should hand off: %q", ctx.Handoffs())
 	}
 }
 
 func TestGap(t *testing.T) {
-	ctx, eng, _ := handoffCtx(t)
+	ctx, eng := handoffCtx(t)
 	gap(Gaps[0])(ctx, "")
 	if len(ctx.Notices) != 1 || !strings.Contains(ctx.Notices[0].Text, "speech-to-text") {
 		t.Fatalf("notices = %+v", ctx.Notices)
@@ -86,7 +80,7 @@ func TestGap(t *testing.T) {
 }
 
 func TestUpgrade(t *testing.T) {
-	ctx, eng, handed := handoffCtx(t)
+	ctx, eng := handoffCtx(t)
 	x := ecotest.Capture(t)
 	d, _ := NewUpgradeDialog(ctx, nil)
 	ecotest.Press(t, ctx, d, "enter")
@@ -99,8 +93,8 @@ func TestUpgrade(t *testing.T) {
 
 	d, _ = NewUpgradeDialog(ctx, nil)
 	ecotest.Press(t, ctx, d, "2")
-	if !reflect.DeepEqual(*handed, []string{"/upgrade"}) || !d.Closed() {
-		t.Errorf("plan upgrade: handed=%q closed=%v", *handed, d.Closed())
+	if !reflect.DeepEqual(ctx.Handoffs(), []string{"/upgrade"}) || !d.Closed() {
+		t.Errorf("plan upgrade: handed=%q closed=%v", ctx.Handoffs(), d.Closed())
 	}
 }
 
