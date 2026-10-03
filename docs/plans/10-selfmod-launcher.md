@@ -98,7 +98,7 @@ Build the part of mantle that makes it mantle:
 `claude` version it was tested with, and the pipeline report summary.
 
 ## Part A: start immediately (no other session needed)
-- [ ] **A1 `internal/launcher`: the supervisor.** Standard library only.
+- [x] **A1 `internal/launcher`: the supervisor.** Standard library only.
   - Save termios (`syscall` ioctl `TIOCGETA` on darwin, `TCGETS` on linux) and start
     `current/mantle-ui` with inherited stdio in the **same process group**. Wait for it.
   - Forward SIGTERM and SIGHUP. Ignore SIGINT in the launcher (the UI reads ctrl+c as a
@@ -106,20 +106,20 @@ Build the part of mantle that makes it mantle:
   - On a non-zero, non-75 exit: restore termios, write the reset sequences, kill the engine
     process group from the run file, print a short notice with the log path.
   - Tests use a fake child binary built in `TestMain`.
-- [ ] **A2 Version store.**
+- [x] **A2 Version store.**
   - Install a build into `versions/<id>/` (write to a temp dir, then rename); write the
     manifest.
   - Flip `current` and `last-good` atomically.
   - List versions.
   - GC: keep the last 10, plus any version referenced by a live run file (pid alive).
-- [ ] **A3 Probation and rollback** (a pure state machine plus files in `state/`).
+- [x] **A3 Probation and rollback** (a pure state machine plus files in `state/`).
   - A newly promoted build is on probation until mantle-ui writes
     `state/healthy-<build-id>`. That happens after the first frame, engine initialized and
     20 s alive, or on a clean exit 0.
   - Two failed probation launches: flip `current` to `last-good`, print a notice, relaunch
     with `--resume <session-id>` from the run file.
   - Exit 75: re-read `current` and relaunch with the run file's handoff args.
-- [ ] **A4 `cmd/mantle` main: dispatch.**
+- [x] **A4 `cmd/mantle` main: dispatch.**
   - Launcher commands, matched first: `mantle versions`, `mantle rollback [<id>]`,
     `mantle doctor` (mantle checks, then offer `claude doctor`), `mantle --safe` (run
     `last-good` with `MANTLE_SAFE=1`, so mantle-ui skips `mods/` registrations).
@@ -131,7 +131,7 @@ Build the part of mantle that makes it mantle:
   - Plan 11 owns the canonical flag and subcommand table (`internal/cli`). Keep a small copy
     here (the launcher must stay standard-library-only and is never rebuilt by `/mantle`),
     plus a `_test.go` that imports `internal/cli` and asserts the two lists match.
-- [ ] **A5 `internal/selfmod`: the pipeline runner library.** Steps as functions, each with
+- [x] **A5 `internal/selfmod`: the pipeline runner library.** Steps as functions, each with
   a timeout, a log file under `builds/<id>/` and a structured result:
   1. **Protected-path check:** `git diff --name-only <base>` plus untracked files
      (`git status --porcelain`) against `cmd/mantle/**`, `internal/launcher/**`,
@@ -153,7 +153,7 @@ Build the part of mantle that makes it mantle:
   runner with stub commands now.
   `TrimForBuilder(results)` produces compact failure text (first N errors per step) to feed
   back to the builder.
-- [ ] **A6 Git plumbing** (exec `git`; tests in temp repos):
+- [x] **A6 Git plumbing** (exec `git`; tests in temp repos):
   - worktree add and remove;
   - commit with trailers `Mantle-Mod: <id>`, `Mantle-Request: <one line>`,
     `Mantle-Kind: mod|core-seam`;
@@ -162,7 +162,7 @@ Build the part of mantle that makes it mantle:
   - **Commit-split rule:** files only under `mods/` give one commit with `Mantle-Kind: mod`.
     Files outside `mods/` give a `core-seam` commit for them first, then the `mods/` commit.
     Both carry the same `Mantle-Mod` id.
-- [ ] **A7 Install.**
+- [x] **A7 Install.**
   - `make install`, via `scripts/install.sh`:
     - build the launcher into `~/.mantle/bin/mantle` and symlink `~/.local/bin/mantle`;
     - create or update `~/.mantle/src` (clone the dev repo `~/mantle` as `origin`; create
@@ -173,6 +173,17 @@ Build the part of mantle that makes it mantle:
   - `promote.lock` helper with `syscall.Flock`.
   - Check that `go` exists and print an install hint if not (the MVP requires a Go
     toolchain).
+
+**Part A notes (as built):**
+- The launcher's passthrough list is plan 11's 35 names (hidden root subcommands
+  included); the cross-check test lives in `internal/selfmod/clisync_test.go`, because
+  archtest rule 5 keeps `internal/cli` out of the launcher, even in tests.
+- The launcher also reaps engines from `internal/engine`'s own records
+  (`run/<engine-pid>.json` with `ui_pid`), not only from the UI's run file.
+- Exit 64 (`ext.ExitUsage`) is a usage error: shown, not counted against probation.
+- Protected paths also cover `.claude/**` and `.mcp.json` (they would configure the next
+  builder session).
+- Only the first install sets `last-good`; later builds earn it by passing probation.
 
 ## Part B: after `contracts-v1` and `proto-v1`
 - [ ] **B1 [M1] Builder engine.**

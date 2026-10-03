@@ -18,10 +18,10 @@ PKGS_08 = ./features/settings/...
 PKGS_09 = ./features/ecosystem/... ./internal/claudecli/...
 PKGS_10 = ./cmd/mantle/... ./internal/launcher/... ./internal/selfmod/... \
           ./features/selfmod/... ./mods/...
-PKGS_11 = ./internal/cli/...
+PKGS_11 = ./internal/cli/... ./features/cli/... ./scripts/drift/...
 PKGS_12 = ./features/fullscreen/... ./test/...
 
-.PHONY: build test lint vet archtest parity tags sessions
+.PHONY: build test lint vet archtest parity drift tags sessions install
 
 build:
 	$(GO) build -o bin/ ./cmd/...
@@ -49,6 +49,12 @@ archtest:
 parity:
 	@echo "parity report: not implemented yet (plan 12 / CLAUDE.md rule 9)"
 
+# Compare the installed claude's flags, subcommands, keybindings and settings keys with
+# mantle's tables; writes docs/parity-drift.{md,json}. Exit 1 on unclassified items.
+# DRIFT_ARGS="-offline" uses the cached settings schema; "-accept" moves the baseline.
+drift:
+	$(GO) run ./scripts/drift $(DRIFT_ARGS)
+
 # Contract tags that unblock Part B of the plans.
 tags:
 	@git tag -l 'contracts-v*' 'proto-v*'
@@ -56,3 +62,7 @@ tags:
 # Start the parallel plan sessions as Claude Code background sessions.
 sessions:
 	scripts/start-sessions.sh
+
+# Install the launcher, ~/.mantle/src and a first mantle-ui build (plan 10).
+install:
+	scripts/install.sh

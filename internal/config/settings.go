@@ -19,11 +19,11 @@ import (
 // Snapshot is an immutable view of every settings source, read in one go. Build it off
 // the UI goroutine (Load) and swap it in on the UI goroutine (Store.Apply).
 type Snapshot struct {
-	Sources []ext.SettingsSource       // every scope, highest precedence first
-	Scopes  map[string]map[string]any  // scope → raw document
-	Merged  map[string]any             // Claude Code settings with precedence applied
-	Global  map[string]any             // ~/.claude.json, read-only (nil if unreadable)
-	Mantle  map[string]any             // ~/.mantle/settings.json
+	Sources   []ext.SettingsSource      // every scope, highest precedence first
+	Scopes    map[string]map[string]any // scope → raw document
+	Merged    map[string]any            // Claude Code settings with precedence applied
+	Global    map[string]any            // ~/.claude.json, read-only (nil if unreadable)
+	Mantle    map[string]any            // ~/.mantle/settings.json
 	MantleErr error
 }
 
