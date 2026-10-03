@@ -118,7 +118,7 @@ func (s *state) start(c ext.Ctx) tea.Cmd {
 	s.applyTheme(c.Theme())
 	s.loadStash(c)
 	if st, ok := cli.Current(); ok && st.Prefill != "" {
-		s.ed.SetValue(st.Prefill) // --prefill: shown, not sent
+		s.setText(st.Prefill) // --prefill: shown, not sent
 	}
 	return tea.Batch(s.loadHistory(), s.stateCmd(true))
 }
@@ -246,6 +246,19 @@ func (s *state) restore(d *savedDraft) {
 	if s.mode == "" {
 		s.mode = modePrompt
 	}
+}
+
+// setText replaces the prompt with text from elsewhere (rewind, deep links):
+// undoable, cursor at the end, never submitted. Chip labels in text that
+// match chips in the editor come back as chips.
+func (s *state) setText(text string) {
+	s.search = nil
+	s.help = false
+	s.comp.close()
+	s.mode = modePrompt
+	s.hist.Reset()
+	s.draft = nil
+	s.ed.SetValueWithChips(text, s.ed.Chips())
 }
 
 func (s *state) clearEditor() {
