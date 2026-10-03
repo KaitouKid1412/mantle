@@ -12,7 +12,7 @@ var oneLinerTools = []string{
 	"TaskStop", "TaskOutput", "BashOutput", "KillShell", "KillBash", "Monitor",
 	"EnterWorktree", "ExitWorktree", "SendMessage", "ToolSearch", "ListMcpResources",
 	"ReadMcpResource", "LSP", "CronCreate", "CronDelete", "CronList", "ScheduleWakeup",
-	"RemoteTrigger", "PushNotification", "ListAgents", "SendUserMessage", "SendUserFile",
+	"RemoteTrigger", "PushNotification", "ListAgents", "SendUserFile",
 	"StructuredOutput", "ProposeGoal", "EndConversation", "Workflow", "ReportFindings",
 	"PowerShell", "NotebookRead", "LS",
 }
@@ -67,6 +67,7 @@ func (f *Feature) rendererTable() map[ext.ContentKey]ext.Renderer {
 	for _, name := range oneLinerTools {
 		t[ext.ToolKey(name)] = f.renderOneLiner
 	}
+	t[ext.ToolKey("SendUserMessage")] = f.renderSendUserMessage
 	return t
 }
 

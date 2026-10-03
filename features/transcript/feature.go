@@ -50,6 +50,9 @@ type Feature struct {
 	commit  commitState
 	live    *liveView
 	spinner *spinner
+
+	brief      bool   // brief mode (app:toggleBrief), this session only
+	engineView string // view_mode reported by the engine (/focus toggles it)
 }
 
 // New returns a transcript feature for an engine's events.
@@ -83,11 +86,11 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		return f.reprint(c)
 	})
 	ext.Subscribe(r, "transcript.settings", func(c ext.Ctx, m ext.SettingsMsg) tea.Cmd {
-		old := f.cfg
+		old, oldMode := f.cfg, f.mode()
 		f.cfg = loadConfig(c.Settings())
 		c.Invalidate(LiveID)
 		c.Invalidate(SpinnerID)
-		if old.mode() != f.cfg.mode() || old.maxProse != f.cfg.maxProse || old.noHighlight != f.cfg.noHighlight {
+		if oldMode != f.mode() || old.maxProse != f.cfg.maxProse || old.noHighlight != f.cfg.noHighlight {
 			return c.Reprint()
 		}
 		return nil
@@ -105,6 +108,18 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		c.Invalidate(LiveID)
 		return f.commitReady(c)
 	})
+	r.AddAction(ext.Action{
+		ID: ext.ActAppToggleBrief, Context: ext.ContextGlobal,
+		Description: "Toggle brief mode (only messages addressed to you)",
+		Run: func(c ext.Ctx) (bool, tea.Cmd) {
+			f.brief = !f.brief
+			label := "Brief mode off"
+			if f.brief {
+				label = "Brief mode on"
+			}
+			return true, tea.Batch(c.Notify(ext.Notice{Key: "transcript.brief", Text: label, Source: FeatureID}), c.Reprint())
+		},
+	})
 	f.spinner.setup(r)
 	f.registerStories(r)
 	return nil
@@ -114,8 +129,18 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	if !f.forEngine(m.EngineID) {
 		return nil
 	}
-	if init, ok := m.Event.(*proto.SystemInit); ok && init.CWD != "" {
-		f.cwd = init.CWD
+	var reprint tea.Cmd
+	if init, ok := m.Event.(*proto.SystemInit); ok {
+		if init.CWD != "" {
+			f.cwd = init.CWD
+		}
+		if init.ViewMode != f.engineView {
+			old := f.mode()
+			f.engineView = init.ViewMode
+			if f.mode() != old {
+				reprint = c.Reprint()
+			}
+		}
 	}
 	spin := f.spinner.onEvent(c, m.Event)
 	if n, ok := m.Event.(*proto.Notification); ok && strings.TrimSpace(n.Text) != "" {
@@ -129,9 +154,12 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 		return tea.Batch(spin, c.Reprint())
 	}
 	if !f.store.Apply(m.Event) {
-		return spin
+		return tea.Batch(spin, reprint)
 	}
 	c.Invalidate(LiveID)
+	if reprint != nil {
+		return tea.Batch(spin, reprint)
+	}
 	return tea.Batch(spin, f.commitReady(c))
 }
 
@@ -162,7 +190,7 @@ func (f *Feature) forEngine(id string) bool {
 func (f *Feature) renderCtx(c ext.Ctx, it *ext.Item, width int) ext.RenderCtx {
 	return ext.RenderCtx{
 		Width:    width,
-		Mode:     f.cfg.mode(),
+		Mode:     f.mode(),
 		Theme:    c.Theme(),
 		Now:      c.Clock().Now(),
 		Children: f.store.Children(it.ID),

@@ -14,6 +14,7 @@ import (
 type commitState struct {
 	partialID string // text item at the watermark whose closed blocks are printed
 	partial   int    // how many of its markdown blocks are printed
+	hidden    int    // tool calls skipped by the focus view since the last summary
 }
 
 // commitReady prints every finished item at the watermark into scrollback, plus
@@ -40,10 +41,22 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 	i := f.store.Committed()
 	for i < len(items) {
 		it := items[i]
+		if f.hidden(it) {
+			if !it.State.Finished() {
+				break // keep the order of what follows
+			}
+			if isTool(it) {
+				f.commit.hidden++
+			}
+			f.forget(it.ID)
+			i++
+			continue
+		}
 		if run := f.mcpRun(items, i); run > 1 || (run == 1 && f.mcpHeld(items, i)) {
 			if f.mcpHeld(items, i) || !allFinished(items[i:i+run]) {
 				break
 			}
+			out = f.flushHidden(c, out, w)
 			out = appendItem(out, f.groupLines(c, items[i:i+run], w))
 			for _, g := range items[i : i+run] {
 				f.forget(g.ID)
@@ -52,9 +65,12 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 			continue
 		}
 		if it.State.Finished() {
-			out = appendChunk(out, f.finishLines(c, it, w), f.commit.partialID != it.ID)
+			if lines := f.finishLines(c, it, w); len(lines) > 0 {
+				out = f.flushHidden(c, out, w)
+				out = appendChunk(out, lines, f.commit.partialID != it.ID)
+			}
 			if f.commit.partialID == it.ID {
-				f.commit = commitState{}
+				f.commit.partialID, f.commit.partial = "", 0
 			}
 			f.forget(it.ID)
 			i++
@@ -62,6 +78,7 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 		}
 		if it.Key == ext.KeyAssistantText {
 			if chunk, first := f.progressive(c, it, w); len(chunk) > 0 {
+				out = f.flushHidden(c, out, w)
 				out = appendChunk(out, chunk, first)
 			}
 		}
@@ -80,6 +97,47 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 // line filling the last column loses its last cell when printed above the
 // live frame.
 func printWidth(termWidth int) int { return max(1, termWidth-1) }
+
+// hidden reports whether the view mode leaves an item out: focus shows
+// prompts, answers and a summary of tool use; brief shows prompts, answers and
+// messages sent to the user.
+func (f *Feature) hidden(it *ext.Item) bool {
+	m := f.mode()
+	if m != ext.Focus && m != ext.Brief {
+		return false
+	}
+	switch it.Key {
+	case ext.KeyUserPrompt, ext.KeyUserBash, ext.KeyAssistantText, ext.KeySystemError,
+		ext.KeySystemLocalCommand, ext.KeySystemCompactBoundary, ext.ToolKey("SendUserMessage"):
+		return false
+	case KeyResult:
+		return m == ext.Brief
+	}
+	return true
+}
+
+func isTool(it *ext.Item) bool { return strings.HasPrefix(string(it.Key), "tool.") }
+
+// hiddenSummary is the focus view's stand-in for skipped tool calls.
+func (f *Feature) hiddenSummary(c ext.Ctx, n, w int, running bool) []string {
+	st := stylesFor(ext.RenderCtx{Theme: c.Theme()})
+	verb := "Used "
+	if running {
+		verb = "Using "
+	}
+	return truncLines([]string{st.dim.Render(glyphDot + " " + verb + plural(n, "tool", "tools") + " (ctrl+o to see them)")}, w)
+}
+
+// flushHidden prints the pending focus-view summary before a visible item.
+func (f *Feature) flushHidden(c ext.Ctx, out []string, w int) []string {
+	if f.commit.hidden == 0 || f.mode() != ext.Focus {
+		f.commit.hidden = 0
+		return out
+	}
+	out = appendItem(out, f.hiddenSummary(c, f.commit.hidden, w, false))
+	f.commit.hidden = 0
+	return out
+}
 
 // appendItem adds a whole item's lines with a blank line before it.
 func appendItem(out, lines []string) []string { return appendChunk(out, lines, true) }
@@ -119,7 +177,7 @@ func (f *Feature) progressive(c ext.Ctx, it *ext.Item, w int) (lines []string, f
 		if nclosed == 0 {
 			return nil, false
 		}
-		f.commit = commitState{partialID: it.ID}
+		f.commit.partialID, f.commit.partial = it.ID, 0
 		first = true
 	}
 	if nclosed <= f.commit.partial {
@@ -156,7 +214,7 @@ func allFinished(items []*ext.Item) bool {
 // mcpRun returns the length of the run of calls to the same MCP server that
 // starts at i (0 if items[i] is not an MCP call). Verbose views never group.
 func (f *Feature) mcpRun(items []*ext.Item, i int) int {
-	if f.cfg.mode() == ext.Verbose || !isMCP(items[i]) {
+	if f.mode() == ext.Verbose || !isMCP(items[i]) {
 		return 0
 	}
 	server, _ := mcpNames(items[i], toolUse(items[i]))
@@ -217,8 +275,24 @@ func (f *Feature) reprint(c ext.Ctx) tea.Cmd {
 // item by item (the partly printed text item contributes its remaining blocks).
 func (f *Feature) liveItems(c ext.Ctx, w int) (chunks [][]string, running []bool) {
 	items := f.store.Items()
+	pending, runningTools := f.commit.hidden, false
+	flush := func() {
+		if pending > 0 && f.mode() == ext.Focus {
+			chunks = append(chunks, append([]string{""}, f.hiddenSummary(c, pending, w, runningTools)...))
+			running = append(running, runningTools)
+		}
+		pending, runningTools = 0, false
+	}
+	defer flush()
 	for i := f.store.Committed(); i < len(items); i++ {
 		it := items[i]
+		if f.hidden(it) {
+			if isTool(it) {
+				pending++
+				runningTools = runningTools || !it.State.Finished()
+			}
+			continue
+		}
 		var lines []string
 		newItem := true
 		if it.ID == f.commit.partialID {
@@ -231,6 +305,7 @@ func (f *Feature) liveItems(c ext.Ctx, w int) (chunks [][]string, running []bool
 		if len(lines) == 0 {
 			continue
 		}
+		flush()
 		if newItem {
 			lines = append([]string{""}, lines...)
 		}

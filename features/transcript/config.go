@@ -8,7 +8,6 @@ import (
 type config struct {
 	verbose          bool   // verbose setting / --verbose
 	viewMode         string // viewMode: default | verbose | focus
-	brief            bool   // brief mode (app:toggleBrief)
 	maxProse         int    // maxProseWidth
 	noHighlight      bool   // syntaxHighlightingDisabled
 	showThinking     bool   // showThinkingSummaries
@@ -30,14 +29,20 @@ func defaultConfig() config {
 	return config{showTurnDuration: true, tips: true, verbs: builtinVerbs}
 }
 
-// mode is the RenderCtx view mode the settings select.
-func (c config) mode() ext.ViewMode {
-	switch {
-	case c.brief:
+// mode is the view mode in effect: brief mode, then the engine's view_mode
+// (which /focus toggles), then the verbose and viewMode settings.
+func (f *Feature) mode() ext.ViewMode {
+	if f.brief {
 		return ext.Brief
-	case c.verbose || c.viewMode == "verbose":
+	}
+	vm := f.cfg.viewMode
+	if f.engineView != "" {
+		vm = f.engineView
+	}
+	switch {
+	case f.cfg.verbose || vm == "verbose":
 		return ext.Verbose
-	case c.viewMode == "focus":
+	case vm == "focus":
 		return ext.Focus
 	}
 	return ext.Normal

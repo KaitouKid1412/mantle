@@ -189,7 +189,7 @@ or redraw cost.
 - [x] **B6 [M1] Turn duration and timestamps.** On `result`, a duration line from
   `duration_ms` and the time (`showTurnDuration`, `timeFormat`, `timeZone`); message
   timestamps when `showMessageTimestamps` is on.
-- [ ] **B7 [M2] View modes.** `verbose` setting / `--verbose` (show everything expanded);
+- [x] **B7 [M2] View modes.** `verbose` setting / `--verbose` (show everything expanded);
   `viewMode` default|verbose|focus; `/focus` (prompt, summary and response only); brief
   mode (ctrl+shift+b, `app:toggleBrief`). Each mode is a `RenderCtx.Mode`; switching
   triggers `Reprint`.

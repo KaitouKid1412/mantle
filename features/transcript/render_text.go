@@ -218,10 +218,15 @@ func (f *Feature) textBlocks(rc ext.RenderCtx, it *ext.Item) (blocks [][]string,
 	}
 	s := f.textStream(rc, it.ID, text, it.State.Finished())
 	closed := s.ClosedBlocks()
-	all := append(closed, s.OpenBlocks()...)
+	return prefixBlocks(rc, append(closed, s.OpenBlocks()...)), len(closed)
+}
+
+// prefixBlocks puts the dot on the first line of the first non-empty block, a
+// hanging indent on every other line, and a blank line between blocks.
+func prefixBlocks(rc ext.RenderCtx, all [][]string) [][]string {
 	dot := stylesFor(rc).text.Render(glyphDot) + " "
 	started := false
-	blocks = make([][]string, len(all))
+	blocks := make([][]string, len(all))
 	for i, b := range all {
 		if len(b) == 0 {
 			continue
@@ -243,7 +248,23 @@ func (f *Feature) textBlocks(rc ext.RenderCtx, it *ext.Item) (blocks [][]string,
 		started = true
 		blocks[i] = out
 	}
-	return blocks, len(closed)
+	return blocks
+}
+
+// renderSendUserMessage shows a message the model addressed to the user (brief
+// mode's channel) like assistant text.
+func (f *Feature) renderSendUserMessage(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	var in struct {
+		Message string `json:"message"`
+	}
+	if tu := toolUse(it); tu != nil {
+		decodeInput(tu.Input, &in)
+	}
+	if strings.TrimSpace(in.Message) == "" {
+		return f.renderOneLiner(rc, it)
+	}
+	blocks := render.MarkdownBlocks(in.Message, f.mdOptions(rc, rc.Width-len(dotIndent)))
+	return ext.Block{Lines: flatten(prefixBlocks(rc, blocks))}
 }
 
 func (f *Feature) renderText(rc ext.RenderCtx, it *ext.Item) ext.Block {
