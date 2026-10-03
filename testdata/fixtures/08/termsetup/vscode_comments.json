@@ -1,0 +1,14 @@
+// Key bindings for this machine
+[
+    // palette on a different chord
+    {
+        "key": "ctrl+shift+p",
+        "command": "workbench.action.showCommands", /* inline note */
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "shift+enter",
+        "command": "editor.action.insertLineAfter",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+]
