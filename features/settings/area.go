@@ -24,6 +24,10 @@ type area struct {
 	write func(env patch.Env, p patch.Patch) (string, error)
 
 	engine engineState
+	// mantleSpecs are the SettingSpecs this area registers, for /config's mantle
+	// section (the host does not list other features' specs yet).
+	mantleSpecs []ext.SettingSpec
+
 	// Session overrides applied with apply_flag_settings (nil/"" = none).
 	sessionEffort    model.Effort
 	sessionUltracode *bool
@@ -89,6 +93,12 @@ func (a *area) subscribe(r ext.Registrar) {
 		}
 		return nil
 	})
+}
+
+// addSetting registers a mantle setting and remembers it for /config.
+func (a *area) addSetting(r ext.Registrar, s ext.SettingSpec) {
+	r.AddSetting(s)
+	a.mantleSpecs = append(a.mantleSpecs, s)
 }
 
 func (a *area) resetSession() {

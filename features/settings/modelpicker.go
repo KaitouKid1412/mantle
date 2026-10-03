@@ -23,7 +23,7 @@ const (
 )
 
 func (a *area) setupModel(r ext.Registrar) error {
-	r.AddSetting(ext.SettingSpec{
+	a.addSetting(r, ext.SettingSpec{
 		Key: settingModelSwitchWarning, Type: "bool", Default: true,
 		Description: "Ask before switching models mid-conversation, since the new model re-reads the whole conversation without the prompt cache.",
 	})

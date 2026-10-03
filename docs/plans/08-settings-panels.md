@@ -164,7 +164,7 @@ and `claude` is seamless.
   - `chat:thinkingToggle` (meta+t), locked where thinking can't be disabled.
   - `chat:increaseEffort` / `chat:decreaseEffort`; `chat:defaultToNewerModel` (ctrl+y)
     behaviour per Claude Code.
-- [ ] **B4 [M2] `/config`.**
+- [x] **B4 [M2] `/config`.**
   - Tabs: **Config** (from the A2 table: search with `/`, toggle with space or enter, enums
     cycle), **Status** (B5), **Usage** and **Stats**.
   - Usage and Stats are plan 06's components: look them up by ext ID; don't import
@@ -172,10 +172,10 @@ and `claude` is seamless.
   - A generated **mantle** section from every registered `SettingSpec`.
   - `/config key=value` with an argument is passed straight to the engine (E).
 - [x] **B5 [M2] `/status`** from A3. Refresh MCP state with `mcp_status`.
-- [ ] **B6 [M2] `/theme`.** Picker with live preview (send a theme-preview message the host
+- [x] **B6 [M2] `/theme`.** Picker with live preview (send a theme-preview message the host
   applies; Esc restores the original), ctrl+t syntax-highlighting toggle, ctrl+e opens the
   custom theme file in `$EDITOR` (via `tea.ExecProcess`). Persists `theme`.
-- [ ] **B7 [M2] `/output-style`.** Picker over `available_output_styles` with descriptions;
+- [x] **B7 [M2] `/output-style`.** Picker over `available_output_styles` with descriptions;
   apply with `update_settings` (localSettings), then `reload_output_styles`. `/output-style
   <name>` with an argument goes to the engine (E).
 - [ ] **B8 [M2] `/permissions` (alias `/allowed-tools`).**

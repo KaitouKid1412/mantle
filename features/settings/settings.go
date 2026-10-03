@@ -29,5 +29,11 @@ func (a *area) features() []ext.Feature {
 			Parity: []string{"ST-07", "ST-08", "ST-09", "ST-10", "ST-11"}, Setup: a.setupEffort},
 		{ID: "settings.status", Order: 400, After: []string{"settings.core"},
 			Parity: []string{"ST-18", "ST-30"}, Setup: a.setupStatus},
+		{ID: "settings.config", Order: 400, After: []string{"settings.status"},
+			Parity: []string{"ST-14", "ST-15", "ST-16", "ST-17"}, Setup: a.setupConfig},
+		{ID: "settings.theme", Order: 400, After: []string{"settings.core"},
+			Parity: []string{"ST-19", "ST-20"}, Setup: a.setupTheme},
+		{ID: "settings.outputStyle", Order: 400, After: []string{"settings.core"},
+			Parity: []string{"ST-21"}, Setup: a.setupOutputStyle},
 	}
 }
