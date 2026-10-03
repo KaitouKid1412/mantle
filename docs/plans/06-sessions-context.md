@@ -199,7 +199,7 @@ Everything about conversations as objects:
     (`--resume=<sid> --fork-session --no-session-persistence --tools ""`).
   - Keeps about 20 exchanges of history; shift+left/right history; `c` copy, `f` fork,
     `x` clear.
-- [ ] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
+- [x] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
   supported, else `git diff` plus mantle's own tracking of Edit/Write results per turn.
   Alt-screen viewer with a file list (context `DiffDialog`) using `pkg/ui/diffview`.
 - [x] **B12 [M2] Passthrough commands with native polish.** `/goal [condition|clear]`
