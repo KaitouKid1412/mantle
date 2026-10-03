@@ -163,8 +163,9 @@ func TestPromptFrameColourAndInvalidate(t *testing.T) {
 	if !slices.Contains(ctx.Invalidated, EditorID) {
 		t.Error("mode change must invalidate the editor's ID")
 	}
-	if frameToken("bash", ModePlan) != "bashBorder" || frameToken("prompt", ModePlan) != "planMode" ||
-		frameToken("prompt", ModeDefault) != "promptBorder" {
+	if frameToken("bash", ModePlan, "red") != "bashBorder" || frameToken("prompt", ModePlan, "red") != "planMode" ||
+		frameToken("prompt", ModeDefault, "") != "promptBorder" || frameToken("prompt", ModeDefault, "red") != "red_FOR_SUBAGENTS_ONLY" ||
+		frameToken("prompt", ModeDefault, "mauve") != "promptBorder" {
 		t.Error("frame tokens")
 	}
 }

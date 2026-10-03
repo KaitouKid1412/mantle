@@ -24,9 +24,14 @@ func init() {
 	})
 	ext.Register(ext.Feature{
 		ID: "chrome.promptFrame", Order: order,
-		Parity: []string{"CH-01", "CH-03", "CH-04"},
+		Parity: []string{"CH-01", "CH-02", "CH-03", "CH-04"},
 		Setup: func(r ext.Registrar) error {
 			r.Wrap(EditorID, func(next ext.Component) ext.Component { return wrapFrame(next) })
+			r.AddCommand(ext.Command{
+				Name: "color", ArgHint: "<color|default>", Source: ext.SourceBuiltin,
+				Description: "Set the prompt bar colour for this session",
+				Run:         colorCommand, Complete: colorCompletions,
+			})
 			addStories(r, frameStories())
 			return nil
 		},
