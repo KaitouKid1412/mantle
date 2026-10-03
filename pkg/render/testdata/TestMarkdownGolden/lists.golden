@@ -1,0 +1,71 @@
+── width 40 ──
+- one
+- two
+  - nested a
+  - nested b
+    - deeper
+- three with a long line of text that
+  wraps onto a second line at narrow
+  widths
+
+1. first
+2. second
+   a. sub one
+   b. sub two
+      i. subsub
+3. third
+
+☐ open task
+[38;2;85;187;85m☒[m finished task
+── width 60 ──
+- one
+- two
+  - nested a
+  - nested b
+    - deeper
+- three with a long line of text that wraps onto a second
+  line at narrow widths
+
+1. first
+2. second
+   a. sub one
+   b. sub two
+      i. subsub
+3. third
+
+☐ open task
+[38;2;85;187;85m☒[m finished task
+── width 100 ──
+- one
+- two
+  - nested a
+  - nested b
+    - deeper
+- three with a long line of text that wraps onto a second line at narrow widths
+
+1. first
+2. second
+   a. sub one
+   b. sub two
+      i. subsub
+3. third
+
+☐ open task
+[38;2;85;187;85m☒[m finished task
+── width 160 ──
+- one
+- two
+  - nested a
+  - nested b
+    - deeper
+- three with a long line of text that wraps onto a second line at narrow widths
+
+1. first
+2. second
+   a. sub one
+   b. sub two
+      i. subsub
+3. third
+
+☐ open task
+[38;2;85;187;85m☒[m finished task
