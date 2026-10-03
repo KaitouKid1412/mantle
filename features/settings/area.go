@@ -50,6 +50,10 @@ type area struct {
 	sessionUltracode *bool
 	sessionFast      *bool
 	sessionThinking  *bool
+
+	// newerOffer is the successor offered for the saved default model (ctrl+y).
+	newerOffer      *model.Row
+	newerOfferedFor string
 }
 
 // engineState caches what the main engine reported, for panels that open before a
@@ -111,6 +115,9 @@ func (a *area) subscribe(r ext.Registrar) {
 			return a.controlFailed(c, m)
 		}
 		a.observeControl(m)
+		if m.Subtype == proto.SubInitialize || m.Subtype == proto.SubListModels {
+			return a.offerNewerModel(c)
+		}
 		return nil
 	})
 	ext.Subscribe(r, "settings.engine-events", func(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {

@@ -156,7 +156,7 @@ and `claude` is seamless.
 - [x] **B2 [M1] `/help`.** Native help dialog from A7: commands (native registry plus
   `initialize.commands` plus `commands_changed`) and shortcuts, searchable. (`?` on an empty
   prompt is plan 04's shortcut panel; it may reuse your component by ID.)
-- [ ] **B3 [M2] `/effort`, `/fast` and thinking.**
+- [x] **B3 [M2] `/effort`, `/fast` and thinking.**
   - `/effort` slider with Tab for ultracode, `s` for session only, persisted via
     `update_settings`.
   - `/fast [on|off]` and `chat:fastMode` (meta+o), hidden when the model doesn't support it

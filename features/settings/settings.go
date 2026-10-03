@@ -21,7 +21,7 @@ func (a *area) features() []ext.Feature {
 				return nil
 			}},
 		{ID: "settings.model", Order: 400, After: []string{"settings.core"},
-			Parity: []string{"ST-01", "ST-02", "ST-03", "ST-04", "ST-05", "ST-06", "ST-13"},
+			Parity: []string{"ST-01", "ST-02", "ST-03", "ST-04", "ST-05", "ST-06", "ST-12", "ST-13"},
 			Setup:  a.setupModel},
 		{ID: "settings.help", Order: 400, After: []string{"settings.core"},
 			Parity: []string{"ST-28", "ST-29"}, Setup: a.setupHelp},
