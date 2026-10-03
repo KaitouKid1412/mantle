@@ -281,21 +281,3 @@ func (s *state) toggleWorkflowKeyword(c ext.Ctx) tea.Cmd {
 	s.invalidate(c)
 	return tea.Batch(cmds...)
 }
-
-// ---- /vim ----
-
-// cmdVim toggles vim editing for this session and remembers the choice in
-// mantle's settings (input.editorMode), which overrides editorMode.
-func (s *state) cmdVim(c ext.Ctx, args string) tea.Cmd {
-	s.cfg.vim = !s.cfg.vim
-	s.ed.SetVim(s.cfg.vim, s.cfg.remaps)
-	mode, text := "normal", "Editor mode set to normal. Esc no longer enters NORMAL mode."
-	if s.cfg.vim {
-		mode, text = "vim", "Editor mode set to vim. Esc enters NORMAL mode."
-	}
-	return tea.Batch(
-		c.Settings().SetMantle(SettingEditorMode, mode),
-		c.Notify(ext.Notice{Key: "input.vim", Text: text, Source: FeatureID}),
-		s.changed(c),
-	)
-}

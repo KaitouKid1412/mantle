@@ -133,11 +133,7 @@ func (s *state) syncSession(info ext.SessionInfo) {
 
 func (s *state) applySettings(c ext.Ctx) {
 	st := c.Settings()
-	mode := ext.ClaudeString(st, "editorMode", "normal")
-	if m, ok := st.Mantle(SettingEditorMode).(string); ok && m != "" {
-		mode = m // set by /vim
-	}
-	s.cfg.vim = mode == "vim"
+	s.cfg.vim = ext.ClaudeString(st, "editorMode", "normal") == "vim"
 	s.cfg.remaps = nil
 	if v, ok := st.Claude("vimInsertModeRemaps"); ok {
 		if m, ok := v.(map[string]any); ok {

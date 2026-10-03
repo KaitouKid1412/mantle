@@ -39,7 +39,6 @@ const (
 const (
 	SettingVirtualCursor = "input.virtualCursor"
 	SettingWriteHistory  = "input.writeHistory"
-	SettingEditorMode    = "input.editorMode"
 )
 
 // ActRewind is plan 06's rewind action (double esc on an empty prompt).
@@ -107,15 +106,8 @@ func register(r ext.Registrar, s *state) {
 		Description: "Append submitted prompts to Claude Code's history.jsonl",
 	})
 
-	r.AddSetting(ext.SettingSpec{
-		Key: SettingEditorMode, Type: "enum", Default: "", Options: []string{"", "normal", "vim"},
-		Description: "Editor mode set by /vim; empty follows Claude Code's editorMode",
-	})
-
-	r.AddCommand(ext.Command{
-		Name: "vim", Description: "Toggle between vim and normal editing modes",
-		Source: ext.SourceBuiltin, Run: s.cmdVim,
-	})
+	// /vim is plan 08's (it writes editorMode); the editor follows the
+	// setting through SettingsMsg.
 
 	r.OnStart(FeatureID+".start", s.start)
 	for _, st := range stories(s) {

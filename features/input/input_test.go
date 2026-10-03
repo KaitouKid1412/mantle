@@ -567,9 +567,11 @@ func TestVimMode(t *testing.T) {
 	if r.text() != "xj" {
 		t.Fatalf("timeout flush: %q", r.text())
 	}
-	r.run(r.s.cmdVim(r.c, ""))
-	if r.s.ed.VimEnabled() || r.c.SettingsV.MantleM[SettingEditorMode] != "normal" {
-		t.Fatal("/vim toggles off and remembers")
+	// /vim (plan 08) writes editorMode; the editor follows the setting.
+	r.c.SettingsV.ClaudeM["editorMode"] = "normal"
+	r.event(ext.SettingsMsg{Changed: []string{"editorMode"}})
+	if r.s.ed.VimEnabled() {
+		t.Fatal("editorMode normal turns vim off")
 	}
 }
 
