@@ -37,6 +37,8 @@ type Ctx struct {
 	CommandList  []ext.Command
 	Bindings     []ext.Binding
 	Logger       *slog.Logger
+	Renderers    map[ext.ContentKey]ext.Renderer // resolved by Renderer() in Candidates order
+	A11y         ext.Accessibility
 
 	// Recorded calls.
 	Printed     []string
@@ -65,16 +67,35 @@ func NewCtx() *Ctx {
 		Bindings:     slices.Clone(ext.DefaultBindings),
 		Logger:       slog.New(slog.NewTextHandler(io.Discard, nil)),
 		ActiveCtxs:   map[string]bool{},
+		Renderers:    map[ext.ContentKey]ext.Renderer{},
 		stores:       map[string]*KV{},
 	}
 }
+
+// Renderer resolves a renderer from c.Renderers in ContentKey.Candidates order. With no
+// match it returns a renderer that prints the item's key and ID.
+func (c *Ctx) Renderer(k ext.ContentKey) ext.Renderer {
+	for _, cand := range k.Candidates() {
+		if r, ok := c.Renderers[cand]; ok && r != nil {
+			return r
+		}
+	}
+	return func(_ ext.RenderCtx, it *ext.Item) ext.Block {
+		return ext.Block{Lines: []string{string(it.Key) + " " + it.ID}}
+	}
+}
+
+// Accessibility returns c.A11y.
+func (c *Ctx) Accessibility() ext.Accessibility { return c.A11y }
 
 var _ ext.Ctx = (*Ctx)(nil)
 
 // PrintMsg is what Ctx.Print's Cmd returns.
 type PrintMsg struct{ Blocks []string }
 
-// ReprintMsg is what Ctx.Reprint's Cmd returns.
+// ReprintMsg was what Ctx.Reprint's Cmd returned in contracts-v1.
+//
+// Deprecated: Reprint now returns ext.ScreenClearedMsg, as the host does.
 type ReprintMsg struct{}
 
 // RunActionMsg is what Ctx.Run's Cmd returns.
@@ -108,7 +129,7 @@ func (c *Ctx) Print(blocks ...string) tea.Cmd {
 
 func (c *Ctx) Reprint() tea.Cmd {
 	c.Reprints++
-	return ext.Msg(ReprintMsg{})
+	return ext.Msg(ext.ScreenClearedMsg{})
 }
 
 func (c *Ctx) Notify(n ext.Notice) tea.Cmd {
@@ -181,11 +202,21 @@ func (c *Ctx) Area() ext.Area {
 	return ext.Area{Width: c.W, Mode: c.LayoutMode}
 }
 
-// Settings is a fake ext.Settings backed by maps.
+// Settings is a fake ext.Settings (and ext.ScopedSettings) backed by maps.
 type Settings struct {
 	ClaudeM map[string]any
 	MantleM map[string]any
+	Scopes  map[string]map[string]any // scope → raw settings (ScopedSettings)
+	Sources []ext.SettingsSource
 }
+
+var _ ext.ScopedSettings = (*Settings)(nil)
+
+// ClaudeScope returns s.Scopes[scope].
+func (s *Settings) ClaudeScope(scope string) map[string]any { return s.Scopes[scope] }
+
+// ClaudeSources returns s.Sources.
+func (s *Settings) ClaudeSources() []ext.SettingsSource { return s.Sources }
 
 // NewSettings returns settings with the given merged Claude Code values.
 func NewSettings(claude map[string]any) *Settings {
