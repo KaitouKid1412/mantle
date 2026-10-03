@@ -2,11 +2,13 @@ package selfmod
 
 import (
 	"os"
+	"slices"
 	"strconv"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/internal/launcher"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
@@ -55,10 +57,42 @@ func (c *controller) onStart(ctx ext.Ctx) tea.Cmd {
 	return ctx.Clock().Tick(HealthyAfter, func(time.Time) tea.Msg { return healthyTickMsg{} })
 }
 
+// handoffArgs are the arguments a relaunch (exit 75, rollback) uses: the
+// original flags that reach the engine, without the initial prompt, session
+// selection or -w (the worktree already exists), plus --resume <session>.
+// On a parse error it returns nil and the launcher falls back to
+// --resume <session>.
+func handoffArgs(argv []string, sessionID string) []string {
+	if sessionID == "" {
+		return nil
+	}
+	p, err := cli.Parse(argv)
+	if err != nil {
+		return nil
+	}
+	args := slices.Clone(p.EngineArgs)
+	for _, o := range p.Flags {
+		if o.Name != "-w" && o.Name != "--worktree" {
+			continue
+		}
+		for i := 0; i+len(o.Tokens) <= len(args); i++ {
+			if slices.Equal(args[i:i+len(o.Tokens)], o.Tokens) {
+				args = slices.Delete(args, i, i+len(o.Tokens))
+				break
+			}
+		}
+	}
+	if p.Mantle.Name != "" {
+		args = append(args, "--name", p.Mantle.Name)
+	}
+	return append(args, "--resume", sessionID)
+}
+
 func (c *controller) writeRunFile(ctx ext.Ctx) {
 	if !c.run.enabled {
 		return
 	}
+	c.run.rf.HandoffArgs = handoffArgs(c.env.args, c.run.rf.SessionID)
 	if err := launcher.WriteRunFile(c.run.path, c.run.rf); err != nil {
 		ctx.Log().Warn("selfmod: run file", "err", err)
 	}
