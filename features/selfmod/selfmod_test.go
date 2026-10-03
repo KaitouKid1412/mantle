@@ -635,7 +635,8 @@ func TestHandoffArgs(t *testing.T) {
 	}{
 		{[]string{"fix the bug"}, []string{"--resume", "s"}},
 		{[]string{"--model", "opus", "-c", "hello"}, []string{"--model", "opus", "--resume", "s"}},
-		{[]string{"-w", "feature", "--permission-mode", "plan"}, []string{"--permission-mode", "plan", "--resume", "s"}},
+		{[]string{"-w", "feature", "--permission-mode", "plan"}, []string{"--worktree", "feature", "--permission-mode", "plan", "--resume", "s"}},
+		{[]string{"--ax-screen-reader", "hi"}, []string{"--ax-screen-reader", "--resume", "s"}},
 		{[]string{"-n", "my session", "--resume", "old"}, []string{"--name", "my session", "--resume", "s"}},
 	}
 	for _, c := range cases {

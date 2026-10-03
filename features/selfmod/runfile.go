@@ -58,10 +58,13 @@ func (c *controller) onStart(ctx ext.Ctx) tea.Cmd {
 }
 
 // handoffArgs are the arguments a relaunch (exit 75, rollback) uses: the
-// original flags that reach the engine, without the initial prompt, session
-// selection or -w (the worktree already exists), plus --resume <session>.
+// original flags that reach the engine and the UI flags, without the initial
+// prompt or session selection, plus --resume <session>. -w stays, with the
+// worktree name chosen at startup, so the session resumes in its worktree.
 // On a parse error it returns nil and the launcher falls back to
 // --resume <session>.
+//
+// TODO(10): use cli.Startup.RestartArgs (plan 11) once it is integrated.
 func handoffArgs(argv []string, sessionID string) []string {
 	if sessionID == "" {
 		return nil
@@ -71,19 +74,34 @@ func handoffArgs(argv []string, sessionID string) []string {
 		return nil
 	}
 	args := slices.Clone(p.EngineArgs)
+	st, haveStartup := cli.Current()
 	for _, o := range p.Flags {
 		if o.Name != "-w" && o.Name != "--worktree" {
 			continue
 		}
+		name := o.Value()
+		if haveStartup && st.Worktree != "" {
+			name = st.Worktree
+		}
 		for i := 0; i+len(o.Tokens) <= len(args); i++ {
 			if slices.Equal(args[i:i+len(o.Tokens)], o.Tokens) {
-				args = slices.Delete(args, i, i+len(o.Tokens))
+				repl := []string{"--worktree"}
+				if name != "" {
+					repl = append(repl, name)
+				}
+				args = slices.Replace(args, i, i+len(o.Tokens), repl...)
 				break
 			}
 		}
 	}
 	if p.Mantle.Name != "" {
 		args = append(args, "--name", p.Mantle.Name)
+	}
+	if p.Mantle.ScreenReader {
+		args = append(args, "--ax-screen-reader")
+	}
+	if ps := p.Mantle.PromptSuggestions; ps != nil {
+		args = append(args, "--prompt-suggestions="+strconv.FormatBool(*ps))
 	}
 	return append(args, "--resume", sessionID)
 }
