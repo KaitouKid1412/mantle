@@ -176,6 +176,23 @@ func TestEscInterruptsOnlyWhileRunning(t *testing.T) {
 	}
 }
 
+// S1: an interrupt mid-text or mid-tool ends the turn with an aborted result; the turn
+// state (and the Task context) must clear so esc and ctrl+c go back to idle behaviour.
+func TestInterruptedTurnEnds(t *testing.T) {
+	for _, reason := range []string{proto.TerminalAbortedStreaming, proto.TerminalAbortedTools} {
+		x := newH(t)
+		x.event(&proto.SystemInit{})
+		x.press("esc")
+		x.event(&proto.Result{Envelope: proto.Envelope{Subtype: proto.ResultErrorDuringExecution}, IsError: true, TerminalReason: reason})
+		if x.st.isRunning(ext.MainEngine) || x.c.ActiveCtxs[ext.ContextTask] {
+			t.Fatalf("%s: turn still running", reason)
+		}
+		if x.action(ext.ActChatCancel) {
+			t.Fatalf("%s: esc after the interrupt should reach the editor", reason)
+		}
+	}
+}
+
 func TestSessionStateDrivesRunning(t *testing.T) {
 	x := newH(t)
 	x.event(&proto.SessionStateChanged{State: proto.StateRunning})

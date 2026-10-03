@@ -254,7 +254,10 @@ Everything that decides *whether* and *how* Claude proceeds:
   Builder engines (`builder-<id>`) are auto-trusted. Gate passes run one at a time.
 - Tests: `exttest`-based flow tests for every item, plus pty tests on the real host
   (`internal/app`): no spawn before trust is accepted, declining exits, a permission
-  prompt through the real keymap.
+  prompt through the real keymap. `e2e_test.go` runs host + turn + `internal/engine`
+  against a scripted claude (enginefake), which checks the exact `control_response`
+  for a permission with an always-allow suggestion, an AskUserQuestion and an
+  elicitation.
 - Not done: PD-23 (clear context on plan accept: no verified wire), PD-26
   (`askUserQuestionTimeout`), PD-36 (external CLAUDE.md import approval), PD-39/40
   (sandbox prompts; headless routing unknown), PD-42 (`dialogExpiry`, M3), TC-21
