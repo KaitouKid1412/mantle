@@ -41,9 +41,17 @@ import (
 //
 // When the steps run out the fake keeps answering rules until stdin closes, then
 // exits 0, like the real engine.
+//
+// Client mode (a {"client": true} line, or Script.Client) runs the same format from
+// the other side, to drive a real engine: "emit" writes to the engine's stdin,
+// "expect" skips engine output until a line matches, "respond" answers the engine's
+// control requests, there are no built-in rules, and the run ends with the steps.
+//
+//	makes a fresh UUID and stores it as .
 type Script struct {
-	Steps []Step
-	Rules []Step
+	Steps  []Step
+	Rules  []Step
+	Client bool
 }
 
 // Step is one script line.
@@ -61,6 +69,7 @@ type Step struct {
 	Exit         *int              `json:"exit,omitempty"`
 	Timeout      int               `json:"timeout,omitempty"`
 	Comment      string            `json:"#,omitempty"`
+	Client       bool              `json:"client,omitempty"` // script-level directive
 
 	line int
 }
@@ -85,9 +94,12 @@ func Parse(r io.Reader) (*Script, error) {
 			if verr := st.validate(); verr != nil {
 				return nil, fmt.Errorf("enginefake: line %d: %w", n, verr)
 			}
-			if st.On != nil {
+			switch {
+			case st.Client:
+				s.Client = true
+			case st.On != nil:
 				s.Rules = append(s.Rules, st)
-			} else {
+			default:
 				s.Steps = append(s.Steps, st)
 			}
 		}
@@ -131,7 +143,7 @@ func (s *Step) validate() error {
 		}
 	}
 	if kinds != 1 {
-		if kinds == 0 && s.Comment != "" {
+		if kinds == 0 && (s.Comment != "" || s.Client) {
 			return nil
 		}
 		return fmt.Errorf("step must have exactly one kind (emit, expect, on, request, respond, delay, stderr, exit)")

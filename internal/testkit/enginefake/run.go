@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // DefaultExpectTimeout bounds each expect step unless the step sets "timeout".
@@ -42,7 +44,7 @@ type runner struct {
 	recvMu   sync.Mutex
 	received [][]byte
 
-	inbox  chan []byte // stdin lines not taken by rules
+	inbox  *queue // stdin lines not taken by rules
 	eof    chan struct{}
 	ended  chan int // end_session or rule-driven exit
 	nextID int
@@ -65,12 +67,15 @@ func (s *Script) run(ctx context.Context, stdin io.Reader, stdout, stderr io.Wri
 		stdout: stdout,
 		stderr: stderr,
 		vars:   map[string]string{},
-		inbox:  make(chan []byte, 1024),
+		inbox:  newQueue(),
 		eof:    make(chan struct{}),
 		ended:  make(chan int, 1),
 	}
 	go r.readStdin(stdin)
 	code, err := r.steps(ctx)
+	if err == nil && code < 0 && r.s.Client {
+		code = 0 // a client script is done when its steps are
+	}
 	if err == nil && code < 0 {
 		// Steps ran out: keep serving rules until stdin closes, the session ends or
 		// the context is cancelled.
@@ -159,38 +164,78 @@ func (r *runner) expect(ctx context.Context, st Step) ([]byte, error) {
 	}
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
-	select {
-	case line := <-r.inbox:
-		return r.check(st, pat, line)
-	default:
-	}
-	select {
-	case line := <-r.inbox:
-		return r.check(st, pat, line)
-	case <-r.eof:
-		// Drain anything that raced with EOF.
-		select {
-		case line := <-r.inbox:
-			return r.check(st, pat, line)
-		default:
+	for {
+		if line, ok := r.inbox.pop(); ok {
+			got, why := r.check(pat, line)
+			if why == "" {
+				return got, nil
+			}
+			if r.s.Client {
+				continue // client mode: skip lines until one matches
+			}
+			return nil, r.fail(st, "expected %s\n  got %s\n  (%s)", st.Expect, line, why)
 		}
-		return nil, r.fail(st, "stdin closed while expecting %s", st.Expect)
-	case <-timer.C:
-		return nil, r.fail(st, "timed out after %v expecting %s", timeout, st.Expect)
-	case <-ctx.Done():
-		return nil, r.fail(st, "cancelled while expecting %s", st.Expect)
+		select {
+		case <-r.inbox.wake:
+		case <-r.eof:
+			if r.inbox.len() > 0 {
+				continue // drain lines that raced with EOF
+			}
+			return nil, r.fail(st, "input closed while expecting %s", st.Expect)
+		case <-timer.C:
+			return nil, r.fail(st, "timed out after %v expecting %s", timeout, st.Expect)
+		case <-ctx.Done():
+			return nil, r.fail(st, "cancelled while expecting %s", st.Expect)
+		}
 	}
 }
 
-func (r *runner) check(st Step, pat any, line []byte) ([]byte, error) {
+// check matches line against pat; why is "" on a match.
+func (r *runner) check(pat any, line []byte) ([]byte, string) {
 	var got any
 	if err := json.Unmarshal(line, &got); err != nil {
-		return nil, r.fail(st, "client sent invalid JSON: %s", line)
+		return nil, "invalid JSON: " + string(line)
 	}
 	if why := match(pat, got, ""); why != "" {
-		return nil, r.fail(st, "expected %s\n  got %s\n  (%s)", st.Expect, line, why)
+		return nil, why
 	}
-	return line, nil
+	return line, ""
+}
+
+// queue is an unbounded FIFO of lines with a wake channel.
+type queue struct {
+	mu    sync.Mutex
+	items [][]byte
+	wake  chan struct{}
+}
+
+func newQueue() *queue { return &queue{wake: make(chan struct{}, 1)} }
+
+func (q *queue) push(b []byte) {
+	q.mu.Lock()
+	q.items = append(q.items, b)
+	q.mu.Unlock()
+	select {
+	case q.wake <- struct{}{}:
+	default:
+	}
+}
+
+func (q *queue) pop() ([]byte, bool) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if len(q.items) == 0 {
+		return nil, false
+	}
+	b := q.items[0]
+	q.items = q.items[1:]
+	return b, true
+}
+
+func (q *queue) len() int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return len(q.items)
 }
 
 // answer writes the step's respond/respond_error to ${request_id}.
@@ -232,10 +277,7 @@ func (r *runner) readStdin(stdin io.Reader) {
 			r.received = append(r.received, line)
 			r.recvMu.Unlock()
 			if !r.applyRules(line) {
-				select {
-				case r.inbox <- line:
-				default: // nobody is expecting this many lines; keep reading to EOF
-				}
+				r.inbox.push(line)
 			}
 		}
 		if err != nil {
@@ -265,9 +307,13 @@ func (r *runner) applyRules(line []byte) bool {
 		return true
 	}
 	m, _ := got.(map[string]any)
-	switch m["type"] {
-	case "keep_alive":
+	if m["type"] == "keep_alive" {
 		return true
+	}
+	if r.s.Client {
+		return false // the CLI-side built-ins don't apply to a client script
+	}
+	switch m["type"] {
 	case "control_request":
 		req, _ := m["request"].(map[string]any)
 		id, _ := m["request_id"].(string)
@@ -326,9 +372,10 @@ func (r *runner) get(name string) string {
 	return r.vars[name]
 }
 
-var varRe = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
+var varRe = regexp.MustCompile(`\$\{((?:new:)?[A-Za-z_][A-Za-z0-9_]*)\}`)
 
-// subst replaces ${var} inside JSON string values. Values are JSON-escaped.
+// subst replaces ${var} inside JSON string values (JSON-escaped). ${new:x} makes a
+// fresh UUID, stores it as ${x} and substitutes it.
 func (r *runner) subst(raw json.RawMessage) json.RawMessage {
 	if !bytes.Contains(raw, []byte("${")) {
 		return raw
@@ -337,6 +384,10 @@ func (r *runner) subst(raw json.RawMessage) json.RawMessage {
 	defer r.varMu.Unlock()
 	return varRe.ReplaceAllFunc(raw, func(m []byte) []byte {
 		name := string(m[2 : len(m)-1])
+		if fresh, ok := strings.CutPrefix(name, "new:"); ok {
+			r.vars[fresh] = uuid.NewString()
+			name = fresh
+		}
 		v, ok := r.vars[name]
 		if !ok {
 			return m

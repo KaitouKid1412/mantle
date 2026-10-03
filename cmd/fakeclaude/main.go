@@ -24,6 +24,9 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "record" {
+		os.Exit(record(os.Args[2:]))
+	}
 	for _, a := range os.Args[1:] {
 		if a == "--version" || a == "-v" {
 			v := os.Getenv("FAKECLAUDE_VERSION")

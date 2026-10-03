@@ -177,7 +177,10 @@ func TestCorrelator(t *testing.T) {
 
 	// Close fails pending and future requests.
 	done := make(chan error, 1)
-	go func() { _, _, err := c.Request(context.Background(), proto.ListModelsRequest{}, time.Minute); done <- err }()
+	go func() {
+		_, _, err := c.Request(context.Background(), proto.ListModelsRequest{}, time.Minute)
+		done <- err
+	}()
 	for c.Len() == 0 {
 		time.Sleep(time.Millisecond)
 	}

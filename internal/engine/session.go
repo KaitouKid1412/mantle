@@ -29,6 +29,9 @@ type Snapshot struct {
 type tracker struct {
 	mu sync.RWMutex
 	s  Snapshot
+	// live is set once an event reported mode/style; the initialize reply (which can
+	// be processed later) must not overwrite newer values.
+	live bool
 }
 
 func newTracker(engineID string, o ext.SpawnOpts) *tracker {
@@ -69,6 +72,7 @@ func (t *tracker) Observe(ev proto.Event) bool {
 	switch e := ev.(type) {
 	case *proto.SystemInit:
 		t.s.Init = e
+		t.live = true
 		setIf(&i.SessionID, e.SessionID)
 		setIf(&i.Cwd, e.CWD)
 		setIf(&i.Model, e.Model)
@@ -77,6 +81,9 @@ func (t *tracker) Observe(ev proto.Event) bool {
 		setIf(&i.OutputStyle, e.OutputStyle)
 		setIf(&t.s.FastModeState, e.FastModeState)
 	case *proto.Status:
+		if e.PermissionMode != "" {
+			t.live = true
+		}
 		setIf(&i.PermissionMode, e.PermissionMode)
 	case *proto.ConversationReset:
 		setIf(&i.SessionID, e.NewConversationID)
@@ -106,8 +113,10 @@ func (t *tracker) ObserveInitialize(r *proto.InitializeResponse) bool {
 	before := t.s.Info
 	t.s.Initialize = r
 	t.s.Commands = r.Commands
-	setIf(&t.s.Info.PermissionMode, r.CurrentPermissionMode)
-	setIf(&t.s.Info.OutputStyle, r.OutputStyle)
+	if !t.live {
+		setIf(&t.s.Info.PermissionMode, r.CurrentPermissionMode)
+		setIf(&t.s.Info.OutputStyle, r.OutputStyle)
+	}
 	setIf(&t.s.FastModeState, r.FastModeState)
 	setIf(&t.s.State, r.SessionState)
 	return !reflect.DeepEqual(t.s.Info, before)

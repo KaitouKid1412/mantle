@@ -14,6 +14,45 @@ import (
 	"time"
 )
 
+// TestClientDrivesEngine runs a client-mode script against an engine-mode script.
+func TestClientDrivesEngine(t *testing.T) {
+	engine := MustParse(`
+{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": {"commands":[]}}
+{"expect": {"type":"user","uuid":"re:^[0-9a-f-]{36}$"}}
+{"emit": {"type":"stream_event","event":{"type":"message_start"}}}
+{"request": {"subtype":"can_use_tool","tool_name":"Bash","input":{},"tool_use_id":"t1"}}
+{"expect": {"type":"control_response","response":{"request_id":"cli_1","response":{"behavior":"allow"}}}}
+{"emit": {"type":"result","subtype":"success","user_message_uuid":"${uuid}"}}
+`)
+	client := MustParse(`
+{"client": true}
+{"on": {"type":"control_request","request":{"subtype":"can_use_tool"}}, "respond": {"behavior":"allow","toolUseID":"t1"}}
+{"emit": {"type":"control_request","request_id":"r1","request":{"subtype":"initialize"}}}
+{"expect": {"type":"control_response","response":{"request_id":"r1"}}}
+{"emit": {"type":"user","uuid":"${new:prompt}","message":{"role":"user","content":"hi"}}}
+{"expect": {"type":"result"}, "save": {"echo": "user_message_uuid"}}
+`)
+	if !client.Client {
+		t.Fatal("client directive not parsed")
+	}
+	toEngR, toEngW := io.Pipe()
+	toCliR, toCliW := io.Pipe()
+	engDone := make(chan error, 1)
+	go func() {
+		_, err := engine.Run(t.Context(), toEngR, toCliW, nil)
+		toCliW.Close()
+		engDone <- err
+	}()
+	code, err := client.Run(t.Context(), toCliR, toEngW, nil)
+	toEngW.Close()
+	if code != 0 || err != nil {
+		t.Fatalf("client: %d %v", code, err)
+	}
+	if err := <-engDone; err != nil {
+		t.Fatalf("engine: %v", err)
+	}
+}
+
 // client drives a Proc like the engine would: send lines, read lines.
 type client struct {
 	t   *testing.T
@@ -123,7 +162,7 @@ func TestExpectTimeoutAndEOF(t *testing.T) {
 	}
 	c = newClient(t, MustParse(`{"expect": {"type":"user"}}`))
 	c.p.Stdin.Close()
-	if code, err := c.p.Wait(); code != FailCode || err == nil || !strings.Contains(err.Error(), "stdin closed") {
+	if code, err := c.p.Wait(); code != FailCode || err == nil || !strings.Contains(err.Error(), "input closed") {
 		t.Errorf("eof: code=%d err=%v", code, err)
 	}
 }
