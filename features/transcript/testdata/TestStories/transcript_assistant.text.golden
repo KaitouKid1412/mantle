@@ -1,0 +1,44 @@
+── width 60 ──
+[38;2;230;227;222m⏺[m Fixed. The worker now waits before retrying:
+
+  - [1mBackoff[m starts at 200ms and doubles per attempt, capped
+    at 8 doublings.
+  - The failing test [38;2;158;166;243mTestRetryBackoff[m now passes.
+
+  [38;2;85;85;92m┌────────────┬───────────────────┐[m
+  [38;2;85;85;92m│[m [1mFile[m       [38;2;85;85;92m│[m [1mChange[m            [38;2;85;85;92m│[m
+  [38;2;85;85;92m├────────────┼───────────────────┤[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mworker.go[m  [38;2;85;85;92m│[m uses [38;2;158;166;243menqueueAfter[m [38;2;85;85;92m│[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mbackoff.go[m [38;2;85;85;92m│[m new helper        [38;2;85;85;92m│[m
+  [38;2;85;85;92m└────────────┴───────────────────┘[m
+
+  I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I
+  can fix that next.
+── width 100 ──
+[38;2;230;227;222m⏺[m Fixed. The worker now waits before retrying:
+
+  - [1mBackoff[m starts at 200ms and doubles per attempt, capped at 8 doublings.
+  - The failing test [38;2;158;166;243mTestRetryBackoff[m now passes.
+
+  [38;2;85;85;92m┌────────────┬───────────────────┐[m
+  [38;2;85;85;92m│[m [1mFile[m       [38;2;85;85;92m│[m [1mChange[m            [38;2;85;85;92m│[m
+  [38;2;85;85;92m├────────────┼───────────────────┤[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mworker.go[m  [38;2;85;85;92m│[m uses [38;2;158;166;243menqueueAfter[m [38;2;85;85;92m│[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mbackoff.go[m [38;2;85;85;92m│[m new helper        [38;2;85;85;92m│[m
+  [38;2;85;85;92m└────────────┴───────────────────┘[m
+
+  I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I can fix that next.
+── width 160 ──
+[38;2;230;227;222m⏺[m Fixed. The worker now waits before retrying:
+
+  - [1mBackoff[m starts at 200ms and doubles per attempt, capped at 8 doublings.
+  - The failing test [38;2;158;166;243mTestRetryBackoff[m now passes.
+
+  [38;2;85;85;92m┌────────────┬───────────────────┐[m
+  [38;2;85;85;92m│[m [1mFile[m       [38;2;85;85;92m│[m [1mChange[m            [38;2;85;85;92m│[m
+  [38;2;85;85;92m├────────────┼───────────────────┤[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mworker.go[m  [38;2;85;85;92m│[m uses [38;2;158;166;243menqueueAfter[m [38;2;85;85;92m│[m
+  [38;2;85;85;92m│[m [38;2;158;166;243mbackoff.go[m [38;2;85;85;92m│[m new helper        [38;2;85;85;92m│[m
+  [38;2;85;85;92m└────────────┴───────────────────┘[m
+
+  I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I can fix that next.

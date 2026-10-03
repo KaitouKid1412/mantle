@@ -1,0 +1,15 @@
+── width 60 ──
+[38;2;111;194;139m⏺[m [1mUpdate Todos[m
+  ⎿  [38;2;139;139;147m☒ [m[9;38;2;139;139;147mRead the worker[m
+     [1m◼ Add exponential backoff[m
+     ☐ Run the tests
+── width 100 ──
+[38;2;111;194;139m⏺[m [1mUpdate Todos[m
+  ⎿  [38;2;139;139;147m☒ [m[9;38;2;139;139;147mRead the worker[m
+     [1m◼ Add exponential backoff[m
+     ☐ Run the tests
+── width 160 ──
+[38;2;111;194;139m⏺[m [1mUpdate Todos[m
+  ⎿  [38;2;139;139;147m☒ [m[9;38;2;139;139;147mRead the worker[m
+     [1m◼ Add exponential backoff[m
+     ☐ Run the tests

@@ -1,0 +1,13 @@
+╭─ Write file ─────────────────────────────────────────────╮
+│   NOTES.md                                               │
+│ + # Notes                                                │
+│ +                                                        │
+│ + - one                                                  │
+│ + - two                                                  │
+│                                                          │
+│ Do you want to write NOTES.md?                           │
+│ ❯ 1. Yes                                                 │
+│   2. No, and tell Claude what to do differently          │
+│   3. No, and stop                                        │
+│ esc to deny · tab to amend · shift+tab to change mode    │
+╰──────────────────────────────────────────────────────────╯

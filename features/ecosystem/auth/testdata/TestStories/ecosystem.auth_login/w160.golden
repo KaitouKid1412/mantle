@@ -1,0 +1,11 @@
+[1;38;2;224;149;110mSign in[m
+
+  Signed in as user@example.test (max plan).
+
+  Choose how to sign in:
+
+  [38;2;147;180;251m❯ [m[38;2;147;180;251mClaude subscription[m  [38;2;139;139;147mPro, Max, Team or Enterprise[m
+    [38;2;230;227;222mAnthropic Console[m  [38;2;139;139;147mAPI usage billing[m
+    [38;2;230;227;222mSingle sign-on[m  [38;2;139;139;147myour organization's identity provider[m
+
+  [38;2;139;139;147menter choose · esc back[m
