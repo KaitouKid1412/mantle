@@ -1,0 +1,6 @@
+[38;2;230;227;222mClaude Code 2.1.288[m
+  • Faster startup when many MCP servers are configured, especially over slow networks
+  • Fixed a crash when resizing
+
+[38;2;230;227;222mClaude Code 2.1.287[m
+  • Smaller fixes

@@ -1,0 +1,22 @@
+[
+  {
+    "pid": 1001,
+    "cwd": "/home/user",
+    "kind": "interactive",
+    "startedAt": 1790919934467,
+    "sessionId": "11111111-1111-4111-8111-111111111111",
+    "name": "home-1",
+    "status": "idle"
+  },
+  {
+    "pid": 1002,
+    "id": "2a3c85ff",
+    "cwd": "/home/user/work/repo",
+    "kind": "background",
+    "startedAt": 1791029370211,
+    "sessionId": "2a3c85ff-164e-42c0-a9d8-a9a29d41aace",
+    "name": "repo-task",
+    "status": "busy",
+    "state": "working"
+  }
+]

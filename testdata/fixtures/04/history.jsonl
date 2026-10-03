@@ -1,0 +1,8 @@
+{"display":"explain the build","pastedContents":{},"timestamp":1759400000000,"project":"/work/demo","sessionId":"00000000-0000-4000-8000-000000000001"}
+{"display":"fix this [Pasted text #1 +3 lines]","pastedContents":{"1":{"id":1,"type":"text","content":"alpha\nbeta\ngamma\ndelta"}},"timestamp":1759400001000,"project":"/work/demo","sessionId":"00000000-0000-4000-8000-000000000001"}
+{"display":"explain the build","pastedContents":{},"timestamp":1759400002000,"project":"/work/other","sessionId":"00000000-0000-4000-8000-000000000002"}
+{not json
+{"display":"look at [Image #2] and [Pasted text #3 +40 lines]","pastedContents":{"3":{"id":3,"type":"text","contentHash":"165444bd17d16a28"}},"timestamp":1759400003000,"project":"/work/demo","sessionId":"00000000-0000-4000-8000-000000000001"}
+{"display":"same twice","pastedContents":{},"timestamp":1759400004000,"project":"/work/demo","sessionId":"00000000-0000-4000-8000-000000000003"}
+{"display":"same twice","pastedContents":{},"timestamp":1759400005000,"project":"/work/demo","sessionId":"00000000-0000-4000-8000-000000000003"}
+{"display":"unicode ✓ 日本語 <b>&amp;</b>\nsecond line","pastedContents":{},"timestamp":1759400006000,"project":"/work/demo","sessionId":"00000000-0000-4000-8000-000000000003"}

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Default Window Settings</key>
+	<string>Basic</string>
+	<key>Startup Window Settings</key>
+	<string>Pro</string>
+	<key>Window Settings</key>
+	<dict>
+		<key>Basic</key>
+		<dict>
+			<key>BackgroundColor</key>
+			<data>
+			YnBsaXN0MDDUAQIDBAUGBwpYJHZlcnNpb25ZJGFyY2hpdmVyVCR0b3BYJG9i
+			amVjdHMSAAGGoF8QD05TS2V5ZWRBcmNoaXZlctEICVRyb290gAGjCwwTVSRu
+			</data>
+			<key>name</key>
+			<string>Basic</string>
+			<key>type</key>
+			<string>Window Settings</string>
+		</dict>
+		<key>Pro</key>
+		<dict>
+			<key>Font</key>
+			<data>
+			ZmFrZSBmb250IGRhdGEgZm9yIGEgdGVzdCBmaXh0dXJl
+			</data>
+			<key>name</key>
+			<string>Pro</string>
+			<key>useOptionAsMetaKey</key>
+			<false/>
+		</dict>
+	</dict>
+</dict>
+</plist>

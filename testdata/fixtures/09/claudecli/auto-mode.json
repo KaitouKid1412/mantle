@@ -1,0 +1,15 @@
+{
+  "allow": [
+    "Example allow rule: reading files in the repo is fine."
+  ],
+  "soft_deny": [
+    "Example soft rule one.",
+    "Example soft rule two."
+  ],
+  "hard_deny": [
+    "Example hard rule."
+  ],
+  "environment": [
+    "**Organization**: none"
+  ]
+}

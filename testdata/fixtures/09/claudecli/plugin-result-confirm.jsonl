@@ -1,0 +1,1 @@
+{"command": "install", "outcome": "needs_confirmation", "plugin": "cmd-tool@example-market", "message": "This plugin is installed by running a command.", "shownCommand": {"sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "command": "npx example-installer"}}

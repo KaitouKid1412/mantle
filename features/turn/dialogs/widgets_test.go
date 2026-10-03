@@ -1,0 +1,133 @@
+package dialogs
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/charmbracelet/x/ansi"
+)
+
+func TestSanitize(t *testing.T) {
+	cases := map[string]string{
+		"plain":                      "plain",
+		"a\tb":                       "a    b",
+		"line1\r\nline2":             "line1\nline2",
+		"\x1b[31mred\x1b[0m":         "red",
+		"title\x1b]0;evil\x07 after": "title after",
+		"bell\x07 nul\x00 del\x7f":   "bell nul del",
+		"c1\u009bx":                  "c1x",
+		"rtl ‮gnp.exe":               "rtl <U+202E>gnp.exe",
+		"zero​width":                 "zerowidth",
+		"emoji 👩‍💻":                  "emoji 👩‍💻",
+	}
+	for in, want := range cases {
+		if got := Sanitize(in); got != want {
+			t.Errorf("Sanitize(%q) = %q want %q", in, got, want)
+		}
+	}
+	if got := SanitizeLine("a\nb"); got != "a⏎ b" {
+		t.Errorf("SanitizeLine = %q", got)
+	}
+}
+
+func TestTextFieldEditing(t *testing.T) {
+	f := &textField{}
+	for _, k := range []string{"h", "e", "l", "l", "o", "space", "w", "o", "r", "l", "d"} {
+		f.HandleKey(key(k))
+	}
+	if f.Value() != "hello world" {
+		t.Fatalf("typed %q", f.Value())
+	}
+	f.HandleKey(key("ctrl+w"))
+	if f.Value() != "hello " {
+		t.Fatalf("ctrl+w → %q", f.Value())
+	}
+	f.HandleKey(key("ctrl+a"))
+	f.HandleKey(key("ctrl+k"))
+	if f.Value() != "" {
+		t.Fatalf("ctrl+a ctrl+k → %q", f.Value())
+	}
+	f.insert("one\ntwo")
+	if f.Value() != "one two" {
+		t.Fatalf("single-line paste kept newline: %q", f.Value())
+	}
+	f.HandleKey(key("left"))
+	f.HandleKey(key("left"))
+	f.HandleKey(key("backspace"))
+	if f.Value() != "one wo" || f.pos != 4 {
+		t.Fatalf("backspace mid-line → %q pos %d", f.Value(), f.pos)
+	}
+	if f.HandleKey(key("enter")) || f.HandleKey(key("esc")) {
+		t.Fatal("enter/esc belong to the dialog")
+	}
+	if f.HandleKey(key("ctrl+j")) {
+		t.Fatal("ctrl+j is not a newline in a single-line field")
+	}
+	m := &textField{multiline: true}
+	m.insert("a")
+	m.HandleKey(key("ctrl+j"))
+	m.insert("b\x1b[2J")
+	if m.Value() != "a\nb" {
+		t.Fatalf("multiline → %q", m.Value())
+	}
+}
+
+func TestTextFieldRenderWidth(t *testing.T) {
+	f := &textField{}
+	f.SetValue("abcdefghij")
+	lines := f.lines(6, testStyles(), true, "> ")
+	if len(lines) != 3 {
+		t.Fatalf("lines = %q", lines)
+	}
+	for _, l := range lines {
+		if ansi.StringWidth(l) > 6 {
+			t.Fatalf("line too wide: %q", l)
+		}
+	}
+	empty := &textField{placeholder: "Type here"}
+	if got := ansi.Strip(empty.lines(20, PlainStyles(), false, "> ")[0]); got != "> Type here" {
+		t.Fatalf("placeholder line = %q", got)
+	}
+}
+
+func TestTextAcceptsNonStrings(t *testing.T) {
+	var r ToolRequest
+	if err := json.Unmarshal([]byte(`{"tool_name":"X","decision_reason":{"type":"rule","rule":"Bash(rm:*)"}}`), &r); err != nil {
+		t.Fatal(err)
+	}
+	if r.DecisionReason != `{"type":"rule","rule":"Bash(rm:*)"}` {
+		t.Fatalf("decision_reason = %q", r.DecisionReason)
+	}
+}
+
+func TestPermissionResultShapes(t *testing.T) {
+	deny := PermissionResult{Behavior: "deny"}
+	if got := toJSON(t, deny); got != `{"behavior":"deny","message":""}` {
+		t.Fatalf("deny always carries message: %s", got)
+	}
+	allow := PermissionResult{Behavior: "allow", UpdatedPermissions: []PermissionUpdate{SetModeUpdate("plan", "session")}}
+	if got := toJSON(t, allow); got != `{"behavior":"allow","updatedPermissions":[{"type":"setMode","mode":"plan","destination":"session"}]}` {
+		t.Fatalf("allow = %s", got)
+	}
+}
+
+func TestSuggestionPhrases(t *testing.T) {
+	cases := []struct {
+		u    PermissionUpdate
+		want string
+	}{
+		{PermissionUpdate{Type: "addRules", Behavior: "allow", Destination: "session",
+			Rules: []PermissionRule{{ToolName: "Bash", RuleContent: "git status"}, {ToolName: "Bash", RuleContent: "git diff:*"}}},
+			"don't ask again for Bash(git status) and Bash(git diff:*) for this session"},
+		{PermissionUpdate{Type: "addRules", Behavior: "deny", Destination: "projectSettings", Rules: []PermissionRule{{ToolName: "WebSearch"}}},
+			"always deny WebSearch in this project (shared)"},
+		{PermissionUpdate{Type: "addDirectories", Directories: []string{"/w/sub", "/tmp"}, Destination: "localSettings"},
+			"allow access to sub/ and /tmp/ in this project"},
+		{PermissionUpdate{Type: "setMode", Mode: "plan", Destination: "session"}, "switch to plan mode for this session"},
+	}
+	for _, c := range cases {
+		if got := suggestionPhrase(c.u, "/w"); got != c.want {
+			t.Errorf("phrase = %q want %q", got, c.want)
+		}
+	}
+}
