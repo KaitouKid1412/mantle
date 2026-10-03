@@ -146,7 +146,7 @@ Also provide:
 - [ ] **B3 [M2] `/skills`.** Skills from `init.skills`, refreshed with `reload_skills`;
   source and path from A3; cycle visibility, which writes `skillOverrides` through plan
   01's config writer; open SKILL.md in `$EDITOR`. `/skill-doctor` stays E.
-- [ ] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
+- [x] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
   then matcher, then source scope, showing handler type and command/url. "Edit" opens the
   owning settings file in `$EDITOR`.
 - [ ] **B5 [M2] `/agents`.**
