@@ -25,17 +25,13 @@ func (st *state) setupControl(r ext.Registrar) {
 		Description: "Interrupt Claude (keeps the work so far)",
 		Run:         st.cancelAction,
 	})
-	r.AddAction(ext.Action{
-		ID: ext.ActAppInterrupt, Context: ext.ContextGlobal,
-		Description: "Interrupt Claude, or exit on a second press",
-		Run:         st.interruptAction,
+	// The host's core feature owns app:interrupt and app:exit (press twice to exit);
+	// the turn feature gives them their Claude Code meaning on top.
+	r.Wrap(string(ext.ActAppInterrupt), func(next ext.ActionFunc) ext.ActionFunc {
+		return func(c ext.Ctx) (bool, tea.Cmd) { return st.interruptAction(c) }
 	})
-	r.AddAction(ext.Action{
-		ID: ext.ActAppExit, Context: ext.ContextGlobal,
-		Description: "Exit on a second press",
-		Run: func(c ext.Ctx) (bool, tea.Cmd) {
-			return true, st.doublePress(c, ext.ActAppExit, hintCtrlD)
-		},
+	r.Wrap(string(ext.ActAppExit), func(next ext.ActionFunc) ext.ActionFunc {
+		return func(c ext.Ctx) (bool, tea.Cmd) { return true, st.doublePress(c, ext.ActAppExit, hintCtrlD) }
 	})
 	r.AddAction(ext.Action{
 		ID: ext.ActTaskBackground, Context: ext.ContextTask,
@@ -145,11 +141,12 @@ func (st *state) cancelAction(c ext.Ctx) (bool, tea.Cmd) {
 }
 
 // interruptAction is ctrl+c once the editor declined it (empty prompt): interrupt a
-// running turn, else exit on a second press.
+// running turn and drop its queued messages (esc keeps them; they send next), else
+// exit on a second press.
 func (st *state) interruptAction(c ext.Ctx) (bool, tea.Cmd) {
 	if eng := c.Engine(ext.MainEngine); eng != nil && st.isRunning(ext.MainEngine) {
 		delete(st.presses, ext.ActAppInterrupt)
-		return true, eng.Interrupt(false)
+		return true, eng.Interrupt(true)
 	}
 	if st.limit != nil {
 		return true, st.cancelLimitWait(c)
@@ -169,15 +166,12 @@ func (st *state) doublePress(c ext.Ctx, id ext.ActionID, hint string) tea.Cmd {
 	return c.Notify(ext.Notice{Key: "turn.exitHint", Text: hint, Level: ext.NoticeInfo, Timeout: doublePressWindow, Source: FeatureID})
 }
 
-// exit ends the session gracefully: print the resume hint, end the main engine's
-// session, then quit.
+// exit prints the resume hint and quits. The engine manager stops engines gracefully
+// (end_session, then EOF and signals) when the program ends.
 func (st *state) exit(c ext.Ctx, reason string) tea.Cmd {
 	var cmds []tea.Cmd
 	if id := c.Session().SessionID; id != "" {
 		cmds = append(cmds, c.Print("Resume this session with: mantle --resume "+id))
-	}
-	if eng := c.Engine(ext.MainEngine); eng != nil && eng.Supports(proto.SubEndSession) {
-		cmds = append(cmds, eng.Control(proto.SubEndSession, proto.EndSessionRequest{Reason: "exit"}))
 	}
 	cmds = append(cmds, ext.Msg(ext.ExitMsg{Code: 0, Reason: reason}))
 	return tea.Sequence(cmds...)

@@ -257,14 +257,25 @@ func (x *h) action(a ext.ActionID) bool {
 			}
 		}
 	}
+	var run ext.ActionFunc
 	for _, act := range x.reg.Actions {
 		if act.ID == a && act.Run != nil {
-			handled, cmd := act.Run(x.c)
-			x.run(cmd)
-			return handled
+			run = act.Run
 		}
 	}
-	return false
+	for _, w := range x.reg.Wrapped[string(a)] {
+		next := run
+		if next == nil {
+			next = func(ext.Ctx) (bool, tea.Cmd) { return false, nil }
+		}
+		run = w.(func(ext.ActionFunc) ext.ActionFunc)(next)
+	}
+	if run == nil {
+		return false
+	}
+	handled, cmd := run(x.c)
+	x.run(cmd)
+	return handled
 }
 
 // typeText types runes into the top dialog.

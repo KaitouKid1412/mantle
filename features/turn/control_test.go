@@ -29,9 +29,14 @@ func TestFeatureRegistration(t *testing.T) {
 	for _, a := range r.Actions {
 		acts[a.ID] = true
 	}
-	for _, a := range []ext.ActionID{ext.ActChatCycleMode, ext.ActChatCancel, ext.ActAppInterrupt, ext.ActAppExit, ext.ActTaskBackground, ext.ActChatKillAgents} {
+	for _, a := range []ext.ActionID{ext.ActChatCycleMode, ext.ActChatCancel, ext.ActTaskBackground, ext.ActChatKillAgents} {
 		if !acts[a] {
 			t.Errorf("action %s not registered", a)
+		}
+	}
+	for _, a := range []ext.ActionID{ext.ActAppInterrupt, ext.ActAppExit} {
+		if acts[a] || len(r.Wrapped[string(a)]) != 1 {
+			t.Errorf("%s should wrap the core action, not replace it", a)
 		}
 	}
 	if _, ok := r.Command("exit"); !ok {
@@ -188,8 +193,8 @@ func TestCtrlCLadder(t *testing.T) {
 	x := newH(t)
 	x.event(&proto.SystemInit{})
 	x.press("ctrl+c")
-	if len(x.eng.interrupts) != 1 || len(find[ext.ExitMsg](x)) != 0 {
-		t.Fatal("ctrl+c interrupts a running turn")
+	if len(x.eng.interrupts) != 1 || !x.eng.interrupts[0] || len(find[ext.ExitMsg](x)) != 0 {
+		t.Fatalf("ctrl+c interrupts a running turn and cancels the queue: %v", x.eng.interrupts)
 	}
 	x.event(&proto.Result{})
 	x.press("ctrl+c")
@@ -206,9 +211,6 @@ func TestCtrlCLadder(t *testing.T) {
 	exits := find[ext.ExitMsg](x)
 	if len(exits) != 1 || exits[0].Code != 0 {
 		t.Fatalf("double press exits: %+v", exits)
-	}
-	if x.eng.count(proto.SubEndSession) != 1 {
-		t.Fatal("exit ends the engine session first")
 	}
 	if len(x.c.Printed) != 1 || !strings.Contains(x.c.Printed[0], "mantle --resume sess-1") {
 		t.Fatalf("resume hint = %q", x.c.Printed)

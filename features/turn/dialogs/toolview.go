@@ -47,9 +47,21 @@ func prettyJSON(raw []byte) string {
 	return buf.String()
 }
 
+// editPreview renders one edit with the context's Diff hook, or the plain fallback.
+func editPreview(ctx PermissionContext, old, new, path string, w int, st Styles) []string {
+	if ctx.Diff != nil {
+		return ctx.Diff(Sanitize(old), Sanitize(new), path, w, maxDiffLines)
+	}
+	if old == "" {
+		return renderDiff(addedPreview(new), w, maxDiffLines, st)
+	}
+	return renderDiff(diffPreview(old, new, 2), w, maxDiffLines, st)
+}
+
 // describeTool picks the header variant for a request.
-func describeTool(req ToolRequest, in map[string]any, cwd string) toolView {
+func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) toolView {
 	name := req.ToolName
+	cwd := ctx.Cwd
 	v := toolView{kind: "permission", question: "Do you want to proceed?"}
 	switch {
 	case name == "Bash" || name == "PowerShell":
@@ -75,18 +87,16 @@ func describeTool(req ToolRequest, in map[string]any, cwd string) toolView {
 		path := str(in, "file_path")
 		v.title = "Edit file"
 		v.question = "Do you want to make this edit to " + baseName(path) + "?"
-		var lines []diffLine
+		type pair struct{ old, new string }
+		var edits []pair
 		if name == "MultiEdit" {
-			edits, _ := in["edits"].([]any)
-			for i, e := range edits {
+			list, _ := in["edits"].([]any)
+			for _, e := range list {
 				em, _ := e.(map[string]any)
-				if i > 0 {
-					lines = append(lines, diffLine{kind: '~'})
-				}
-				lines = append(lines, diffPreview(str(em, "old_string"), str(em, "new_string"), 2)...)
+				edits = append(edits, pair{str(em, "old_string"), str(em, "new_string")})
 			}
 		} else {
-			lines = diffPreview(str(in, "old_string"), str(in, "new_string"), 2)
+			edits = append(edits, pair{str(in, "old_string"), str(in, "new_string")})
 		}
 		replaceAll := boolean(in, "replace_all")
 		v.body = func(w int, st Styles) []string {
@@ -94,30 +104,37 @@ func describeTool(req ToolRequest, in map[string]any, cwd string) toolView {
 			if replaceAll {
 				out = append(out, render(st.Dim, "  (every occurrence)"))
 			}
-			return append(out, renderDiff(lines, w, maxDiffLines, st)...)
+			var diff []string
+			for i, e := range edits {
+				if i > 0 {
+					diff = append(diff, render(st.Dim, "  ⋯"))
+				}
+				diff = append(diff, editPreview(ctx, e.old, e.new, path, w, st)...)
+			}
+			return append(out, truncateLines(diff, maxDiffLines, st)...)
 		}
 	case name == "Write":
 		path := str(in, "file_path")
 		v.title = "Write file"
 		v.question = "Do you want to write " + baseName(path) + "?"
-		lines := addedPreview(str(in, "content"))
+		content := str(in, "content")
 		v.body = func(w int, st Styles) []string {
 			out := styleLines(st.Code, wrapIndent("  ", displayPath(path, cwd), w))
-			return append(out, renderDiff(lines, w, maxDiffLines, st)...)
+			return append(out, editPreview(ctx, "", content, path, w, st)...)
 		}
 	case name == "NotebookEdit":
 		path := str(in, "notebook_path")
 		v.title = "Edit notebook"
 		v.question = "Do you want to make this edit to " + baseName(path) + "?"
 		cell, editMode := str(in, "cell_id"), str(in, "edit_mode")
-		lines := addedPreview(str(in, "new_source"))
+		source := str(in, "new_source")
 		v.body = func(w int, st Styles) []string {
 			out := styleLines(st.Code, wrapIndent("  ", displayPath(path, cwd), w))
 			meta := strings.TrimSpace(strings.Join([]string{editMode, cellLabel(cell)}, " "))
 			if meta != "" {
 				out = append(out, render(st.Dim, "  "+SanitizeLine(meta)))
 			}
-			return append(out, renderDiff(lines, w, maxDiffLines, st)...)
+			return append(out, editPreview(ctx, "", source, path, w, st)...)
 		}
 	case name == "Read":
 		path := str(in, "file_path")

@@ -10,6 +10,7 @@ import (
 
 	"github.com/KaitouKid1412/mantle/features/turn/dialogs"
 	"github.com/KaitouKid1412/mantle/features/turn/gates"
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
 
@@ -238,61 +239,18 @@ func gatePending(run *gateRun, k gates.Kind) bool {
 	return false
 }
 
-// valueFlags are claude flags that take a value as the next argument. Their values are
-// skipped when scanning ExtraArgs, so `--append-system-prompt --dangerously-skip-permissions`
-// (a prompt text) is not mistaken for the flag. Plan 11's cli.GateInputsOf replaces this
-// scan once internal/cli reaches this branch.
-var valueFlags = map[string]bool{
-	"--add-dir": true, "--agent": true, "--agents": true, "--allowedTools": true, "--allowed-tools": true,
-	"--append-system-prompt": true, "--append-system-prompt-file": true, "--betas": true,
-	"--debug-file": true, "--disallowedTools": true, "--disallowed-tools": true, "--effort": true,
-	"--fallback-model": true, "--input-format": true, "--json-schema": true, "--max-budget-usd": true,
-	"--max-thinking-tokens": true, "--max-turns": true, "--mcp-config": true, "--model": true,
-	"--name": true, "-n": true, "--output-format": true, "--permission-mode": true,
-	"--permission-prompt-tool": true, "--plugin-dir": true, "--resume": true, "-r": true,
-	"--session-id": true, "--setting-sources": true, "--settings": true, "--system-prompt": true,
-	"--system-prompt-file": true, "--task-budget": true, "--thinking": true, "--thinking-display": true,
-	"--tools": true, "--worktree": true, "-w": true, "--remote-control-session-name-prefix": true,
-}
-
-// launchFlags reads the gate inputs from spawn options: the explicit fields, then the
-// user's claude flags forwarded in ExtraArgs (which win, as claude sees them last).
+// launchFlags reads the gate inputs from spawn options with plan 11's claude flag
+// table, so a flag's value is never mistaken for a flag and ExtraArgs (which claude
+// sees last) win.
 func launchFlags(o ext.SpawnOpts) gates.LaunchFlags {
-	f := gates.LaunchFlags{PermissionMode: o.PermissionMode, Settings: o.Settings}
-	args := o.ExtraArgs
-	for i := 0; i < len(args); i++ {
-		if args[i] == "--" {
-			break
-		}
-		name, val, hasVal := strings.Cut(args[i], "=")
-		takeVal := func() string {
-			if hasVal {
-				return val
-			}
-			if i+1 < len(args) {
-				i++
-				return args[i]
-			}
-			return ""
-		}
-		switch name {
-		case "--dangerously-skip-permissions":
-			f.DangerouslySkip = true
-		case "--allow-dangerously-skip-permissions":
-			f.AllowDangerously = true
-		case "--strict-mcp-config":
-			f.StrictMcpConfig = true
-		case "--permission-mode":
-			f.PermissionMode = takeVal()
-		case "--settings":
-			f.Settings = takeVal()
-		default:
-			if valueFlags[name] {
-				takeVal()
-			}
-		}
+	g := cli.GateInputsOf(o)
+	return gates.LaunchFlags{
+		PermissionMode:   g.PermissionMode,
+		Settings:         g.Settings,
+		DangerouslySkip:  g.SkipPermissions,
+		AllowDangerously: g.AllowSkipPermissions,
+		StrictMcpConfig:  g.StrictMcpConfig,
 	}
-	return f
 }
 
 // stripFlag removes a value-taking flag ("--x v" or "--x=v") from args.
