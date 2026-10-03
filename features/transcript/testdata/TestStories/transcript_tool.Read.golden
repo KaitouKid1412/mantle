@@ -1,0 +1,9 @@
+── width 60 ──
+[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+  ⎿  [38;2;139;139;147mRead 5 lines (ctrl+o to expand)[m
+── width 100 ──
+[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+  ⎿  [38;2;139;139;147mRead 5 lines (ctrl+o to expand)[m
+── width 160 ──
+[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+  ⎿  [38;2;139;139;147mRead 5 lines (ctrl+o to expand)[m

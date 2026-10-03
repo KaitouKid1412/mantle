@@ -1,0 +1,18 @@
+{
+  "state": {
+    "rules": [
+      {"behavior": "allow", "source": "session", "rule": "Bash(ls)", "editability": "session"},
+      {"behavior": "allow", "source": "userSettings", "rule": "Bash(git status)", "editability": "persistent",
+       "description": {"prefix": "Commands starting with ", "emphasis": "git status"}},
+      {"behavior": "deny", "source": "policySettings", "rule": "Bash(curl:*)", "editability": "readonly"},
+      {"behavior": "ask", "source": "projectSettings", "rule": "Bash(git push:*)", "editability": "persistent", "notInEffect": true},
+      {"behavior": "bogus", "source": "userSettings", "rule": "Read"}
+    ],
+    "workspaceDirectories": [
+      {"path": "/work/shared", "source": "userSettings"},
+      {"path": "/tmp/scratch", "source": "session"}
+    ],
+    "originalCwd": "/work/repo",
+    "managedOnly": false
+  }
+}
