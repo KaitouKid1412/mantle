@@ -127,6 +127,13 @@ func (p previewSettings) ClaudeScope(scope string) map[string]any {
 	return nil
 }
 
+func (p previewSettings) SetClaude(scope, key string, value any) tea.Cmd {
+	if w, ok := p.Settings.(ext.ClaudeSettingsWriter); ok {
+		return w.SetClaude(scope, key, value)
+	}
+	return nil
+}
+
 func (p previewSettings) ClaudeSources() []ext.SettingsSource {
 	if s, ok := p.Settings.(ext.ScopedSettings); ok {
 		return s.ClaudeSources()
