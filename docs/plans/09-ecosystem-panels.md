@@ -156,7 +156,7 @@ Also provide:
     `initialize.agents` after a reload).
   - Edit and delete with confirmation. In 2.1.288 Claude Code's `/agents` is marked removed,
     so mantle's version is a convenience; keep it minimal.
-- [ ] **B6 [M2] `/memory` and `/pause-memory`.**
+- [x] **B6 [M2] `/memory` and `/pause-memory`.**
   - List memory files (A3 plus `init.memory_paths`) and open one in `$EDITOR`.
   - Toggle auto memory (`autoMemoryEnabled`); open the auto-memory folder.
   - After editing, call `register_repo_root {directory, reload_claude_md: true}` if
