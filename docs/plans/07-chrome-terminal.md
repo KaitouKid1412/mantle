@@ -85,7 +85,37 @@ the terminal services as plain Go packages; Part B wires them into the UI throug
   `axScreenReader`. Flat linear output: no animation, no box drawing.
 
 ## Part A: start immediately (no other session needed)
-- [ ] **A1 `internal/term/statusline`, the runner.**
+
+Status: A1–A7 done (`make test-07`). Notes and intentional differences:
+- `internal/term/terminal` (extra): shared emulator detection (`TERM_PROGRAM`,
+  `KITTY_WINDOW_ID`, `GHOSTTY_RESOURCES_DIR`, `LC_TERMINAL`, …), `TmuxWrap`, `StripControls`.
+- **subagentStatusLine runs once per refresh for all rows**, not once per row: Claude Code
+  sends one object `{session_id, transcript_path, cwd, columns, tasks:[…]}` and reads
+  JSON lines `{"id","content"}` back (`SubagentPayload`, `ParseRows`). One `Runner` serves
+  it. `hook_event_name` is left out until a real run shows its value.
+- Payload key set: `testdata/fixtures/07/statusline-keys.txt` is taken from the public
+  docs, not from a recorded run (real `claude` runs are opt-in). Re-record it with a
+  stdin-dumping statusLine command when a spike is allowed. `prompt_cache` has a type but
+  the builder never fills it (mantle doesn't compute it yet); `used_percentage` is
+  rounded to a whole number, as in the docs' example.
+- Status line output is sanitized: SGR and OSC 8 are kept, cursor movement, clears,
+  titles and other sequences are dropped (they would corrupt the inline renderer).
+- `auto` notifications resolve to a desktop notification only in iTerm2, kitty and
+  Ghostty, otherwise nothing (set `terminal_bell` for a bell), as in Claude Code.
+  `"bell"` is accepted as `terminal_bell`. Per the docs `inputNeededNotifEnabled` is the
+  *mobile push* toggle, so it is not used for terminal notifications; `notify.Prefs`
+  has `SkipInputNeeded` and `Quiet` for whatever B9 maps onto them.
+- Trigger policy (`notify.Decide`): never when focused; InputNeeded at once when
+  blurred, after 6 s of waiting and 6 s idle when focus is unknown; TurnDone for turns
+  ≥ 3 s when blurred, ≥ 30 s with ≥ 20 s idle when focus is unknown; 2 s min gap.
+- OSC 9;4 is gated by `osc.ProgressSupported` (Windows Terminal, ConEmu, Ghostty ≥ 1.2,
+  iTerm2 ≥ 3.6.6): older iTerm2 shows OSC 9;4 as a notification.
+- PR badge: hints only for github.com and `GH_HOST` (mantle's own wording); GitLab shows
+  nothing when `glab` is missing or logged out. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`
+  turns lookups off (`prbadge.Enabled`). Issue links follow the repo's host (gitlab.com
+  uses `/-/issues/`; bitbucket.org, codeberg.org and gitea.com get none).
+
+- [x] **A1 `internal/term/statusline`, the runner.**
   - `Runner{Cmd, Padding, RefreshInterval}` with `Update(payload)`: debounces at 300 ms,
     runs via `sh -c` with a timeout, `COLUMNS`/`LINES` env and JSON on stdin; output is
     trimmed and ANSI kept.
@@ -93,32 +123,32 @@ the terminal services as plain Go packages; Part B wires them into the UI throug
     latest result is kept.
   - Errors produce a dim one-line notice, never a crash.
   - The same runner serves `subagentStatusLine`, with one instance per subagent row.
-- [ ] **A2 `internal/term/statusline`, the payload.** A `Payload` struct with JSON tags
+- [x] **A2 `internal/term/statusline`, the payload.** A `Payload` struct with JSON tags
   matching the field names above, plus a builder fed by plain values. Unit test: marshal and
   compare against a golden key set.
-- [ ] **A3 `internal/term/notify`.**
+- [x] **A3 `internal/term/notify`.**
   - `Sequence(channel, title, body string, inTmux bool) []byte` for iTerm2 (OSC 9), kitty
     (OSC 99 with `i=`/`d=`), Ghostty (OSC 777 `notify`), bell (`\a`), `iterm2_with_bell`, and
     `auto` (detect via `TERM_PROGRAM`, `KITTY_WINDOW_ID`, `GHOSTTY_RESOURCES_DIR`, …).
   - tmux passthrough wrapping (`ESC Ptmux; … ESC \`, doubling ESCs).
   - Table tests.
-- [ ] **A4 `internal/term/osc`.** Progress (OSC 9;4 states: none, normal, error,
+- [x] **A4 `internal/term/osc`.** Progress (OSC 9;4 states: none, normal, error,
   indeterminate, pause), OSC 8 hyperlink helpers (`FORCE_HYPERLINK` honoured), and a title
   sanitizer that strips control characters and caps length.
-- [ ] **A5 `internal/term/clipboard`.**
+- [x] **A5 `internal/term/clipboard`.**
   - `Copy(text)`: `pbcopy` on macOS; on Linux `wl-copy`, `xclip -selection clipboard` or
     `xsel`.
   - OSC 52 when `SSH_TTY` is set or no tool exists, with tmux passthrough.
   - `ReadImage()` is **not** here; plan 04 owns image paste.
   - Tests use fake binaries on `PATH`.
-- [ ] **A6 `internal/term/prbadge`.**
+- [x] **A6 `internal/term/prbadge`.**
   - Detect the forge from the git remote.
   - GitHub: `gh pr view --json number,url,state,isDraft,reviewDecision` (the result chooses
     the badge colour). GitLab: `glab mr view -F json`.
   - Cache per (repo, branch) with a TTL; refresh asynchronously; don't block on missing auth
     (returns a hint instead). Honours `prStatusFooterEnabled` and `prUrlTemplate`.
   - Footer links: `footerLinksRegexes` matching plus `owner/repo#123` issue linkification.
-- [ ] **A7 `internal/term/focus`.** Track terminal focus from Bubble Tea v2 focus and blur
+- [x] **A7 `internal/term/focus`.** Track terminal focus from Bubble Tea v2 focus and blur
   messages (`ReportFocus`), so notifications fire only when the terminal is unfocused or the
   user has been away.
 
