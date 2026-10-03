@@ -21,7 +21,7 @@ PKGS_10 = ./cmd/mantle/... ./internal/launcher/... ./internal/selfmod/... \
 PKGS_11 = ./internal/cli/...
 PKGS_12 = ./features/fullscreen/... ./test/...
 
-.PHONY: build test lint vet archtest parity tags sessions
+.PHONY: build test lint vet archtest parity tags sessions install
 
 build:
 	$(GO) build -o bin/ ./cmd/...
@@ -56,3 +56,7 @@ tags:
 # Start the parallel plan sessions as Claude Code background sessions.
 sessions:
 	scripts/start-sessions.sh
+
+# Install the launcher, ~/.mantle/src and a first mantle-ui build (plan 10).
+install:
+	scripts/install.sh
