@@ -266,12 +266,19 @@ and `claude` is seamless.
 
 ## Interfaces you provide / consume
 - **Provide:**
-  - commands `/model`, `/effort`, `/fast`, `/config`, `/status`, `/theme`, `/output-style`,
-    `/permissions` (`/allowed-tools`), `/keybindings`, `/terminal-setup`, `/vim`, `/focus`,
-    `/tui`, `/scroll-speed`, `/advisor`, `/autocompact`, `/help`;
+  - commands `/model`, `/effort`, `/fast`, `/config` (`/settings`), `/status`, `/version`,
+    `/theme`, `/output-style`, `/permissions` (`/allowed-tools`), `/keybindings`,
+    `/terminal-setup`, `/vim`, `/tui`, `/advisor`, `/autocompact`, `/sandbox`, `/restart`,
+    `/help` (`/focus` and `/scroll-speed` belong to plans 03 and 12; `/privacy-settings`
+    to plan 09);
   - actions `chat:modelPicker`, `chat:fastMode`, `chat:thinkingToggle`,
-    `chat:increaseEffort`, `chat:decreaseEffort`, `chat:defaultToNewerModel`;
-  - the `settings.help` component (reusable by plan 04's `?` panel).
+    `chat:increaseEffort`, `chat:decreaseEffort`, `chat:defaultToNewerModel`, `app:help`;
+  - dialogs by ID: `dialog.help` (argument `"shortcuts"` opens on the shortcuts tab; plan
+    04's `?` panel can use it), `dialog.model`, `dialog.effort`, `dialog.config`
+    (argument `1` opens the Status tab), `dialog.status`, `dialog.theme`,
+    `dialog.outputStyle`, `dialog.permissions`, `dialog.terminalSetup`, `dialog.tui`,
+    `dialog.advisor`, `dialog.autocompact`, `dialog.sandbox`;
+  - mantle setting `settings.modelSwitchWarning` (bool, default true).
 - **Consume:**
   - `pkg/ext` (dialogs, settings API, SettingSpec registry, keymap table);
   - `pkg/proto` (ModelInfo, control request types);
