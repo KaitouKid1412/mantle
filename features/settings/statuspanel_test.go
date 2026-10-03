@@ -49,6 +49,26 @@ func TestStatusPanel(t *testing.T) {
 	}
 }
 
+func TestStatusUsesHostSources(t *testing.T) {
+	g := newRig(t)
+	g.c.SettingsV.Sources = []ext.SettingsSource{
+		{Scope: ext.ScopePolicy, Path: "/managed.json"},
+		{Scope: ext.ScopeFlag},
+		{Scope: ext.ScopeLocal, Path: "/w/.claude/settings.local.json", Exists: true, Err: errInvalid("bad key")},
+		{Scope: ext.ScopeUser, Path: "/h/.claude/settings.json", Exists: true},
+	}
+	g.command("status", "")
+	s := g.screen(160)
+	user := strings.Index(s, "/h/.claude/settings.json")
+	local := strings.Index(s, "/w/.claude/settings.local.json (ignored: bad key)")
+	if user < 0 || local < 0 || user > local {
+		t.Errorf("sources not shown lowest first:\n%s", s)
+	}
+	if strings.Contains(s, "/managed.json") {
+		t.Error("missing managed file listed")
+	}
+}
+
 func TestVersionCommand(t *testing.T) {
 	g := newRig(t)
 	g.a.engine.sys = &proto.SystemInit{ClaudeCodeVersion: "2.1.288"}

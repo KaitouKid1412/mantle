@@ -159,13 +159,27 @@ func TestThemePicker(t *testing.T) {
 	if g.closed[len(g.closed)-1].Result != "custom:ocean" {
 		t.Errorf("result %v", g.closed[len(g.closed)-1].Result)
 	}
+	// Every move previews on the host; the timer fallback ends the preview after
+	// confirm (the fake clock fires at once), and a later settings reload is a no-op.
+	pv := g.previews()
+	if len(pv) < 3 || pv[0] != "custom:ocean" || pv[len(pv)-1] != "" {
+		t.Errorf("previews %q", pv)
+	}
+	n := len(g.previews())
+	g.deliver(ext.SettingsMsg{Changed: []string{"theme"}})
+	if len(g.previews()) != n {
+		t.Error("preview ended twice")
+	}
 
-	// Cancel writes nothing.
+	// Cancel writes nothing and restores the theme.
 	g2 := newRig(t)
 	g2.command("theme", "")
 	g2.press(ext.ActSelectNext, ext.ActSelectCancel)
 	if len(g2.writes) != 0 {
 		t.Errorf("cancel wrote %v", g2.writes)
+	}
+	if pv := g2.previews(); len(pv) != 2 || pv[0] != "light" || pv[1] != "" {
+		t.Errorf("cancel previews %q", pv)
 	}
 }
 

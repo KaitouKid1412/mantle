@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/editor"
@@ -21,6 +22,7 @@ const (
 
 func (a *area) setupTheme(r ext.Registrar) error {
 	r.AddDialog(dialogTheme, a.newThemePicker)
+	a.subscribeThemePreview(r)
 	r.AddCommand(ext.Command{
 		Name: "theme", Description: "Change the colour theme", Source: ext.SourceBuiltin,
 		Run: func(c ext.Ctx, _ string) tea.Cmd { return c.OpenDialog(dialogTheme, nil) },
@@ -101,19 +103,53 @@ func (p *themePicker) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 	case ext.ActSelectAccept:
 		name, effects := p.picker.Confirm()
 		cmds := []tea.Cmd{p.a.apply(c, effects), c.CloseDialog(dialogTheme)}
-		if len(effects) > 0 {
-			cmds = append(cmds, c.Notify(ext.Notice{Key: "settings.theme", Level: ext.NoticeSuccess,
-				Source: "settings", Text: "Theme set to " + themes.Label(name)}))
+		if len(effects) == 0 {
+			return true, tea.Sequence(append(cmds, ext.Msg(ext.ThemePreviewMsg{}))...)
 		}
+		// Keep previewing until the settings reload carries the new theme, so the
+		// screen doesn't flash back to the old one; a timer covers a failed write.
+		p.a.endPreviewPending = true
+		cmds = append(cmds, c.Notify(ext.Notice{Key: "settings.theme", Level: ext.NoticeSuccess,
+			Source: "settings", Text: "Theme set to " + themes.Label(name)}),
+			c.Clock().Tick(3*time.Second, func(time.Time) tea.Msg { return themePreviewTimeoutMsg{} }))
 		return true, tea.Sequence(cmds...)
 	case ext.ActSelectCancel:
 		p.picker.Cancel()
-		return true, c.CloseDialog(dialogTheme)
+		return true, tea.Sequence(ext.Msg(ext.ThemePreviewMsg{}), c.CloseDialog(dialogTheme))
 	default:
 		return false, nil
 	}
 	c.Invalidate(p.ID())
-	return true, nil
+	return true, p.previewCmd()
+}
+
+// previewCmd asks the host to show the highlighted theme and syntax toggle.
+func (p *themePicker) previewCmd() tea.Cmd {
+	on := !p.picker.SyntaxOff
+	return ext.Msg(ext.ThemePreviewMsg{Name: p.picker.Highlighted().Name, SyntaxHighlight: &on})
+}
+
+// themePreviewTimeoutMsg ends a preview still running a while after confirm.
+type themePreviewTimeoutMsg struct{}
+
+// subscribeThemePreview ends a confirmed preview once settings carry the new theme.
+func (a *area) subscribeThemePreview(r ext.Registrar) {
+	end := func() tea.Cmd {
+		if !a.endPreviewPending {
+			return nil
+		}
+		a.endPreviewPending = false
+		return ext.Msg(ext.ThemePreviewMsg{})
+	}
+	ext.Subscribe(r, "settings.theme-preview-settings", func(c ext.Ctx, m ext.SettingsMsg) tea.Cmd {
+		for _, k := range m.Changed {
+			if k == "theme" || k == "syntaxHighlightingDisabled" {
+				return end()
+			}
+		}
+		return nil
+	})
+	ext.Subscribe(r, "settings.theme-preview-timeout", func(c ext.Ctx, _ themePreviewTimeoutMsg) tea.Cmd { return end() })
 }
 
 // editCustom opens the highlighted custom theme's file in $EDITOR.

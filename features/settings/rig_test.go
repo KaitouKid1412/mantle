@@ -94,6 +94,18 @@ type rig struct {
 	dialog ext.Dialog
 	dlgID  string
 	closed []ext.DialogClosedMsg
+	msgs   []tea.Msg // every message delivered, in order
+}
+
+// previews returns the ThemePreviewMsg names delivered so far.
+func (g *rig) previews() []string {
+	var out []string
+	for _, m := range g.msgs {
+		if p, ok := m.(ext.ThemePreviewMsg); ok {
+			out = append(out, p.Name)
+		}
+	}
+	return out
 }
 
 func newRig(t *testing.T) *rig {
@@ -152,6 +164,7 @@ func (g *rig) run(cmd tea.Cmd) {
 func (g *rig) deliver(msg tea.Msg) { g.run(ext.Msg(msg)) }
 
 func (g *rig) deliverOne(msg tea.Msg) []tea.Msg {
+	g.msgs = append(g.msgs, msg)
 	switch m := msg.(type) {
 	case ext.DialogOpenedMsg:
 		f, ok := g.r.Dialogs[m.ID]

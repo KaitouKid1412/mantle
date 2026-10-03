@@ -90,7 +90,6 @@ func (a *area) setupStatus(r ext.Registrar) error {
 type statusLoadedMsg struct {
 	files  []status.SettingsFile
 	memory []status.MemoryFile
-	docs   map[patch.Scope]map[string]any
 }
 
 type statusPanel struct {
@@ -116,9 +115,18 @@ func (p *statusPanel) HandlePaste(ext.Ctx, tea.PasteMsg) (bool, tea.Cmd)  { retu
 
 func (p *statusPanel) Init(c ext.Ctx) tea.Cmd {
 	env := p.a.env(c)
+	srcs := hostSources(c)
 	return tea.Batch(func() tea.Msg {
-		return ext.AddressedMsg{To: statusID, Msg: statusLoad(env)}
+		return ext.AddressedMsg{To: statusID, Msg: statusLoad(env, srcs)}
 	}, p.refreshMCP(c))
+}
+
+// hostSources is the host's view of the settings files, when it offers one.
+func hostSources(c ext.Ctx) []ext.SettingsSource {
+	if ss, ok := c.Settings().(ext.ScopedSettings); ok {
+		return ss.ClaudeSources()
+	}
+	return nil
 }
 
 func (p *statusPanel) refreshMCP(c ext.Ctx) tea.Cmd {
@@ -128,20 +136,30 @@ func (p *statusPanel) refreshMCP(c ext.Ctx) tea.Cmd {
 	return nil
 }
 
-// statusLoad checks the settings and memory files.
-func statusLoad(env patch.Env) statusLoadedMsg {
+// statusLoad lists the settings files (the host's sources when given, else read here)
+// and checks the memory files.
+func statusLoad(env patch.Env, host []ext.SettingsSource) statusLoadedMsg {
 	var m statusLoadedMsg
-	srcs := settingsfile.ReadAll(env)
-	m.docs = settingsfile.Docs(srcs)
-	for _, s := range srcs {
-		f := status.SettingsFile{Scope: s.Scope.Label(), Path: s.Path, Exists: s.Exists}
-		if s.Err != nil {
-			f.Err = s.Err.Error()
+	add := func(scope patch.Scope, path string, exists bool, err error) {
+		if path == "" || (!exists && scope == patch.Policy) {
+			return // inline flag settings; most machines have no managed settings
 		}
-		if !s.Exists && s.Scope == patch.Policy {
-			continue // most machines have no managed settings
+		f := status.SettingsFile{Scope: scope.Label(), Path: path, Exists: exists}
+		if err != nil {
+			f.Err = err.Error()
 		}
 		m.files = append(m.files, f)
+	}
+	if len(host) > 0 {
+		// The host lists highest precedence first; show lowest first, like the reader.
+		for i := len(host) - 1; i >= 0; i-- {
+			s := host[i]
+			add(patch.Scope(s.Scope), s.Path, s.Exists, s.Err)
+		}
+	} else {
+		for _, s := range settingsfile.ReadAll(env) {
+			add(s.Scope, s.Path, s.Exists, s.Err)
+		}
 	}
 	for _, mf := range memoryCandidates(env) {
 		if _, err := os.Stat(mf.Path); err == nil {

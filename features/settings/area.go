@@ -28,6 +28,9 @@ type area struct {
 	// section (the host does not list other features' specs yet).
 	mantleSpecs []ext.SettingSpec
 
+	// endPreviewPending: a confirmed /theme preview waits for the settings reload.
+	endPreviewPending bool
+
 	// Session overrides applied with apply_flag_settings (nil/"" = none).
 	sessionEffort    model.Effort
 	sessionUltracode *bool
