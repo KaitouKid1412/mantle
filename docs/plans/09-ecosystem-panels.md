@@ -143,7 +143,7 @@ Also provide:
   - Mutations via A2 with `-y`, then `reload_plugins`. If the result reports MCP or
     cache-impact changes, offer an engine restart (`Engine.Restart` with `--resume`).
   - Show `init.plugin_errors`.
-- [ ] **B3 [M2] `/skills`.** Skills from `init.skills`, refreshed with `reload_skills`;
+- [x] **B3 [M2] `/skills`.** Skills from `init.skills`, refreshed with `reload_skills`;
   source and path from A3; cycle visibility, which writes `skillOverrides` through plan
   01's config writer; open SKILL.md in `$EDITOR`. `/skill-doctor` stays E.
 - [x] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
