@@ -109,10 +109,8 @@ func (s *state) engineEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 		case proto.LifecycleCompleted, proto.LifecycleCancelled, proto.LifecycleDiscarded, proto.LifecycleRefused:
 			return s.dequeue(e.CommandUUID)
 		}
-	case *proto.User:
-		if e.IsReplay && e.UUID != "" {
-			return s.dequeue(e.UUID)
-		}
+	// Replays (--replay-user-messages) are not used to prune the queue: they
+	// may echo a prompt on receipt, before it starts (spike S2).
 	case *proto.CommandsChanged:
 		s.engineCmds = e.Commands
 		return s.commandsCmd()
