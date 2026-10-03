@@ -1,7 +1,6 @@
 package chrome
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -73,13 +72,9 @@ func LatestVersion(notes []ReleaseNotes) string {
 // ClaudeChangelogPath is Claude Code's cached changelog, read at runtime only. It
 // honours CLAUDE_CONFIG_DIR.
 func ClaudeChangelogPath(env terminal.Env) string {
-	dir := terminal.Get(env, "CLAUDE_CONFIG_DIR")
+	dir := claudeConfigDir(env)
 	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return ""
-		}
-		dir = filepath.Join(home, ".claude")
+		return ""
 	}
 	return filepath.Join(dir, "cache", "changelog.md")
 }

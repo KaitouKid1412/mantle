@@ -315,6 +315,25 @@ func TestRunnerClose(t *testing.T) {
 	})
 }
 
+func TestRunnerSet(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fx := &fakeExec{}
+		r := NewRunner(Config{Command: "cmd", Exec: fx.exec, RefreshInterval: time.Second})
+		defer r.Close()
+		r.Set([]byte("quiet"))
+		time.Sleep(500 * time.Millisecond)
+		synctest.Wait()
+		if fx.count() != 0 {
+			t.Fatal("Set must not schedule a run")
+		}
+		time.Sleep(time.Second)
+		synctest.Wait()
+		if fx.count() != 1 || string(fx.last().Stdin) != "quiet" {
+			t.Errorf("refresh should use the Set payload: %d", fx.count())
+		}
+	})
+}
+
 func TestRunnerConfigDefaults(t *testing.T) {
 	r := NewRunner(Config{Command: "x"})
 	defer r.Close()

@@ -121,6 +121,16 @@ func (r *Runner) Update(payload []byte) {
 	r.schedule()
 }
 
+// Set replaces the payload later runs use (refresh ticks, resizes) without scheduling
+// a run: for data that changed between the events that re-run the command.
+func (r *Runner) Set(payload []byte) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.closed {
+		r.payload, r.have = payload, true
+	}
+}
+
 // Resize records the terminal size passed as COLUMNS/LINES and schedules a run when it
 // changed.
 func (r *Runner) Resize(cols, lines int) {

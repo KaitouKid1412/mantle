@@ -153,11 +153,36 @@ Status: A1–A7 done (`make test-07`). Notes and intentional differences:
   user has been away.
 
 ## Part B: after `contracts-v1` and `proto-v1`
-- [ ] **B1 [M1] Prompt frame.** The box around the input (slot `input` frame, owned
+
+Status (M1): B1–B5 done in `features/chrome` (stories + goldens at 60/100/160, behaviour
+tests with `exttest`), plus the clipboard Cmd helper `internal/term/clipcmd` (CH-28).
+Notes:
+- Frame: `Wrap("input.editor")` draws a rule above and below the editor (agreed with
+  plan 04: the editor draws no border); colour `bashBorder` in `!` mode, `planMode` in
+  plan mode, else `promptBorder`; the top rule carries the custom session name
+  (`SessionInfo.Title`). `/color` (CH-02) is still open (M2).
+- Footer: indicator for every mode (default reads "manual approval"); "? for shortcuts"
+  only with an empty prompt and no statusLine command (as Claude Code); background-task
+  count with a `/tasks` hint; vim indicator from `ext.EditorStateMsg` (not in NORMAL).
+  The host draws notices (`core.notices`); chrome forwards engine `system/notification`
+  events to `Ctx.Notify`. MCP-needs-auth count is part of B10's startup notices.
+- Status line: runs once a session starts, then on assistant messages, results,
+  compaction, mode/vim/model/name changes, settings changes (a new command skips the
+  debounce), resizes, `refreshInterval` and rate-limit resets; hidden while a dialog is
+  open. Still missing: `pr`, `workspace.repo`/`git_worktree`, `worktree` (B8), `thinking`,
+  `agent`, `prompt_id`, `prompt_cache` (no source yet; omitted). `total_cost_usd` takes the
+  latest `result.total_cost_usd`; line counts come from Edit/Write `structuredPatch`.
+  `transcript_path` uses a local slug function until plan 06's helper is merged.
+- Title/progress: `chrome.terminal` implements `ext.TerminalStater`. Progress is only
+  sent to terminals that render OSC 9;4; `requires_action` shows the paused state; an
+  error stays until the next turn or until the user types. vt-emulator tests need the
+  host (`internal/app`, plan 01), which isn't in this branch yet.
+
+- [x] **B1 [M1] Prompt frame.** The box around the input (slot `input` frame, owned
   together with plan 04's editor component): border colour per mode (bash mode border,
   plan, …), session name, `/color` support (the headless `/color` command or the `set_color`
   control request, plus rendering).
-- [ ] **B2 [M1] Footer** (slot `belowInput`):
+- [x] **B2 [M1] Footer** (slot `belowInput`):
   - permission-mode indicator, updated from `init.permissionMode` and `status`;
   - key hints ("? for shortcuts"; contextual hints such as "esc to interrupt" are owned by
     plan 03's spinner);
@@ -165,7 +190,7 @@ Status: A1–A7 done (`make test-07`). Notes and intentional differences:
     MCP-needs-auth count;
   - the vim mode indicator (from plan 04's editor message) unless
     `statusLine.hideVimModeIndicator` is set.
-- [ ] **B3 [M1] Status line component** (slot `statusLine`).
+- [x] **B3 [M1] Status line component** (slot `statusLine`).
   - Assembles the Payload from subscribed engine messages:
     - `init` (model, output style, fast mode, tools);
     - `result` (cost, durations, usage, modelUsage);
@@ -174,10 +199,10 @@ Status: A1–A7 done (`make test-07`). Notes and intentional differences:
     - session tracker (id, name, transcript path, cwd);
     - editor vim mode; PR badge; worktree.
   - Re-runs on change via the A1 runner. Applies `padding`.
-- [ ] **B4 [M1] Todo panel** (slot `aboveInput`): ctrl+t toggle; items from TodoWrite and
+- [x] **B4 [M1] Todo panel** (slot `aboveInput`): ctrl+t toggle; items from TodoWrite and
   Task tools with status glyphs; collapses to a summary; persists expanded state in
   mantle's state store.
-- [ ] **B5 [M1] Window title and progress.** Title from session name, ai-title or cwd.
+- [x] **B5 [M1] Window title and progress.** Title from session name, ai-title or cwd.
   Progress indeterminate while `session_state_changed=running` and cleared on idle; error
   state on `result.is_error`. Both merged into View fields through the host.
 - [ ] **B6 [M2] Subagent panel** (slot `aboveInput`, below todos).
