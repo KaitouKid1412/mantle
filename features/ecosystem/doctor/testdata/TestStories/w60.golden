@@ -1,0 +1,17 @@
+[1;38;2;224;149;110mDoctor[m
+
+  [1;38;2;230;227;222mmantle[m
+  [38;2;147;180;251m❯ [m[38;2;111;194;139m✓[m [38;2;147;180;251mClaude Code     [m  [38;2;139;139;147m2.1.288 (/usr/local/bin/claude)[m
+    [38;2;231;183;95m![m [38;2;230;227;222mGo toolchain    [m  [38;2;139;139;147mgo not found on PATH; mantle runs, …[m
+    [38;2;111;194;139m✓[m [38;2;230;227;222mTerminal        [m  [38;2;139;139;147mghostty[m
+    [38;2;231;183;95m![m [38;2;230;227;222mSettings files  [m  [38;2;139;139;147m1 of 3 file(s) are invalid[m
+    [38;2;139;139;147m–[m [38;2;230;227;222mmantle install  [m  [38;2;139;139;147m~/.mantle does not exist yet[m
+    [38;2;111;194;139m✓[m [38;2;230;227;222mWorkspace trust [m  [38;2;139;139;147mtrusted in Claude Code[m
+
+  [1;38;2;230;227;222mMore[m
+    [38;2;230;227;222mRun Claude Code's installation check[m  [38;2;139;139;147mclaude doctor[m
+  [38;2;139;139;147m  Ask Claude to diagnose[m
+    [38;2;230;227;222mUpdate Claude Code[m  [38;2;139;139;147mclaude update[m
+    [38;2;230;227;222mRun the checks again[m
+
+  [38;2;139;139;147menter details / run · r re-run · esc close[m

@@ -46,6 +46,8 @@ type Source struct {
 	Mantle bool
 	// User marks user files: reserved keys are rejected there.
 	User bool
+	// Err is a read or parse error; it is reported as an issue and the source is empty.
+	Err error
 }
 
 // Entry is a binding in a source. Action "" means unbind (JSON null).
@@ -161,6 +163,9 @@ func New(sources ...Source) *Keymap {
 		known[a] = true
 	}
 	for _, src := range sources {
+		if src.Err != nil {
+			km.Issues = append(km.Issues, Issue{Source: src.Name, Severity: SevError, Message: src.Err.Error()})
+		}
 		for _, e := range src.Bindings {
 			issue := func(sev Severity, msg string) {
 				km.Issues = append(km.Issues, Issue{Source: src.Name, Context: e.Context, Keys: e.Keys, Action: e.Action, Severity: sev, Message: msg})

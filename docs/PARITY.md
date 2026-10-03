@@ -468,7 +468,7 @@ are **H**. Infeasible features are **X**.
 | CU-05 | Cost display | Session cost | R | M1 | 06 | B | `result.total_cost_usd`, `modelUsage` |
 | CU-06 | Rate-limit state | Utilization and reset time | R | M1 | 06 | B | `rate_limit_event` |
 | CU-07 | Auto-compact warning | "Context low" percentage | R | M1 | 06 | B | |
-| CU-08 | `/autocompact [auto\|tokens]` | | E | M2 | 06 | B | Headless local |
+| CU-08 | `/autocompact [auto\|tokens]` | | E | M2 | 08 | B | Headless local |
 | CU-09 | Context % for the statusLine | `context_window.used/remaining_percentage` | R | M1 | 06 | B | The user's statusline uses these |
 | CU-10 | Cost warnings | | R | M3 | 06 | B | `DISABLE_COST_WARNINGS` |
 | CU-11 | Local JSONL activity stats | | N | M3 | 06 | A | |
@@ -651,7 +651,7 @@ are **H**. Infeasible features are **X**.
 | CL-21 | `/setup-bedrock`, `/setup-vertex` | | H | M3 | 09 | B | |
 | CL-22 | `/install-github-app` | | H | M3 | 09 | B | |
 | CL-23 | `/install-slack-app` | | H | M3 | 09 | B | local, not headless |
-| CL-24 | `/privacy-settings` | | H | M2 | 09 | B | |
+| CL-24 | `/privacy-settings` | | H | M2 | 08 | B | |
 | CL-25 | `/cloud-plugins` | | H | M3 | 09 | B | |
 | CL-26 | `/daemon` | Background services and routines | H | M3 | 09 | B | |
 | CL-27 | `/pro-trial-expired` (hidden) | | H | M3 | 09 | B | |
