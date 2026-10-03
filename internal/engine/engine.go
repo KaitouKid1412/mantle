@@ -118,6 +118,9 @@ func (e *Engine) SendPrompt(p ext.Prompt) error {
 	in := proto.NewUserInput(p.UUID, p.Blocks...)
 	in.Priority = p.Priority
 	in.ClientComposed = p.Composed
+	in.ShouldQuery = p.ShouldQuery
+	in.InlinePastes = p.InlinePastes
+	in.PastedContent = p.PastedContent
 	in.Origin = &proto.Origin{Kind: proto.OriginHuman}
 	line, err := in.MarshalLine()
 	if err != nil {
@@ -336,6 +339,7 @@ func (r *run) initialize(dialogKinds []string) {
 			if r.track.ObserveInitialize(&ir) {
 				r.coal.PushMsg(ext.SessionChangedMsg{EngineID: r.e.id, Info: r.track.Info()})
 			}
+			r.coal.PushMsg(r.commandsMsg(ir.Commands))
 		}
 	}
 	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp, Err: err})
@@ -376,6 +380,20 @@ func (r *run) onEvent(ev proto.Event) {
 	if changed {
 		r.coal.PushMsg(ext.SessionChangedMsg{EngineID: r.e.id, Info: r.track.Info()})
 	}
+	if cc, ok := ev.(*proto.CommandsChanged); ok {
+		r.coal.PushMsg(r.commandsMsg(cc.Commands))
+	}
+}
+
+// commandsMsg turns the engine's command list into ext.CommandsMsg (Run is nil: the
+// prompt pipeline sends them to the engine as text).
+func (r *run) commandsMsg(cmds []proto.SlashCommand) ext.CommandsMsg {
+	out := make([]ext.Command, 0, len(cmds))
+	for _, c := range cmds {
+		out = append(out, ext.Command{Name: c.Name, Description: c.Description, ArgHint: c.ArgumentHint,
+			Aliases: c.Aliases, Source: ext.SourceEngine})
+	}
+	return ext.CommandsMsg{Source: ext.SourceEngine, EngineID: r.e.id, Commands: out}
 }
 
 // afterControl records successful state-changing control requests.

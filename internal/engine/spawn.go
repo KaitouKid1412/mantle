@@ -73,8 +73,9 @@ var dropEnv = []string{
 	"CLAUDE_CODE_SIMPLE", // set by bare mode: drops hooks, skills, plugins, MCP, CLAUDE.md
 }
 
-// BuildEnv returns the engine environment: base minus dropEnv (and
-// CLAUDE_CODE_SAFE_MODE unless o.SafeMode), plus mantle's settings, plus o.Env.
+// BuildEnv returns the engine environment: base minus dropEnv, o.UnsetEnv (and
+// CLAUDE_CODE_SAFE_MODE unless o.SafeMode), plus mantle's settings, plus o.Env
+// (o.Env wins over UnsetEnv).
 func BuildEnv(base []string, o ext.SpawnOpts) []string {
 	drop := map[string]bool{}
 	for _, k := range dropEnv {
@@ -82,6 +83,9 @@ func BuildEnv(base []string, o ext.SpawnOpts) []string {
 	}
 	if !o.SafeMode {
 		drop["CLAUDE_CODE_SAFE_MODE"] = true
+	}
+	for _, k := range o.UnsetEnv {
+		drop[k] = true
 	}
 	set := map[string]string{
 		"CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS":     "1",

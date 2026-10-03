@@ -125,6 +125,29 @@ func (m *Manager) StartCmd(id string, o ext.SpawnOpts) tea.Cmd {
 	}
 }
 
+// Handle runs the engine requests features send (ext.EngineStartMsg,
+// ext.EngineStopMsg) and returns nil for any other message. The host calls it from
+// Update: `if cmd := m.Handle(msg); cmd != nil { return cmd }`.
+func (m *Manager) Handle(msg tea.Msg) tea.Cmd {
+	switch v := msg.(type) {
+	case ext.EngineStartMsg:
+		id := v.EngineID
+		if id == "" {
+			id = ext.MainEngine
+		}
+		if e := m.Engine(id); e != nil {
+			return e.Restart(v.Opts) // stops the live process first, if any
+		}
+		return m.StartCmd(id, v.Opts)
+	case ext.EngineStopMsg:
+		return func() tea.Msg {
+			m.Remove(context.Background(), v.EngineID)
+			return nil
+		}
+	}
+	return nil
+}
+
 // Remove stops engine id and forgets it (EngineDetachMsg follows its exit).
 func (m *Manager) Remove(ctx context.Context, id string) {
 	if id == "" {

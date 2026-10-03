@@ -284,3 +284,40 @@ func TestMultipleEngines(t *testing.T) {
 		t.Error("remove")
 	}
 }
+
+func TestHandleStartStopAndCommands(t *testing.T) {
+	script := enginefake.New(enginefake.InitializeRule(nil),
+		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))
+	m, sp, rec := setup(t, script)
+	cmd := m.Handle(ext.EngineStartMsg{EngineID: "builder-1", Opts: ext.SpawnOpts{PermissionMode: "acceptEdits"}})
+	if cmd == nil {
+		t.Fatal("start not handled")
+	}
+	if msg := cmd(); msg != nil {
+		t.Fatalf("start: %v", msg)
+	}
+	rec.WaitFor(t, func(msg tea.Msg) bool { a, ok := msg.(ext.EngineAttachMsg); return ok && a.EngineID == "builder-1" })
+	cm := rec.WaitFor(t, func(msg tea.Msg) bool { _, ok := msg.(ext.CommandsMsg); return ok }).(ext.CommandsMsg)
+	if cm.EngineID != "builder-1" || cm.Source != ext.SourceEngine || len(cm.Commands) != 2 || cm.Commands[0].Name != "compact" || cm.Commands[0].ArgHint == "" {
+		t.Errorf("commands: %+v", cm)
+	}
+	no := false
+	e := m.Engine("builder-1")
+	if msg := e.Send(ext.Prompt{Blocks: []proto.ContentBlock{proto.Text("x")}, ShouldQuery: &no,
+		InlinePastes: []string{"p"}, PastedContent: json.RawMessage(`[{"id":1}]`)})(); msg != nil {
+		t.Fatalf("send: %v", msg)
+	}
+	if m.Handle(ext.EngineStopMsg{EngineID: "builder-1"})() != nil {
+		t.Error("stop returned a message")
+	}
+	rec.WaitFor(t, func(msg tea.Msg) bool { d, ok := msg.(ext.EngineDetachMsg); return ok && d.EngineID == "builder-1" })
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Errorf("script: %d %v", code, err)
+	}
+	if !strings.Contains(strings.Join(sp.Specs()[0].Args, " "), "--permission-mode acceptEdits") {
+		t.Error("opts not used")
+	}
+	if m.Handle(ext.SessionChangedMsg{}) != nil {
+		t.Error("other messages must return nil")
+	}
+}

@@ -242,16 +242,16 @@ func TestBuildArgs(t *testing.T) {
 }
 
 func TestBuildEnv(t *testing.T) {
-	base := []string{"PATH=/bin", "CLAUDECODE=1", "NODE_OPTIONS=--x", "DEBUG=1", "CLAUDE_CODE_SIMPLE=1", "CLAUDE_CODE_SAFE_MODE=1", "HOME=/h", "PWD=/old"}
+	base := []string{"ANTHROPIC_API_KEY=secret", "PATH=/bin", "CLAUDECODE=1", "NODE_OPTIONS=--x", "DEBUG=1", "CLAUDE_CODE_SIMPLE=1", "CLAUDE_CODE_SAFE_MODE=1", "HOME=/h", "PWD=/old"}
 	env := map[string]string{}
-	for _, kv := range BuildEnv(base, ext.SpawnOpts{Cwd: "/w", Env: map[string]string{"FOO": "bar"}}) {
+	for _, kv := range BuildEnv(base, ext.SpawnOpts{Cwd: "/w", Env: map[string]string{"FOO": "bar"}, UnsetEnv: []string{"ANTHROPIC_API_KEY"}}) {
 		k, v, _ := strings.Cut(kv, "=")
 		if _, dup := env[k]; dup {
 			t.Errorf("duplicate %s", k)
 		}
 		env[k] = v
 	}
-	for _, k := range []string{"CLAUDECODE", "NODE_OPTIONS", "DEBUG", "CLAUDE_CODE_SIMPLE", "CLAUDE_CODE_SAFE_MODE"} {
+	for _, k := range []string{"CLAUDECODE", "NODE_OPTIONS", "DEBUG", "CLAUDE_CODE_SIMPLE", "CLAUDE_CODE_SAFE_MODE", "ANTHROPIC_API_KEY"} {
 		if _, ok := env[k]; ok {
 			t.Errorf("%s not removed", k)
 		}
