@@ -162,14 +162,14 @@ Also provide:
   - After editing, call `register_repo_root {directory, reload_claude_md: true}` if
     supported; otherwise tell the user the change applies next session.
   - `/pause-memory`: E if it's in `initialize.commands`; otherwise toggle the setting.
-- [ ] **B7 [M2] `/doctor`.**
+- [x] **B7 [M2] `/doctor`.**
   - Shows the A4 checks.
   - Offers "Run Claude Code's installation check" (`claude doctor` via ExecProcess, H) and
     "Ask Claude to diagnose" (sends the engine's bundled `/doctor` skill, E).
   - The native command takes the name `/doctor`; register the engine skill under its
     original name too so it stays reachable (coordinate the routing rule with plan 04's
     slash routing).
-- [ ] **B8 [M2] `/login` and `/logout`.** `claude auth login [--claudeai|--console|--sso]`
+- [x] **B8 [M2] `/login` and `/logout`.** `claude auth login [--claudeai|--console|--sso]`
   (pick the method in a small dialog) or `claude auth logout` via ExecProcess, then restart
   the engine and show the new `initialize.account`.
 - [x] **B9 [M2] `/upgrade`, `/feedback` (`/bug`), `/import`, `/install-github-app`.**

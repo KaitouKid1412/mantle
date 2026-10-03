@@ -177,6 +177,9 @@ type ConfirmView struct {
 
 func (c *ConfirmView) Contexts() []string { return []string{ext.ContextConfirmation} }
 
+// Choice reports whether "yes" is highlighted.
+func (c *ConfirmView) Choice() bool { return c.yes }
+
 func (c *ConfirmView) Action(ctx ext.Ctx, d *Dialog, a ext.ActionID) (bool, tea.Cmd) {
 	switch a {
 	case ext.ActConfirmYes:
