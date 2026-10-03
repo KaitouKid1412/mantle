@@ -117,7 +117,8 @@ func (t *Tree) Leaves(sidechains bool) []*Node {
 // ActiveLeaf picks the leaf a resume continues from. hint is the leaf named by the last
 // last-prompt record; if it is in the tree, the newest leaf below it is returned (the
 // hint can lag behind the last messages). Otherwise the newest non-sidechain entry's
-// newest descendant is used. It returns nil for an empty tree.
+// newest descendant is used; a transcript of sidechain entries only (a subagent's) uses
+// its newest entry. It returns nil for an empty tree.
 func (t *Tree) ActiveLeaf(hint string) *Node {
 	start := t.byUUID[hint]
 	if start == nil {
@@ -127,6 +128,9 @@ func (t *Tree) ActiveLeaf(hint string) *Node {
 				break
 			}
 		}
+	}
+	if start == nil && len(t.nodes) > 0 {
+		start = t.nodes[len(t.nodes)-1]
 	}
 	if start == nil {
 		return nil
@@ -159,6 +163,11 @@ type BranchOptions struct {
 }
 
 // Branch returns the entries from the root to leaf, in order.
+//
+// The engine parents a tool result on the assistant record that issued the call, so
+// with parallel tool calls all but the last result sit on side branches. Like the
+// engine's own loader, Branch puts such a result back: right after the record holding
+// its tool_use, when that call has no result on the branch.
 func (t *Tree) Branch(leaf *Node, opts BranchOptions) []*Entry {
 	var rev []*Entry
 	seen := map[*Node]bool{}
@@ -180,6 +189,56 @@ func (t *Tree) Branch(leaf *Node, opts BranchOptions) []*Entry {
 	out := make([]*Entry, len(rev))
 	for i, e := range rev {
 		out[len(rev)-1-i] = e
+	}
+	return t.recoverToolResults(out, opts)
+}
+
+func (t *Tree) recoverToolResults(chain []*Entry, opts BranchOptions) []*Entry {
+	onChain := make(map[*Entry]bool, len(chain))
+	issuer := map[string]*Entry{} // tool_use id -> record on the chain that issued it
+	answered := map[string]bool{}
+	for _, e := range chain {
+		onChain[e] = true
+		if e.Message == nil {
+			continue
+		}
+		for _, b := range e.Message.Content.Blocks {
+			switch {
+			case e.Kind() == KindAssistant && b.ID != "" && (b.Type == "tool_use" || b.Type == "server_tool_use" || b.Type == "mcp_tool_use"):
+				issuer[b.ID] = e
+			case b.Type == "tool_result":
+				answered[b.ToolUseID] = true
+			}
+		}
+	}
+	after := map[*Entry][]*Entry{}
+	for _, n := range t.nodes {
+		e := n.Entry
+		if onChain[e] || !e.IsToolResult() || (e.IsSidechain && !opts.Sidechains) {
+			continue
+		}
+		for _, b := range e.Message.Content.Blocks {
+			if b.Type != "tool_result" || answered[b.ToolUseID] {
+				continue
+			}
+			if at := issuer[b.ToolUseID]; at != nil {
+				after[at] = append(after[at], e)
+				for _, b := range e.Message.Content.Blocks {
+					if b.Type == "tool_result" {
+						answered[b.ToolUseID] = true
+					}
+				}
+				break
+			}
+		}
+	}
+	if len(after) == 0 {
+		return chain
+	}
+	out := make([]*Entry, 0, len(chain)+len(after))
+	for _, e := range chain {
+		out = append(out, e)
+		out = append(out, after[e]...)
 	}
 	return out
 }

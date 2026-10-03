@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +83,32 @@ func TestTreeCompaction(t *testing.T) {
 	}
 	if got := tr.FirstPrompt(); got != "Start a long task" {
 		t.Fatalf("first prompt = %q", got)
+	}
+}
+
+// Parallel tool calls: each result is parented on the record that issued its call, so
+// the first result is a side branch. Branch puts it back after its tool_use.
+func TestTreeParallelToolResults(t *testing.T) {
+	line := func(typ, uuid, parent, content string) string {
+		return `{"parentUuid":` + parent + `,"isSidechain":false,"type":"` + typ + `","message":{"role":"` + typ + `","content":` + content + `},"uuid":"` + uuid + `"}`
+	}
+	src := strings.Join([]string{
+		line("user", "p", "null", `"go"`),
+		line("assistant", "a1", `"p"`, `[{"type":"tool_use","id":"t1","name":"Read","input":{}}]`),
+		line("assistant", "a2", `"a1"`, `[{"type":"tool_use","id":"t2","name":"Read","input":{}}]`),
+		line("user", "r1", `"a1"`, `[{"type":"tool_result","tool_use_id":"t1","content":"one"}]`),
+		line("user", "r2", `"a2"`, `[{"type":"tool_result","tool_use_id":"t2","content":"two"}]`),
+		line("assistant", "a3", `"r2"`, `[{"type":"text","text":"done"}]`),
+		// A stale duplicate answer to t2 on another branch is not pulled in.
+		line("user", "r2b", `"a2"`, `[{"type":"tool_result","tool_use_id":"t2","content":"old"}]`),
+	}, "\n")
+	tr, err := Parse(strings.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := entryUUIDs(tr.Tree.Branch(tr.Tree.Node("a3"), BranchOptions{}))
+	if want := []string{"p", "a1", "r1", "a2", "r2", "a3"}; !slices.Equal(got, want) {
+		t.Fatalf("branch = %v, want %v", got, want)
 	}
 }
 
