@@ -185,7 +185,7 @@ Everything about conversations as objects:
 - [x] **B7 [M2] `/branch [name]` and `/fork [prompt]`.** Branch = fork at the current point
   (`--fork-session`, restart, keep the old one resumable). `/fork` = spawn a background
   session via `claude --bg` or H (Claude Code sends forks to the background).
-- [ ] **B8 [M2] `/export [filename]` and `/copy [N]`.**
+- [x] **B8 [M2] `/export [filename]` and `/copy [N]`.**
   - `/export`: render the normalized transcript as markdown or plain text to a file or the
     clipboard; use the unstable `export_conversation` if supported.
   - `/copy`: copy the last or Nth-latest response; a code-block picker when several blocks
