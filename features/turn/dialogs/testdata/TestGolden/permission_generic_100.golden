@@ -1,0 +1,13 @@
+╭─ Run workflow ───────────────────────────────────────────────────────────────────────────────────╮
+│   Starts a multi-agent workflow                                                                  │
+│   {                                                                                              │
+│     "name": "review",                                                                            │
+│     "agents": 4                                                                                  │
+│   }                                                                                              │
+│                                                                                                  │
+│ Do you want to proceed?                                                                          │
+│   1. Yes                                                                                         │
+│ ❯ 2. No, and tell Claude what to do differently                                                  │
+│   3. No, and stop                                                                                │
+│ esc to deny · tab to amend · shift+tab to change mode                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
