@@ -175,7 +175,7 @@ func TestDispatchModes(t *testing.T) {
 
 	stderr.Reset()
 	_, done, code = Dispatch(ctx, []string{"--output-format", "json"}, &stdout, &stderr)
-	if !done || code != 1 || !strings.Contains(stderr.String(), "only works with -p") {
+	if !done || code != ExitUsage || !strings.Contains(stderr.String(), "only works with -p") {
 		t.Errorf("error: %v %d %q", done, code, stderr.String())
 	}
 

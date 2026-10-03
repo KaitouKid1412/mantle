@@ -71,8 +71,36 @@
 - **The SDK's spawn flags** are the safest set (see `protocol-2.1.288.md`, section 2).
   `scripts/sdk-diff` (plan 02) diffs SDK message and control unions against `pkg/proto`.
 
+## Facts verified on 2.1.288 (session 11)
+- The root command uses `enablePositionalOptions()` and allows excess positional
+  arguments (they're ignored). Commander is v12-style: no negative-number handling.
+- **A prompt after a variadic flag is swallowed** (`claude -p --add-dir /tmp hello` says
+  no prompt was given; zero-cost probe: isolated `CLAUDE_CONFIG_DIR`, API at a closed
+  port). So the B1 example below must put the prompt before `--add-dir`, or after `--`.
+  mantle warns when the swallowed value looks like a sentence.
+- Unknown options are an error in claude (`error: unknown option`). `--tmux=classic` is
+  rewritten only together with `-w`/`--worktree`.
+- ~60 hidden root flags exist (thinking, prefill, teammate, cloud, deep-link, SDK
+  internals). They're all in the table, so their arity is known.
+- Hidden root subcommands: `daemon`, `design-login`, `drop-worktree-registrations`,
+  `edit-*` (6), `import-conversations`, `project`, `remote-control`/`rc`, `sandbox`,
+  `self-hosted-runner`. **`claude remote-control --help` (and `rc`) doesn't print help:
+  it starts Remote Control and hangs.** Never probe them (`NoHelpProbe`).
+- `plugin`/`update` help starts with `Usage: claude plugin|plugins …`.
+- **B1 security note:** plan 02's `BuildArgs` appends `ExtraArgs` last, and claude's
+  `--settings`, `--model` and `--permission-mode` are last-wins. A user `--settings`
+  forwarded verbatim would override the gate's `--settings {"disabledMcpjsonServers":…}`.
+  B1 must move `--settings`, `--model`, `--permission-mode` and `--add-dir` out of
+  `ExtraArgs` into their `SpawnOpts` fields, and merge the user's `--settings` (JSON or
+  file) with the gate overlay.
+- Deviations from the class lists above, recorded in `flags.go`: `--prompt-suggestions`
+  is consumed (interactive claude honours it too); `--init`/`--maintenance` are forwarded
+  (Setup hooks run in the engine); `--init-only` execs; `--teammate-mode` warns (GAP-03);
+  `--task-budget` is forwarded; `--from-pr` execs until plan 06's picker supports PRs.
+  Launcher words (`versions`, `rollback`, `doctor`) only count as the first argument.
+
 ## Part A: start immediately (no other session needed)
-- [ ] **A1 Flag table** (`internal/cli/flags.go`). One entry per 2.1.288 flag (about 70)
+- [x] **A1 Flag table** (`internal/cli/flags.go`). One entry per 2.1.288 flag (about 70)
   with: long name, short name, aliases (`--allowedTools`/`--allowed-tools`, …), arity
   (none / required / optional / variadic / repeatable), and **class**:
   - `consumed`: mantle uses it and doesn't forward it as-is. `-c/--continue`,
@@ -103,7 +131,7 @@
     a one-line warning, never silently.
   - Unknown flags are forwarded verbatim, with a debug-log note. They are probably new
     engine flags.
-- [ ] **A2 Parser** (`internal/cli/parse.go`). Hand-written, table-driven, commander-
+- [x] **A2 Parser** (`internal/cli/parse.go`). Hand-written, table-driven, commander-
   compatible tokenizer.
   - `Parse(argv) (Parsed, error)` with `Parsed{Mode, Mantle MantleOpts, EngineArgs []string,
     Prompt string, Exec []string}`.
@@ -112,20 +140,20 @@
     cover optional values, variadic swallowing, `=` forms, `--`, repeated flags, unknown
     flags, short-flag clusters if commander allows them, and the prompt position.
   - **No cobra, pflag or fang:** they reorder arguments and reject unknown flags.
-- [ ] **A3 Subcommand passthrough and exec.**
+- [x] **A3 Subcommand passthrough and exec.**
   - `IsPassthroughSubcommand(argv)` uses the subcommand list above; `doctor` belongs to the
     launcher (`mantle doctor`, plan 10).
   - `ExecClaude(argv)` runs `syscall.Exec` with the binary resolved like plan 02's engine
     (`MANTLE_CLAUDE_BIN` or `PATH`) and the environment unchanged.
   - Export the list so plan 10's launcher test can assert its copy matches.
-- [ ] **A4 `--version` and `--help`.**
+- [x] **A4 `--version` and `--help`.**
   - `--version` prints `mantle <version> (<build id>), engine claude <version>`; the engine
     version comes from `claude --version`, with a timeout.
   - `--help` prints mantle's usage and mantle-only options (`--safe`, and the launcher
     commands `versions|rollback|doctor`), then "all claude options are accepted", followed
     by the **runtime** output of `claude --help`. Never commit a copy of Claude Code's help
     text.
-- [ ] **A5 Drift tool skeleton** (`scripts/drift`, a Go program run with
+- [x] **A5 Drift tool skeleton** (`scripts/drift`, a Go program run with
   `go run ./scripts/drift`; `make drift`). Collectors, each producing a normalized JSON
   list:
   1. **flags:** parse `claude --help` and `claude <sub> --help` for the known subcommands

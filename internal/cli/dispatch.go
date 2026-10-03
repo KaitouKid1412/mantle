@@ -18,7 +18,7 @@ func Dispatch(ctx context.Context, argv []string, stdout, stderr io.Writer) (p P
 	p, err := Parse(argv)
 	if err != nil {
 		fmt.Fprintf(stderr, "mantle: %v\n", err)
-		return p, true, 1
+		return p, true, ExitUsage
 	}
 	switch p.Mode {
 	case ModeExecClaude:
@@ -45,6 +45,10 @@ func Dispatch(ctx context.Context, argv []string, stdout, stderr io.Writer) (p P
 
 // execOrReport execs claude. It returns only when the exec failed, or in tests where
 // execve is replaced.
+// ExitUsage is the exit code for command-line errors; it equals ext.ExitUsage
+// (contracts-v1.1), so the launcher doesn't count it as a crash.
+const ExitUsage = 64
+
 func execOrReport(argv []string, stderr io.Writer) int {
 	if err := ExecClaude(slices.Clone(argv)); err != nil {
 		fmt.Fprintf(stderr, "mantle: %v\n", err)
