@@ -171,7 +171,16 @@
   (normalized lists, not raw help text).
 
 ## Part B: after `contracts-v1` and `proto-v1`
-- [ ] **B1 [M1] Wire `cli.Parse` into startup.**
+- [x] **B1 [M1] Wire `cli.Parse` into startup.** Done: `cli.Dispatch` (exec, version,
+  help, usage errors), `Parsed.Startup(cwd, resolver)` → `SpawnOpts` (`--model`,
+  `--permission-mode`, `--add-dir`, `--settings` moved into their fields, everything else
+  verbatim in `ExtraArgs`), `-c`/`-r` through a `SessionResolver`, the picker case
+  (`MainSpawn()` nil), `GateInputsOf` and `MergeSettings` for plan 05, `cli.Current()`.
+  `features/cli` shows warnings, opens the picker (`/resume <query>`) and submits the
+  prompt when the main engine first attaches. The argv test against plan 02's `BuildArgs` is
+  `engine_integration`-tagged until both branches meet (it passes on a combined tree).
+  The `cmd/mantle-ui` call site belongs to plan 01: `requests/11-01-startup-call-site.md`
+  (also 11-04 prefill, 11-05 gates, 11-06 picker).
   - Plan 01 owns `cmd/mantle-ui/main.go`, and the `cli.Parse` call site is part of the
     contracts. If it isn't there yet, add the minimal call yourself (file-baton serializes)
     or file a request.
