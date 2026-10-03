@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/internal/sessions"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -43,7 +44,7 @@ type feature struct {
 	ho      *handoff          // the hand-off in progress, if any
 
 	// startupSpawn returns the main engine's options as parsed from the command line
-	// (plan 11's cli.Current().Spawn); nil until internal/cli is integrated.
+	// (plan 11's cli.Current().Spawn).
 	startupSpawn func() (ext.SpawnOpts, bool)
 
 	// Seams for tests.
@@ -65,10 +66,14 @@ type engineState struct {
 
 func newFeature(l sessions.Layout, cachePath string) *feature {
 	return &feature{
-		layout:     l,
-		index:      sessions.NewIndex(l, cachePath),
-		engines:    map[string]*engineState{},
-		titles:     map[string]string{},
+		layout:  l,
+		index:   sessions.NewIndex(l, cachePath),
+		engines: map[string]*engineState{},
+		titles:  map[string]string{},
+		startupSpawn: func() (ext.SpawnOpts, bool) {
+			st, ok := cli.Current()
+			return st.Spawn, ok
+		},
 		now:        time.Now,
 		worktrees:  gitWorktrees,
 		claudePath: findClaude,
