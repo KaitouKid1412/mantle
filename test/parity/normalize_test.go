@@ -13,6 +13,13 @@ func TestNormalizeLine(t *testing.T) {
 		{"✻ Pondering… (12s · ↑ 1.2k tokens · esc to interrupt)", "<spinner>"},
 		{"  ✶ Cogitating…", "  <spinner>"},
 		{"⏺ Hello from fakeapi.", "⏺ Hello from fakeapi."},
+		{" ▐▛███▛█   Claude Code v2.1.288", "<logo> Claude Code v2.1.288"},
+		{"  ▝▝   ▝▝   /work", "<logo> /work"},
+		{"▟▙ mantle 0.1.0", "<logo> mantle 0.1.0"},
+		{"not ▟ art", "not ▟ art"}, // only at the start of a line
+		{"██▟", "<logo>"},
+		{"✻ Sautéed for 3s · done 14:05", "✻ <verb> for <dur> · done <time>"},
+		{"✻ Brewed for 1m 2s", "✻ <verb> for <dur>"},
 		{"· Thinking about it", "· Thinking about it"}, // no ellipsis: not a spinner
 		{"cwd: /r/parity-x-1/work/src", "cwd: <work>/src"},
 		{"cfg /r/parity-x-1/config/.claude.json", "cfg <config>/.claude.json"},

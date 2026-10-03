@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"math/rand/v2"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -195,10 +196,22 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 }
 
 // newWorkspace creates the isolated directories and copies the scenario's fixtures.
+// The root is short and its name has a fixed length (/tmp/parity-<scenario>-<8 hex>),
+// so paths a program prints, or truncates to fit, look the same on every run.
 func newWorkspace(sc *Scenario, tmp string) (Workspace, func(), error) {
-	root, err := os.MkdirTemp(tmp, "parity-"+sanitizeName(sc.Name)+"-")
-	if err != nil {
-		return Workspace{}, nil, err
+	if tmp == "" {
+		tmp = "/tmp"
+	}
+	var root string
+	for {
+		root = filepath.Join(tmp, fmt.Sprintf("parity-%s-%08x", sanitizeName(sc.Name), rand.Uint32()))
+		err := os.Mkdir(root, 0o700)
+		if err == nil {
+			break
+		}
+		if !os.IsExist(err) {
+			return Workspace{}, nil, err
+		}
 	}
 	// Resolve symlinks (/var → /private/var on macOS) so every program sees one path.
 	if real, err := filepath.EvalSymlinks(root); err == nil {

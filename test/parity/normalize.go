@@ -42,6 +42,10 @@ const spinnerGlyphs = `✻✽✶✳✢·*◐◓◑◒⠋⠙⠹⠸⠼⠴⠦⠧⠇
 var DefaultRules = []Rule{
 	rule("spinner", "A busy line (spinner glyph, a verb ending in …, timers and hints) becomes <spinner>.",
 		`^(\s*)[`+spinnerGlyphs+`]\s+\p{Lu}[\p{L}'-]*….*$`, "${1}<spinner>"),
+	rule("logo", "Block-element art at the start of a line (an animated startup logo, a meter) becomes <logo>.",
+		`^\s*(?:[\x{2580}-\x{259F}]+ {0,3})+`, "<logo> "),
+	rule("turn-done", "The turn summary line (\"✻ Baked for 12s\") loses its randomly chosen verb.",
+		`^(\s*)([`+spinnerGlyphs+`])\s+\p{Lu}[\p{L}'-]*(ed|t)\s+for\b`, "${1}${2} <verb> for"),
 	rule("tmp-path", "Temporary paths (/var/folders, /private/var, /tmp) become <tmp>.",
 		`(?:/private)?/(?:var/folders|tmp|private/tmp)/[^\s│|)'"]*`, "<tmp>"),
 	rule("uuid", "UUIDs (session, message and request ids) become <uuid>.",
