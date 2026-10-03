@@ -48,6 +48,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		return s.spell.result(c, s, m)
 	case editorDoneMsg:
 		return s.externalEditorDone(c, m)
+	case ext.EditorSetTextMsg:
+		// Rewind (plan 06) puts the rewound prompt back in the box.
+		s.setText(m.Text)
+		return s.changed(c)
 	case ext.SettingsMsg:
 		s.applySettings(c)
 		return s.changed(c)

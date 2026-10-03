@@ -463,6 +463,14 @@ func TestSetText(t *testing.T) {
 	if r.text() != "draft[Pasted text #1 +3 lines]!" {
 		t.Fatalf("undoable: %q", r.text())
 	}
+	// Rewind sends it as a message.
+	r.event(ext.EditorSetTextMsg{Text: "from rewind"})
+	if r.text() != "from rewind" || len(r.eng.prompts()) != 0 {
+		t.Fatalf("EditorSetTextMsg: %q", r.text())
+	}
+	if st, _ := lastMsg[ext.EditorStateMsg](r); st.Empty {
+		t.Fatal("editor state follows")
+	}
 }
 
 func TestInvisibleCharactersNeedSecondEnter(t *testing.T) {
