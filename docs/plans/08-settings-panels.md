@@ -178,7 +178,7 @@ and `claude` is seamless.
 - [x] **B7 [M2] `/output-style`.** Picker over `available_output_styles` with descriptions;
   apply with `update_settings` (localSettings), then `reload_output_styles`. `/output-style
   <name>` with an argument goes to the engine (E).
-- [ ] **B8 [M2] `/permissions` (alias `/allowed-tools`).**
+- [x] **B8 [M2] `/permissions` (alias `/allowed-tools`).**
   - Tabs: Allow, Ask, Deny, Workspace directories, Auto-mode rules.
   - Add and remove per scope through the config writer; refresh from
     `list_permission_rules`.

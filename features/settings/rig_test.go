@@ -128,6 +128,7 @@ func newRig(t *testing.T) *rig {
 		return termsetup.Proposal{Status: termsetup.Unsupported, Summary: "stub"}, nil
 	}
 	g.a.termApply = func(string, termsetup.Proposal) (string, error) { return "", nil }
+	g.a.autoModeDefaults = nil // never run the real claude in tests
 	g.r = exttest.NewRegistrar()
 	for _, f := range g.a.features() {
 		g.r.Feature = f.ID

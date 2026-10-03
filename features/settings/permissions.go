@@ -528,8 +528,9 @@ func (p *permPanel) maybeLoadDefaults(c ext.Ctx) tea.Cmd {
 		p.defaultsErr = "the built-in rules can't be listed yet"
 		return nil
 	}
+	dir := c.Session().Cwd
 	return func() tea.Msg {
-		r, err := fetch(context.Background())
+		r, err := fetch(context.Background(), dir)
 		return ext.AddressedMsg{To: permissionsID, Msg: autoDefaultsMsg{rules: r, err: err}}
 	}
 }

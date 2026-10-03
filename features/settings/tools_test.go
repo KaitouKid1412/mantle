@@ -118,6 +118,20 @@ func TestTerminalSetupApplyError(t *testing.T) {
 	}
 }
 
+func TestThemeCustomNames(t *testing.T) {
+	g := newRig(t)
+	dir := filepath.Join(g.home, ".claude", "themes")
+	os.MkdirAll(dir, 0o755)
+	os.WriteFile(filepath.Join(dir, "deep.json"), []byte(`{"name":"Deep Sea","base":"dark","overrides":{"claude":"#2255aa"}}`), 0o644)
+	os.WriteFile(filepath.Join(dir, "odd.json"), []byte(`{"base":42}`), 0o644)
+	g.command("theme", "")
+	g.mustContain(160, "Custom: Deep Sea", "not a valid theme file")
+	p := g.dialog.(*themePicker)
+	if got := p.previewTheme("custom:deep"); got.Name != "custom:deep" {
+		t.Errorf("preview theme %q", got.Name)
+	}
+}
+
 func TestThemeEditCustomOpensEditor(t *testing.T) {
 	g := newRig(t)
 	dir := filepath.Join(g.home, ".claude", "themes")
