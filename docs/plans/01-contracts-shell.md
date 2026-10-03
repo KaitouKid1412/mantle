@@ -193,7 +193,7 @@ Two jobs:
 - [ ] **B13 [M2] API steward duties.** Review `docs/plans/requests/*-01-*.md`, add additive
   API, keep `Alias` for renamed IDs, bump `ext.APIVersion` only for breaking changes (avoid
   them). Hold integration windows: full `go test ./...`, tag `integration-N`.
-- [ ] **B14 [M3] Fullscreen layout hooks** (sidebar slots, Compositor layering) for plan 12.
+- [x] **B14 [M3] Fullscreen layout hooks** (sidebar slots, Compositor layering) for plan 12.
 
 ## `pkg/ext` v1 sketch (implement this shape)
 

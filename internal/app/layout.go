@@ -59,6 +59,8 @@ func (r *Root) View() tea.View {
 	alt := false
 	if d := r.topDialog(); d != nil && d.d.Placement() == ext.PlaceAltScreen {
 		v, alt = r.altView(d), true
+	} else if r.opts.Layout == ext.Fullscreen {
+		v, alt = r.fullscreenView(), true
 	} else {
 		v = r.inlineView()
 	}

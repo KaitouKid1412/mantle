@@ -59,6 +59,7 @@ func smokeEnv(t *testing.T, fake, script, project string) []string {
 		"MANTLE_HOME=" + filepath.Join(home, ".mantle"),
 		"MANTLE_CLAUDE_BIN=" + fake,
 		"FAKECLAUDE_SCRIPT=" + script,
+		"MANTLE_DRIFT_CHECK=off", // no background `claude --version` probe (plan 11)
 		"TERM=xterm-256color",
 		"PATH=" + os.Getenv("PATH"),
 	}
