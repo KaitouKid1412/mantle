@@ -98,12 +98,21 @@ func New(tb testing.TB, m tea.Model, opts ...Option) *Harness {
 		close(h.done)
 	}()
 	tb.Cleanup(func() {
-		cancel()
-		h.prog.Kill()
+		// Quit (not Kill): Bubble Tea then waits for its input reader to stop before
+		// closing it, so nothing still reads the pty when it is closed below. Kill only
+		// if the program does not exit.
+		h.prog.Quit()
 		select {
 		case <-h.done:
-		case <-time.After(2 * time.Second):
+		case <-time.After(3 * time.Second):
+			cancel()
+			h.prog.Kill()
+			select {
+			case <-h.done:
+			case <-time.After(2 * time.Second):
+			}
 		}
+		cancel()
 		term.close()
 	})
 	return h
@@ -356,7 +365,10 @@ func (t *lockedTerm) close() {
 	t.mu.Unlock()
 	select {
 	case <-t.replyDone:
+		// The output pump may still be writing: close under the lock.
+		t.mu.Lock()
 		_ = t.emu.Close()
+		t.mu.Unlock()
 	case <-time.After(time.Second):
 		// Leave the emulator open rather than race; the goroutine leaks.
 	}
