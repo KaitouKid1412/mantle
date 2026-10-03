@@ -288,7 +288,7 @@ func TestMultipleEngines(t *testing.T) {
 func TestHandleStartStopAndCommands(t *testing.T) {
 	script := enginefake.New(enginefake.InitializeRule(nil),
 		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))
-	m, sp, rec := setup(t, script)
+	m, sp, rec := setup(t, script, enginefake.New(enginefake.InitializeRule(nil)))
 	cmd := m.Handle(ext.EngineStartMsg{EngineID: "builder-1", Opts: ext.SpawnOpts{PermissionMode: "acceptEdits"}})
 	if cmd == nil {
 		t.Fatal("start not handled")
