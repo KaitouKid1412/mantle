@@ -133,7 +133,7 @@ func (s *state) changed(c ext.Ctx) tea.Cmd {
 	s.escAt = timeZero
 	cmd := s.comp.update(c, s)
 	s.invalidate(c)
-	return tea.Batch(cmd, s.stateCmd(false))
+	return tea.Batch(cmd, s.spell.changed(c, s), s.stateCmd(false))
 }
 
 // ---- view ----

@@ -222,14 +222,14 @@ var rainbow = []theme.Token{
 // "ultracode" in the accent colour while its trigger is on.
 func (s *state) decorate(row int, gs []string) []editor.Span {
 	t := s.theme
+	spans := s.spell.spans(t, gs) // keyword highlights below win over these
 	if t == nil || len(gs) < 9 {
-		return nil
+		return spans
 	}
 	lower := make([]string, len(gs))
 	for i, g := range gs {
 		lower[i] = strings.ToLower(g)
 	}
-	var spans []editor.Span
 	find := func(word string, f func(start int)) {
 		n := len(word)
 		for i := 0; i+n <= len(lower); i++ {

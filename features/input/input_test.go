@@ -1,6 +1,7 @@
 package input
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -647,6 +648,49 @@ func TestUltrathinkDecoration(t *testing.T) {
 	spans := r.s.decorate(0, strings.Split("please ultrathink about it, not ultrathinking", ""))
 	if len(spans) != 10 || spans[0].Start != 7 {
 		t.Fatalf("spans %d", len(spans))
+	}
+}
+
+func TestSpellcheck(t *testing.T) {
+	r := newRig(t, map[string]any{"spellcheck": map[string]any{"enabled": true, "checker": "fake"}})
+	var asked [][]string
+	r.s.spell.run = func(_ context.Context, checker string, words []string) ([]string, error) {
+		asked = append(asked, words)
+		var bad []string
+		for _, w := range words {
+			if w == "teh" {
+				bad = append(bad, w)
+			}
+		}
+		return bad, nil
+	}
+	r.keys("'fix teh bug in foo/bar.go'")
+	if len(asked) == 0 {
+		t.Fatal("checker not run")
+	}
+	got := strings.Join(asked[len(asked)-1], " ")
+	if strings.Contains(got, "bar") || strings.Contains(got, "go") && !strings.Contains(got, "fix") {
+		t.Fatalf("paths are not checked: %q", got)
+	}
+	spans := r.s.decorate(0, graphemes(r.text()))
+	if len(spans) != 1 || spans[0].Start != 4 || spans[0].End != 7 {
+		t.Fatalf("underline spans %+v", spans)
+	}
+	// Known words are not asked again.
+	n := len(asked)
+	r.keys("' teh fix'")
+	for _, a := range asked[n:] {
+		for _, w := range a {
+			if w == "teh" || w == "fix" {
+				t.Fatalf("re-checked %q", w)
+			}
+		}
+	}
+	// A failing checker turns spellcheck off with a notice.
+	r.s.spell.run = func(context.Context, string, []string) ([]string, error) { return nil, errNoChecker }
+	r.keys("' zzyzx'")
+	if !r.s.spell.failed || !strings.Contains(strings.Join(r.noticeTexts(), "|"), "Spellcheck is off") {
+		t.Fatal("checker failure")
 	}
 }
 

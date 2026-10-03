@@ -58,6 +58,7 @@ type state struct {
 	workflowKw  bool
 
 	cfg       config
+	spell     spell
 	theme     *theme.Theme
 	lastState ext.EditorStateMsg
 	stateSent bool
@@ -95,6 +96,7 @@ func newState() *state {
 		hist:     history.NewNavigator(nil),
 		now:      time.Now,
 		cfg:      config{emoji: true, suggestions: true, respondBash: true, writeHistory: true},
+		spell:    newSpell(),
 	}
 	s.ed.KeyMap.ClearActionKeys()
 	s.ed.Paste.Store = editor.DirStore{Dir: history.PasteCacheDir()}
@@ -151,6 +153,7 @@ func (s *state) applySettings(c ext.Ctx) {
 	s.cfg.editorContext = ext.ClaudeBool(st, "externalEditorContext", false)
 	s.cfg.writeHistory = mantleBool(st, SettingWriteHistory, true)
 	s.cfg.virtualCursor = mantleBool(st, SettingVirtualCursor, false)
+	s.spell.configure(st)
 	s.ed.VirtualCursor = s.cfg.virtualCursor
 	s.ed.SetVim(s.cfg.vim, s.cfg.remaps)
 }

@@ -42,6 +42,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		return s.comp.fileTick(c, s, m)
 	case bashDoneMsg:
 		return s.bashDone(c, m)
+	case spellTickMsg:
+		return s.spell.tick(s, m)
+	case spellResultMsg:
+		return s.spell.result(c, s, m)
 	case editorDoneMsg:
 		return s.externalEditorDone(c, m)
 	case ext.SettingsMsg:
