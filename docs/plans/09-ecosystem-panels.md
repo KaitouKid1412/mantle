@@ -129,7 +129,7 @@ Also provide:
   - a trust gate reminder for the cwd.
 
 ## Part B: after `contracts-v1` and `proto-v1`
-- [ ] **B1 [M2] `/mcp` panel.**
+- [x] **B1 [M2] `/mcp` panel.**
   - Server list from `mcp_status`: name, scope, status (connected / needs-auth / failed /
     disabled), tool counts, errors.
   - Actions: enable/disable (`mcp_toggle`), reconnect (`mcp_reconnect`), authenticate
