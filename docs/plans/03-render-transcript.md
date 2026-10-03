@@ -74,26 +74,26 @@ or redraw cost.
 
 ## Part A: start immediately (`pkg/render`, `pkg/ui/diffview`; depends only on `pkg/theme` token names; use a local token interface until `contracts-v1`)
 
-- [ ] **A1 `pkg/render/wrap.go`.** ANSI-aware wrapping that preserves styles and OSC 8
+- [x] **A1 `pkg/render/wrap.go`.** ANSI-aware wrapping that preserves styles and OSC 8
   links across breaks, handles CJK/emoji widths (graphemes), hard-wraps long tokens, and
   supports a hanging indent.
-- [ ] **A2 `pkg/render/markdown.go`.** goldmark → ANSI lines at a width.
+- [x] **A2 `pkg/render/markdown.go`.** goldmark → ANSI lines at a width.
   - Block elements: headings, paragraphs, bullet/ordered/task lists (nested), block quotes,
     GFM tables (fit-to-width with truncation), thematic breaks.
   - Inline elements: fenced code (via A4), inline code, emphasis, strong, strikethrough,
     links as OSC 8 with the visible URL when the text differs.
   - Width: honour `maxProseWidth` (prose capped; code and tables may use the full width).
-- [ ] **A3 `pkg/render/stream.go`.** A streaming markdown renderer.
+- [x] **A3 `pkg/render/stream.go`.** A streaming markdown renderer.
   - Split the source into top-level blocks.
   - **Cache rendered lines for closed blocks**; re-render only the open tail.
   - Expose `ClosedBlocks()`, used by progressive commit.
   - An unclosed code fence stays open until its fence closes.
-- [ ] **A4 `pkg/render/highlight.go`.** chroma highlighting to theme tokens.
+- [x] **A4 `pkg/render/highlight.go`.** chroma highlighting to theme tokens.
   - Language from the fence info string or the filename.
   - Cache by (content hash, lang, theme revision).
   - Skip highlighting above about 2,000 lines or 200 KB.
   - Honour `syntaxHighlightingDisabled`.
-- [ ] **A5 `pkg/ui/diffview`.** Render hunks from `structuredPatch` (or old/new strings via
+- [x] **A5 `pkg/ui/diffview`.** Render hunks from `structuredPatch` (or old/new strings via
   go-udiff): line-number gutter, +/- colouring, word-level highlights within changed line
   pairs (go-diff), context folding, a dimmed variant for rejected edits, and a max-lines cap
   with a "+N lines" footer.
@@ -101,6 +101,9 @@ or redraw cost.
   tables, code, links, CJK, emoji, and long URLs; diff goldens; streaming tests (feed
   character by character; closed-block cache hits; final output equals a one-shot render).
   Benchmark: render a 2k-token answer incrementally.
+  - Done: goldens, diff goldens, streaming tests, fuzzed wrapper, benchmarks
+    (incremental 2k-token answer ≈ 2 ms total vs ≈ 16 ms re-rendering each delta).
+    Stories land with Part B (they need `ext.Story`).
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
