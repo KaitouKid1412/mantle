@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": ["Bash(npm run test:*)", "Edit(./src/**)"],
+    "ask": ["Bash(git push:*)"],
+    "additionalDirectories": ["../shared-lib"],
+    "defaultMode": "plan"
+  }
+}

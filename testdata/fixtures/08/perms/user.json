@@ -1,0 +1,13 @@
+{
+  "model": "opus",
+  "permissions": {
+    "allow": ["Bash(git status)", "Read(~/notes/**)", "mcp__github__*", "Bash(git status)"],
+    "deny": ["WebFetch(domain:example.com)"],
+    "additionalDirectories": ["~/shared/docs"],
+    "defaultMode": "acceptEdits"
+  },
+  "autoMode": {
+    "allow": ["Running the test suite"],
+    "environment": ["Personal laptop, no production credentials"]
+  }
+}

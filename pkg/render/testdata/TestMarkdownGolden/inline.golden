@@ -1,0 +1,11 @@
+── width 40 ──
+Plain, [3mitalic[m, [1mbold[m, [1;3mboth[m, [9mstruck[m,[38;2;136;153;255m[m
+[38;2;136;153;255minline code[m, and a backslash * escape &
+an entity.
+── width 60 ──
+Plain, [3mitalic[m, [1mbold[m, [1;3mboth[m, [9mstruck[m, [38;2;136;153;255minline code[m, and a
+backslash * escape & an entity.
+── width 100 ──
+Plain, [3mitalic[m, [1mbold[m, [1;3mboth[m, [9mstruck[m, [38;2;136;153;255minline code[m, and a backslash * escape & an entity.
+── width 160 ──
+Plain, [3mitalic[m, [1mbold[m, [1;3mboth[m, [9mstruck[m, [38;2;136;153;255minline code[m, and a backslash * escape & an entity.

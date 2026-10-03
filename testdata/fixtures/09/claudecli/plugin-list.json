@@ -1,0 +1,25 @@
+[
+  {
+    "id": "demo@example-market",
+    "version": "1.2.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/home/user/.claude/plugins/cache/example-market/demo/1.2.0",
+    "installedAt": "2026-09-01T10:00:00.000Z",
+    "lastUpdated": "2026-09-20T10:00:00.000Z",
+    "projectEnabled": false
+  },
+  {
+    "id": "linter@other-market",
+    "version": "0.3.1",
+    "scope": "project",
+    "enabled": false,
+    "installPath": "/home/user/.claude/plugins/cache/other-market/linter/0.3.1",
+    "installedAt": "2026-09-02T10:00:00.000Z",
+    "lastUpdated": "2026-09-02T10:00:00.000Z",
+    "projectEnabled": true,
+    "futureField": {
+      "kept": "ignored"
+    }
+  }
+]
