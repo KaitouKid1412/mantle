@@ -104,13 +104,23 @@ func dropOne(left, right *[]segment) bool {
 	return true
 }
 
-// firstKey returns the first chord bound to an action, or def.
+// firstKey returns the chord to show for an action: def when it is still bound,
+// else the first bound chord, else def.
 func firstKey(ctx ext.Ctx, context string, a ext.ActionID, def string) string {
-	if keys := ctx.KeysFor(context, a); len(keys) > 0 {
-		return keys[0]
+	keys := ctx.KeysFor(context, a)
+	for _, k := range keys {
+		if displayKey(k) == def {
+			return def
+		}
+	}
+	if len(keys) > 0 {
+		return displayKey(keys[0])
 	}
 	return def
 }
+
+// displayKey shortens a chord for hints ("escape" → "esc").
+func displayKey(k string) string { return strings.ReplaceAll(k, "escape", "esc") }
 
 // truncateLines cuts every line to w cells and keeps at most maxLines (0 = all).
 func truncateLines(lines []string, w, maxLines int) []string {

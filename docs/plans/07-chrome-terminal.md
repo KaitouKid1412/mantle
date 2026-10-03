@@ -205,14 +205,14 @@ Notes:
 - [x] **B5 [M1] Window title and progress.** Title from session name, ai-title or cwd.
   Progress indeterminate while `session_state_changed=running` and cleared on idle; error
   state on `result.is_error`. Both merged into View fields through the host.
-- [ ] **B6 [M2] Subagent panel** (slot `aboveInput`, below todos).
+- [x] **B6 [M2] Subagent panel** (slot `aboveInput`, below todos).
   - One row per running or recently finished task (30 s linger), showing description, last
     tool and token/duration usage from `task_progress`.
   - Optional `subagentStatusLine` per row.
   - Enter opens that subagent's transcript in an alt-screen view (reads the subagent JSONL;
     the renderers come from plan 03 via ext).
   - `x` stops it (`stop_task`).
-- [ ] **B7 [M2] `/tasks` (alias `/bashes`).** A dialog listing `background_tasks`; view
+- [x] **B7 [M2] `/tasks` (alias `/bashes`).** A dialog listing `background_tasks`; view
   output (`get_task_output`, live refresh); stop (`stop_task`). Also the footer hint when
   background work exists.
 - [x] **B8 [M2] PR badge and footer links** in the footer (A6), refreshed on branch change

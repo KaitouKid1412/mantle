@@ -56,6 +56,29 @@ func init() {
 		},
 	})
 	ext.Register(ext.Feature{
+		ID: SubagentsID, Order: order,
+		Parity: []string{"CH-11", "CH-12", "CH-13", "CH-14", "CH-17"},
+		Setup: func(r ext.Registrar) error {
+			tr := newTaskTracker()
+			p := newSubagentPanel(tr)
+			r.AddComponent(ext.SlotAboveInput, p, ext.SlotOpts{Weight: 20})
+			r.AddAction(ext.Action{
+				ID: ActFooterSelect, Context: ext.ContextChat,
+				Description: "Select the subagent rows below the prompt",
+				Run:         p.selectFirst,
+			})
+			r.AddDialog(SubagentViewID, newSubagentView)
+			r.AddDialog(TasksDialogID, newTasksDialogFactory(tr))
+			r.AddCommand(ext.Command{
+				Name: "tasks", Aliases: []string{"bashes"}, Source: ext.SourceBuiltin,
+				Description: "List background tasks and their output",
+				Run:         func(ctx ext.Ctx, _ string) tea.Cmd { return ctx.OpenDialog(TasksDialogID, nil) },
+			})
+			addStories(r, subagentStories())
+			return nil
+		},
+	})
+	ext.Register(ext.Feature{
 		ID: TerminalID, Order: order,
 		Parity: []string{"CH-23", "CH-24", "CH-25", "CH-26", "CH-29", "CH-30"},
 		Setup: func(r ext.Registrar) error {
