@@ -228,7 +228,7 @@ esac
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	c := &Collector{Claude: bin, Binary: filepath.Join(dir, "nope"), Cache: dir, Offline: true}
+	c := &Collector{Claude: bin, Binary: filepath.Join(dir, "nope"), Cache: dir, Offline: true, NoEngine: true}
 	s := c.Collect(context.Background())
 	if s.ClaudeVersion != "9.9.9" {
 		t.Errorf("version %q", s.ClaudeVersion)
@@ -399,7 +399,7 @@ func TestParseParity(t *testing.T) {
 func TestRunFromSnapshot(t *testing.T) {
 	dir := t.TempDir()
 	md, js := filepath.Join(dir, "drift.md"), filepath.Join(dir, "drift.json")
-	code := run([]string{"-from", fixture, "-baseline", fixture, "-parity", "testdata/parity.md", "-out", md, "-json", js})
+	code := run([]string{"-from", fixture, "-baseline", fixture, "-parity", "testdata/parity.md", "-out", md, "-json", js, "-catalog", "none"})
 	if code != 0 && code != 1 {
 		t.Fatalf("exit %d", code)
 	}

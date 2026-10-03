@@ -217,7 +217,14 @@
     otherwise exec `claude` (H).
 
   Each decision is a row in the flag table with a test.
-- [ ] **B3 [M2] Engine-reported drift.**
+- [x] **B3 [M2] Engine-reported drift.** Done: a zero-token engine session (temp
+  `CLAUDE_CONFIG_DIR` and empty cwd, so only built-ins show; dummy key; API at a closed
+  local port, so the one prompt fails locally) collects `initialize.commands`, models,
+  output styles and `system/init.tools`. Commands are classified by the catalog (native),
+  PARITY.md's slash index (E/N/H) or the baseline; tools by a specific renderer in
+  `mantle-ui catalog --json` (`-catalog auto|FILE|none`) or the baseline. The protocol list
+  runs `scripts/sdk-diff -json` when plan 02 adds it (not in the tree yet; the report says
+  so). 2.1.288 baseline: 44 commands, 20 tools, 5 models, 5 styles.
   - Add collectors that use a zero-token engine session (plan 02's conformance probe
     pattern: `initialize`, then `end_session`): `initialize.commands` (vs mantle's routing
     table: native / E / H), `init.tools` (vs plan 03's renderer keys; tools without a
