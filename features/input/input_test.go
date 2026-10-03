@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/ui/editor"
@@ -115,6 +116,9 @@ func TestPastesAndImagesInPrompt(t *testing.T) {
 	}
 	if p.Blocks[0].Source == nil || p.Blocks[0].Source.MediaType != "image/png" {
 		t.Fatal("image source")
+	}
+	if len(p.InlinePastes) != 1 || p.InlinePastes[0] != "l1\nl2\nl3\nl4" {
+		t.Fatalf("inline_pastes %q", p.InlinePastes)
 	}
 	es, _ := history.Load(r.s.histPath)
 	if es[0].Display != want || es[0].PastedContents["1"].Content != "l1\nl2\nl3\nl4" {
@@ -383,7 +387,7 @@ func TestBashMode(t *testing.T) {
 	}
 	r.keys("'!'", "'echo hi; echo oops >&2'", "enter")
 	ps := r.eng.prompts()
-	if len(ps) != 1 || !ps[0].Composed || len(ps[0].Blocks) != 2 {
+	if len(ps) != 1 || !ps[0].Composed || len(ps[0].Blocks) != 2 || ps[0].ShouldQuery == nil || !*ps[0].ShouldQuery {
 		t.Fatalf("bash prompt %+v", ps)
 	}
 	if ps[0].Blocks[0].Text != "<bash-input>echo hi; echo oops >&2</bash-input>" ||
@@ -393,6 +397,25 @@ func TestBashMode(t *testing.T) {
 	es, _ := history.Load(r.s.histPath)
 	if es[0].Display != "!echo hi; echo oops >&2" {
 		t.Fatalf("bash history %q", es[0].Display)
+	}
+}
+
+func TestBashWithoutResponse(t *testing.T) {
+	r := newRig(t, map[string]any{"respondToBashCommands": false})
+	r.s.cwd = t.TempDir()
+	r.keys("'!'", "'true'", "enter")
+	ps := r.eng.prompts()
+	if len(ps) != 1 || ps[0].ShouldQuery == nil || *ps[0].ShouldQuery || r.s.busy {
+		t.Fatalf("output recorded without a turn: %+v busy=%v", ps, r.s.busy)
+	}
+}
+
+func TestPrefill(t *testing.T) {
+	cli.SetCurrent(cli.Startup{Prefill: "from a deep link"})
+	defer cli.ClearCurrent()
+	r := newRig(t, nil)
+	if r.text() != "from a deep link" || !r.s.ed.AtEnd() || len(r.eng.prompts()) != 0 {
+		t.Fatalf("prefill: %q", r.text())
 	}
 }
 

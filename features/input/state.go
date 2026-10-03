@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
@@ -114,6 +115,9 @@ func (s *state) start(c ext.Ctx) tea.Cmd {
 	s.syncSession(c.Session())
 	s.applyTheme(c.Theme())
 	s.loadStash(c)
+	if st, ok := cli.Current(); ok && st.Prefill != "" {
+		s.ed.SetValue(st.Prefill) // --prefill: shown, not sent
+	}
 	return tea.Batch(s.loadHistory(), s.stateCmd(true))
 }
 

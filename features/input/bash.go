@@ -93,7 +93,12 @@ func (s *state) bashDone(c ext.Ctx, m bashDoneMsg) tea.Cmd {
 		priority = proto.PriorityLater
 	}
 	// Composed: command output must not trigger @path or /command expansion.
-	p := ext.Prompt{Blocks: blocks, Priority: priority, UUID: uuid.NewString(), Composed: true}
+	// respondToBashCommands false records the output without a reply.
+	respond := s.cfg.respondBash
+	p := ext.Prompt{Blocks: blocks, Priority: priority, UUID: uuid.NewString(), Composed: true, ShouldQuery: &respond}
+	if !respond && !s.busy {
+		return tea.Batch(done, eng.Send(p)) // no turn starts
+	}
 	return tea.Batch(done, s.track(c, p, "!"+m.command), eng.Send(p))
 }
 

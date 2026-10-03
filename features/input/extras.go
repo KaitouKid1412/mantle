@@ -143,15 +143,15 @@ var helpEntries = []struct {
 }{
 	{ext.ActChatNewline, "newline"},
 	{ext.ActChatUndo, "undo"},
-	{ext.ActChatCycleMode, "cycle permission mode"},
+	{ext.ActChatCycleMode, "cycle modes"},
 	{ext.ActChatModelPicker, "switch model"},
 	{ext.ActHistorySearch, "search history"},
 	{ext.ActChatExternalEditor, "edit in $EDITOR"},
 	{ext.ActChatStash, "stash prompt"},
 	{ext.ActChatImagePaste, "paste image"},
 	{ext.ActChatSendNow, "send now"},
-	{ext.ActChatQueueSubmit, "queue without interrupting"},
-	{ext.ActAppToggleTranscript, "detailed transcript"},
+	{ext.ActChatQueueSubmit, "queue prompt"},
+	{ext.ActAppToggleTranscript, "transcript"},
 	{ext.ActAppToggleTodos, "toggle todos"},
 	{ext.ActChatClearInput, "clear prompt"},
 	{ext.ActAppExit, "exit"},
@@ -163,8 +163,8 @@ func (s *state) helpLines(c ext.Ctx, width int) []string {
 		"! for bash mode",
 		"/ for commands",
 		"@ for file paths",
-		`\ then enter for newline`,
-		"esc esc to clear or rewind",
+		`\⏎ for newline`,
+		"esc esc to clear",
 	}
 	for _, h := range helpEntries {
 		keys := c.KeysFor("", h.action)
@@ -173,26 +173,36 @@ func (s *state) helpLines(c ext.Ctx, width int) []string {
 		}
 		cells = append(cells, keys[0]+" "+h.desc)
 	}
-	colW := 0
-	for _, x := range cells {
-		colW = max(colW, ansi.StringWidth(x))
+	// As many columns (up to 3) as fit, each as wide as its widest cell.
+	const gap = 3
+	var rows int
+	var widths []int
+	for cols := 3; cols >= 1; cols-- {
+		rows = (len(cells) + cols - 1) / cols
+		widths = make([]int, cols)
+		total := 2 + gap*(cols-1)
+		for i, x := range cells {
+			widths[i/rows] = max(widths[i/rows], ansi.StringWidth(x))
+		}
+		for _, w := range widths {
+			total += w
+		}
+		if total <= width {
+			break
+		}
 	}
-	colW += 3
-	cols := max(1, min(3, (width-2)/max(colW, 1)))
-	rows := (len(cells) + cols - 1) / cols
 	var out []string
 	for r := 0; r < rows; r++ {
 		var b strings.Builder
 		b.WriteString("  ")
-		for col := 0; col < cols; col++ {
+		for col := range widths {
 			i := col*rows + r
 			if i >= len(cells) {
 				break
 			}
-			cell := cells[i]
-			b.WriteString(cell)
-			if col < cols-1 {
-				b.WriteString(strings.Repeat(" ", max(colW-ansi.StringWidth(cell), 1)))
+			b.WriteString(cells[i])
+			if col < len(widths)-1 {
+				b.WriteString(strings.Repeat(" ", widths[col]-ansi.StringWidth(cells[i])+gap))
 			}
 		}
 		out = append(out, t.Paint(theme.Inactive, strings.TrimRight(b.String(), " ")))

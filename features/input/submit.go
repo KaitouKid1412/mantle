@@ -230,6 +230,13 @@ func (s *state) stageSend(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 		return ext.Reject, tea.Batch(restore, c.Notify(ext.Notice{Key: "input.send", Text: "Claude is not running yet; the prompt was kept", Level: ext.NoticeWarning, Source: FeatureID}))
 	}
 	p := ext.Prompt{Blocks: draftBlocks(*d), Priority: d.Priority, UUID: uuid.NewString()}
+	// Paste chips are expanded in place; tell the engine which text was
+	// pasted (inline_pastes, one entry per paste).
+	for _, a := range d.Attachments {
+		if a.Kind == "paste" && strings.TrimSpace(a.Text) != "" {
+			p.InlinePastes = append(p.InlinePastes, a.Text)
+		}
+	}
 	return ext.Consumed, tea.Batch(s.track(c, p, d.Text), eng.Send(p))
 }
 
