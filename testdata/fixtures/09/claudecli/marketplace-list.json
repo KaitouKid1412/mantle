@@ -1,0 +1,14 @@
+[
+  {
+    "name": "example-market",
+    "source": "github",
+    "repo": "example/market",
+    "installLocation": "/home/user/.claude/plugins/marketplaces/example-market"
+  },
+  {
+    "name": "local-market",
+    "source": "directory",
+    "path": "/home/user/src/market",
+    "installLocation": "/home/user/src/market"
+  }
+]

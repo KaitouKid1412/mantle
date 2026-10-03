@@ -1,0 +1,16 @@
+── width 40 ──
+Download from]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255m[m]8;;
+]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255mhttps://downloads.example.com/releases/2[m]8;;
+]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255m026/10/very-long-artifact-name-with-[m]8;;
+]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255mmany-parts-v1.2.3-darwin-arm64.tar.gz[m]8;;
+then verify.
+── width 60 ──
+Download from]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255m[m]8;;
+]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255mhttps://downloads.example.com/releases/2026/10/very-long-[m]8;;
+]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255martifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[m]8;;
+then verify.
+── width 100 ──
+Download from ]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255mhttps://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-[m]8;;
+]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255mparts-v1.2.3-darwin-arm64.tar.gz[m]8;; then verify.
+── width 160 ──
+Download from ]8;;https://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[38;2;136;153;255mhttps://downloads.example.com/releases/2026/10/very-long-artifact-name-with-many-parts-v1.2.3-darwin-arm64.tar.gz[m]8;; then verify.

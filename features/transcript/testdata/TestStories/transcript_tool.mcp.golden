@@ -1,0 +1,19 @@
+── width 60 ──
+[38;2;111;194;139m⏺[m [1mtracker - get_issue (MCP)[m(id: "APP-12")
+  ⎿  APP-12: Worker retries too fast
+
+[38;2;111;194;139m⏺[m [1mtracker - add_comment (MCP)[m(body: "Fix in progress", id:
+  "APP-12")
+  ⎿  ok
+── width 100 ──
+[38;2;111;194;139m⏺[m [1mtracker - get_issue (MCP)[m(id: "APP-12")
+  ⎿  APP-12: Worker retries too fast
+
+[38;2;111;194;139m⏺[m [1mtracker - add_comment (MCP)[m(body: "Fix in progress", id: "APP-12")
+  ⎿  ok
+── width 160 ──
+[38;2;111;194;139m⏺[m [1mtracker - get_issue (MCP)[m(id: "APP-12")
+  ⎿  APP-12: Worker retries too fast
+
+[38;2;111;194;139m⏺[m [1mtracker - add_comment (MCP)[m(body: "Fix in progress", id: "APP-12")
+  ⎿  ok

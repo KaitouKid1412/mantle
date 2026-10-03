@@ -1,0 +1,9 @@
+[[keyboard.bindings]]
+key = "N"
+mods = "Command"
+action = "CreateNewWindow"
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Control|Shift"
+chars = "x"
