@@ -171,7 +171,7 @@ and `claude` is seamless.
     `features/sessions`.
   - A generated **mantle** section from every registered `SettingSpec`.
   - `/config key=value` with an argument is passed straight to the engine (E).
-- [ ] **B5 [M2] `/status`** from A3. Refresh MCP state with `mcp_status`.
+- [x] **B5 [M2] `/status`** from A3. Refresh MCP state with `mcp_status`.
 - [ ] **B6 [M2] `/theme`.** Picker with live preview (send a theme-preview message the host
   applies; Esc restores the original), ctrl+t syntax-highlighting toggle, ctrl+e opens the
   custom theme file in `$EDITOR` (via `tea.ExecProcess`). Persists `theme`.

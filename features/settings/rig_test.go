@@ -175,6 +175,13 @@ func (g *rig) deliverOne(msg tea.Msg) []tea.Msg {
 		g.dialog, g.dlgID = nil, ""
 		return nil
 	}
+	if am, ok := msg.(ext.AddressedMsg); ok {
+		// The host hands addressed messages only to their component, unwrapped.
+		if g.dialog != nil && g.dialog.ID() == am.To {
+			return exttest.Exec(g.dialog.Update(g.c, am.Msg))
+		}
+		return nil
+	}
 	out := exttest.Exec(g.r.Dispatch(g.c, msg))
 	if g.dialog != nil {
 		out = append(out, exttest.Exec(g.dialog.Update(g.c, msg))...)
