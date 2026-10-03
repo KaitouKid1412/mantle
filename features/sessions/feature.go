@@ -42,6 +42,8 @@ type feature struct {
 	titles  map[string]string // session id -> title to show for it
 	cleared []string          // sessions left behind by /clear, oldest first
 	ho      *handoff          // the hand-off in progress, if any
+	goal    *goal             // the main session's active /goal
+	away    awayState
 
 	// startupSpawn returns the main engine's options as parsed from the command line
 	// (plan 11's cli.Current().Spawn).
@@ -99,6 +101,11 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerClear(r)
 	f.registerHandoff(r)
 	f.registerPicker(r)
+	f.registerPassthrough(r)
+	f.registerRename(r)
+	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
+	ext.Subscribe(r, "sessions.notify", f.onNotify)
+	ext.Subscribe(r, "sessions.cwd-changed", f.onCwdChanged)
 
 	ext.Subscribe(r, "sessions.engine-events", f.onEngineEvent)
 	ext.Subscribe(r, "sessions.session-changed", f.onSessionChanged)
@@ -139,6 +146,10 @@ func (f *feature) onSessionEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	case *proto.SessionTitleChanged:
 		if sid := ctx.Session().SessionID; sid != "" && e.Title != "" {
 			f.titles[sid] = e.Title
+		}
+	case *proto.ActiveGoal:
+		if m.EngineID == ext.MainEngine {
+			f.observeGoal(ctx, e)
 		}
 	}
 	return nil

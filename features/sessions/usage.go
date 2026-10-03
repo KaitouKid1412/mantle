@@ -197,6 +197,11 @@ func (c *contextWarning) ID() string                      { return contextCompon
 func (c *contextWarning) Init(ext.Ctx) tea.Cmd            { return nil }
 func (c *contextWarning) Update(ext.Ctx, tea.Msg) tea.Cmd { return nil }
 
+// TerminalState asks for focus reports, which drive the away recap.
+func (c *contextWarning) TerminalState(ctx ext.Ctx) ext.TerminalState {
+	return ext.TerminalState{ReportFocus: awayEnabled(ctx)}
+}
+
 func (c *contextWarning) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	lv := c.f.usage(ext.MainEngine).level(autoCompactOn(ctx))
 	if !lv.show {

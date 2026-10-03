@@ -190,7 +190,7 @@ Everything about conversations as objects:
     clipboard; use the unstable `export_conversation` if supported.
   - `/copy`: copy the last or Nth-latest response; a code-block picker when several blocks
     exist; `w` writes to a file. Use plan 07's clipboard service.
-- [ ] **B9 [M2] Rename and recap.** `/rename [name]` → `rename_session`. `/recap` is
+- [x] **B9 [M2] Rename and recap.** `/rename [name]` → `rename_session`. `/recap` is
   headless-capable (engine). Away summary: after N minutes away (`awaySummaryEnabled`),
   request a one-line recap and show it (headless has no auto recap).
 - [ ] **B10 [M2] `/btw [question]`.**
@@ -202,7 +202,7 @@ Everything about conversations as objects:
 - [ ] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
   supported, else `git diff` plus mantle's own tracking of Edit/Write results per turn.
   Alt-screen viewer with a file list (context `DiffDialog`) using `pkg/ui/diffview`.
-- [ ] **B12 [M2] Passthrough commands with native polish.** `/goal [condition|clear]`
+- [x] **B12 [M2] Passthrough commands with native polish.** `/goal [condition|clear]`
   (engine; show the active goal from `active_goal`), `/plan [open|desc]` (enable plan mode
   or open the plan file in `$EDITOR`), `/add-dir <path>` (engine command plus
   `register_repo_root`), `/cd <path>` (unstable `set_cwd` or H).
