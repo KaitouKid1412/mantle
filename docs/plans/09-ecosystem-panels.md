@@ -149,7 +149,7 @@ Also provide:
 - [x] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
   then matcher, then source scope, showing handler type and command/url. "Edit" opens the
   owning settings file in `$EDITOR`.
-- [ ] **B5 [M2] `/agents`.**
+- [x] **B5 [M2] `/agents`.**
   - Browse agents from `initialize.agents` plus A3 paths (built-in agents are read-only).
   - Create: pick scope (user/project), open a template in `$EDITOR`; after saving, the
     engine picks the agent up (spike: is a restart needed? Check `commands_changed` and
