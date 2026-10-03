@@ -1,0 +1,26 @@
+── width 40 ──
+[38;2;85;85;85m│[m [3;38;2;136;136;136mQuoted text that is long enough to[m
+[38;2;85;85;85m│[m [3;38;2;136;136;136mwrap when the terminal is narrow.[m
+[38;2;85;85;85m│[m
+[38;2;85;85;85m│[m [38;2;85;85;85m│[m [3;38;2;136;136;136mNested quote.[m
+
+After the quote.
+── width 60 ──
+[38;2;85;85;85m│[m [3;38;2;136;136;136mQuoted text that is long enough to wrap when the terminal[m
+[38;2;85;85;85m│[m [3;38;2;136;136;136mis narrow.[m
+[38;2;85;85;85m│[m
+[38;2;85;85;85m│[m [38;2;85;85;85m│[m [3;38;2;136;136;136mNested quote.[m
+
+After the quote.
+── width 100 ──
+[38;2;85;85;85m│[m [3;38;2;136;136;136mQuoted text that is long enough to wrap when the terminal is narrow.[m
+[38;2;85;85;85m│[m
+[38;2;85;85;85m│[m [38;2;85;85;85m│[m [3;38;2;136;136;136mNested quote.[m
+
+After the quote.
+── width 160 ──
+[38;2;85;85;85m│[m [3;38;2;136;136;136mQuoted text that is long enough to wrap when the terminal is narrow.[m
+[38;2;85;85;85m│[m
+[38;2;85;85;85m│[m [38;2;85;85;85m│[m [3;38;2;136;136;136mNested quote.[m
+
+After the quote.

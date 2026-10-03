@@ -1,0 +1,13 @@
+╭─ Bypass permissions mode ────────────────────────────────╮
+│ Claude Code is starting in bypass permissions mode.      │
+│                                                          │
+│ Every tool call runs without asking, including commands  │
+│ that change or delete files and reach the network. Use   │
+│ this only in an isolated environment such as a container │
+│ or VM without credentials you care about. You are        │
+│ responsible for what runs.                               │
+│                                                          │
+│ ❯ 1. No, exit                                            │
+│   2. Yes, I accept                                       │
+│ enter to confirm · esc to exit                           │
+╰──────────────────────────────────────────────────────────╯

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": ["Bash(curl:*)", "Read(//etc/secrets/**)"],
+    "disableBypassPermissionsMode": "disable"
+  },
+  "autoMode": {
+    "hard_deny": ["Pushing to the main branch"]
+  }
+}

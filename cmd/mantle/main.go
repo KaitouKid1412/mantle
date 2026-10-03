@@ -1,14 +1,16 @@
-// Command mantle is the supervising launcher (stdlib only, never rebuilt by /mantle).
+// Command mantle is the supervising launcher. It imports only the standard
+// library (plus internal/launcher, which is also stdlib-only) and is never
+// rebuilt by /mantle. See internal/launcher.
 //
 // Primary owner: plan 10.
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/KaitouKid1412/mantle/internal/launcher"
 )
 
 func main() {
-	fmt.Fprintln(os.Stderr, "mantle: not implemented yet (see docs/plans/)")
-	os.Exit(1)
+	os.Exit(launcher.Main(os.Args[1:]))
 }

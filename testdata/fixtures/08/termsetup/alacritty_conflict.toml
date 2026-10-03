@@ -1,0 +1,4 @@
+[[keyboard.bindings]]
+key = "Enter"
+mods = "Shift"
+action = "ToggleViMode"
