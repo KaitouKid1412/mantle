@@ -47,7 +47,8 @@ type Host struct {
 type HostOptions struct {
 	// Safe skips user mods (Order >= ext.ModOrder): `mantle --safe`.
 	Safe bool
-	// Disabled lists feature IDs to skip (mods that panicked in an earlier run).
+	// Disabled lists feature IDs that panicked in an earlier run; mods among them
+	// (Order >= ext.ModOrder) are skipped.
 	Disabled []string
 	// Core features are set up first, before any registered feature.
 	Core []ext.Feature
@@ -62,7 +63,9 @@ func NewHost(features []ext.Feature, o HostOptions) *Host {
 		switch {
 		case o.Safe && f.Order >= ext.ModOrder:
 			h.skipped[f.ID] = "safe mode"
-		case slices.Contains(o.Disabled, f.ID):
+		case f.Order >= ext.ModOrder && slices.Contains(o.Disabled, f.ID):
+			// Only mods stay off across runs; a built-in that panicked once is retried
+			// (turning it off for good could leave mantle unusable).
 			h.skipped[f.ID] = "disabled after an earlier crash"
 		default:
 			use = append(use, f)

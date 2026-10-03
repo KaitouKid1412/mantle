@@ -1,0 +1,7 @@
+width=40 rows=6 cursor=24,1 focused=true
+Refactor the session loader so that     |
+resumed sessions replay their earlier   |
+turns from the JSONL file, then add     |
+tests that cover sidechains, compact    |
+boundaries and malformed lines.         |
+Second paragraph after a newline.       |

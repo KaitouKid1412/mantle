@@ -1,0 +1,25 @@
+── width 40 ──
+See ]8;;https://example.com/docs/getting-started[38;2;136;153;255mthe docs[m]8;;]8;;https://example.com/docs/getting-started[38;2;136;136;136m[m]8;;
+]8;;https://example.com/docs/getting-started[38;2;136;136;136m(https://example.com/docs/getting-[m]8;;
+]8;;https://example.com/docs/getting-started[38;2;136;136;136mstarted)[m]8;; or ]8;;https://example.org[38;2;136;153;255mhttps://example.org[m]8;; or]8;;https://bare.example.net/path[38;2;136;153;255m[m]8;;
+]8;;https://bare.example.net/path[38;2;136;153;255mhttps://bare.example.net/path[m]8;;, mail]8;;mailto:user@example.com[38;2;136;153;255m[m]8;;
+]8;;mailto:user@example.com[38;2;136;153;255muser@example.com[m]8;;, and]8;;https://same.example.com[38;2;136;153;255m[m]8;;
+]8;;https://same.example.com[38;2;136;153;255mhttps://same.example.com[m]8;;.
+
+]8;;https://example.com/d.png[38;2;136;153;255m[diagram][m]8;; ]8;;https://example.com/d.png[38;2;136;136;136m(https://example.com/d.png)[m]8;;
+── width 60 ──
+See ]8;;https://example.com/docs/getting-started[38;2;136;153;255mthe docs[m]8;; ]8;;https://example.com/docs/getting-started[38;2;136;136;136m(https://example.com/docs/getting-started)[m]8;; or]8;;https://example.org[38;2;136;153;255m[m]8;;
+]8;;https://example.org[38;2;136;153;255mhttps://example.org[m]8;; or ]8;;https://bare.example.net/path[38;2;136;153;255mhttps://bare.example.net/path[m]8;;, mail]8;;mailto:user@example.com[38;2;136;153;255m[m]8;;
+]8;;mailto:user@example.com[38;2;136;153;255muser@example.com[m]8;;, and ]8;;https://same.example.com[38;2;136;153;255mhttps://same.example.com[m]8;;.
+
+]8;;https://example.com/d.png[38;2;136;153;255m[diagram][m]8;; ]8;;https://example.com/d.png[38;2;136;136;136m(https://example.com/d.png)[m]8;;
+── width 100 ──
+See ]8;;https://example.com/docs/getting-started[38;2;136;153;255mthe docs[m]8;; ]8;;https://example.com/docs/getting-started[38;2;136;136;136m(https://example.com/docs/getting-started)[m]8;; or ]8;;https://example.org[38;2;136;153;255mhttps://example.org[m]8;; or]8;;https://bare.example.net/path[38;2;136;153;255m[m]8;;
+]8;;https://bare.example.net/path[38;2;136;153;255mhttps://bare.example.net/path[m]8;;, mail ]8;;mailto:user@example.com[38;2;136;153;255muser@example.com[m]8;;, and ]8;;https://same.example.com[38;2;136;153;255mhttps://same.example.com[m]8;;.
+
+]8;;https://example.com/d.png[38;2;136;153;255m[diagram][m]8;; ]8;;https://example.com/d.png[38;2;136;136;136m(https://example.com/d.png)[m]8;;
+── width 160 ──
+See ]8;;https://example.com/docs/getting-started[38;2;136;153;255mthe docs[m]8;; ]8;;https://example.com/docs/getting-started[38;2;136;136;136m(https://example.com/docs/getting-started)[m]8;; or ]8;;https://example.org[38;2;136;153;255mhttps://example.org[m]8;; or ]8;;https://bare.example.net/path[38;2;136;153;255mhttps://bare.example.net/path[m]8;;, mail ]8;;mailto:user@example.com[38;2;136;153;255muser@example.com[m]8;;, and]8;;https://same.example.com[38;2;136;153;255m[m]8;;
+]8;;https://same.example.com[38;2;136;153;255mhttps://same.example.com[m]8;;.
+
+]8;;https://example.com/d.png[38;2;136;153;255m[diagram][m]8;; ]8;;https://example.com/d.png[38;2;136;136;136m(https://example.com/d.png)[m]8;;

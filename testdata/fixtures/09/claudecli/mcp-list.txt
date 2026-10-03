@@ -1,0 +1,12 @@
+Checking MCP server health…
+
+claude.ai Example Docs: https://mcp.example.test/docs - ✔ Connected
+filesystem: npx -y @example/server-filesystem /tmp/work - ✔ Connected
+plugin:demo:search: https://search.example.test/mcp - ! Needs authentication
+broken: /usr/local/bin/broken-mcp --port 9 - ✘ Failed to connect
+    spawn /usr/local/bin/broken-mcp ENOENT
+flaky: https://flaky.example.test/mcp - ! Connected · tools fetch failed
+repo-tools: node ./tools/mcp.js - ⏸ Pending approval (run `claude` to approve)
+denied: node ./denied.js - ✘ Rejected (see disabledMcpjsonServers in settings)
+quiet: python -m quiet_server - ⊘ Disabled for this project (re-enable via /mcp)
+half: https://half.example.test - - Not configured

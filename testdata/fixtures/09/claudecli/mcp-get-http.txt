@@ -1,0 +1,7 @@
+plugin:demo:search:
+  Scope: Plugin (demo)
+  Status: ! Needs authentication
+  Type: http
+  URL: https://search.example.test/mcp
+  Headers:
+    X-Client: mantle-test

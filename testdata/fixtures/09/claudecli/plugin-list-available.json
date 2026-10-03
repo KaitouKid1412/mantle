@@ -1,0 +1,47 @@
+{
+  "installed": [
+    {
+      "id": "demo@example-market",
+      "version": "1.2.0",
+      "scope": "user",
+      "enabled": true,
+      "installPath": "/home/user/.claude/plugins/cache/example-market/demo/1.2.0",
+      "installedAt": "2026-09-01T10:00:00.000Z",
+      "lastUpdated": "2026-09-20T10:00:00.000Z",
+      "projectEnabled": false
+    }
+  ],
+  "available": [
+    {
+      "pluginId": "demo@example-market",
+      "name": "demo",
+      "description": "A demo plugin.",
+      "marketplaceName": "example-market",
+      "source": "./plugins/demo",
+      "installCount": 1200
+    },
+    {
+      "pluginId": "remote-tool@example-market",
+      "name": "remote-tool",
+      "description": "Fetched from a git subdirectory.",
+      "marketplaceName": "example-market",
+      "version": "2.0.0",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://git.example.test/tools.git",
+        "path": "plugins/remote-tool",
+        "ref": "v2.0.0",
+        "sha": "0123456789abcdef0123456789abcdef01234567"
+      }
+    },
+    {
+      "pluginId": "bare@directory",
+      "name": "bare",
+      "marketplaceName": "directory",
+      "source": {
+        "source": "url",
+        "url": "https://git.example.test/bare.git"
+      }
+    }
+  ]
+}

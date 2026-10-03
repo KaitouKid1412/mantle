@@ -1,0 +1,126 @@
+--add-dir                                      variadic   forward    CLI-08
+--worktree,-w                                  optional   forward    CLI-15
+--tmux                                         none       exec       CLI-16  eq
+--agent                                        required   forward    CLI-08
+--agents                                       required   forward    CLI-08
+--model                                        required   forward    CLI-07
+--fallback-model                               required   forward    CLI-07
+--effort                                       required   forward    CLI-07
+--autocompact                                  required   forward    CLI-08
+--betas                                        variadic   forward    CLI-08
+--advisor                                      required   forward    CLI-07  hidden
+--thinking                                     required   forward    CLI-07  hidden
+--thinking-display                             required   forward    CLI-07  hidden
+--max-thinking-tokens                          required   forward    CLI-07  hidden
+--task-budget                                  required   forward    CLI-07  hidden
+--workload                                     required   forward    CLI-08  hidden
+--permission-mode                              required   forward    CLI-07
+--dangerously-skip-permissions                 none       forward    CLI-07
+--allow-dangerously-skip-permissions           none       forward    CLI-07
+--allowedTools,--allowed-tools                 variadic   forward    CLI-08
+--disallowedTools,--disallowed-tools           variadic   forward    CLI-08
+--tools                                        variadic   forward    CLI-08
+--restricted                                   none       forward    CLI-12
+--inherit-permission-mode                      required   forward    CLI-07  hidden
+--enable-auto-mode                             none       forward    CLI-07  hidden
+--system-prompt                                required   forward    CLI-08
+--system-prompt-file                           required   forward    CLI-08  hidden
+--append-system-prompt                         required   forward    CLI-08
+--append-system-prompt-file                    required   forward    CLI-08  hidden
+--append-subagent-system-prompt                required   forward    CLI-08  hidden
+--append-subagent-system-prompt-file           required   forward    CLI-08  hidden
+--plan-mode-instructions                       required   forward    CLI-08  hidden
+--exclude-dynamic-system-prompt-sections       none       forward    CLI-08
+--system-prompt-snapshot                       required   forward    CLI-08
+--continue,-c                                  none       consume    CLI-05
+--resume,-r                                    optional   consume    CLI-05
+--fork-session                                 none       consume    CLI-05
+--session-id                                   required   consume    CLI-05
+--name,-n                                      required   consume    CLI-05
+--resume-session-at                            required   forward    CLI-05  hidden
+--resume-drops-turn                            required   forward    CLI-05  hidden
+--reply-on-resume                              none       forward    CLI-05  hidden
+--from-pr                                      optional   exec       CLI-18
+--bg,--background                              none       exec       CLI-17
+--print,-p                                     none       exec       CLI-04
+--output-format                                required   print-only CLI-26
+--input-format                                 required   print-only CLI-26
+--json-schema                                  required   print-only CLI-26
+--include-partial-messages                     none       print-only CLI-26
+--include-hook-events                          none       print-only CLI-26
+--replay-user-messages                         none       print-only CLI-26
+--forward-subagent-text                        none       print-only CLI-26
+--max-budget-usd                               required   print-only CLI-26
+--no-session-persistence                       none       print-only CLI-26
+--permission-prompts                           required   print-only CLI-26
+--permission-prompt-tool                       required   print-only CLI-26  hidden
+--max-turns                                    required   print-only CLI-26  hidden
+--session-mirror                               none       print-only CLI-26  hidden
+--await-claim                                  none       print-only CLI-26  hidden
+--await-initialize                             none       print-only CLI-26  hidden
+--enable-auth-status                           none       print-only CLI-26  hidden
+--rewind-files                                 required   print-only CLI-26  hidden
+--sdk-url                                      required   print-only CLI-26  hidden
+--prompt-suggestions                           optional   consume    CLI-01
+--settings                                     required   forward    CLI-08
+--setting-sources                              required   forward    CLI-08
+--mcp-config                                   variadic   forward    CLI-08
+--strict-mcp-config                            none       forward    CLI-08
+--plugin-dir                                   repeatable forward    CLI-08
+--plugin-dir-no-mcp                            repeatable forward    CLI-08  hidden
+--plugin-url                                   repeatable forward    CLI-08
+--disable-slash-commands                       none       forward    CLI-08
+--bare                                         none       warn       CLI-12
+--safe-mode                                    none       forward    CLI-12
+--managed-settings                             required   forward    CLI-08  hidden
+--project-config-root                          required   forward    CLI-08  hidden
+--client-data-url                              required   forward    CLI-08  hidden
+--channels                                     variadic   forward    CLI-08  hidden
+--dangerously-load-development-channels        variadic   forward    CLI-08  hidden
+--init                                         none       forward    CLI-08  hidden
+--maintenance                                  none       forward    CLI-08  hidden
+--init-only                                    none       exec       CLI-08  hidden
+--ide                                          none       forward    CLI-11
+--chrome                                       none       forward    CLI-11
+--no-chrome                                    none       forward    CLI-11
+--file                                         variadic   forward    CLI-18
+--brief                                        none       forward    CLI-18
+--watch-artifact                               required   forward    CLI-18  hidden
+--watch-artifact-no-autoreact                  required   forward    CLI-18  hidden
+--messaging-socket-path                        required   forward    CLI-18  hidden
+--desktop                                      none       exec       CLI-18
+--cloud                                        optional   exec       CL-05
+--remote                                       optional   exec       CL-05   hidden
+--environment                                  required   exec       CLI-18
+--pool                                         required   exec       CLI-18  hidden
+--ref                                          required   exec       CLI-18  hidden
+--on-branch                                    required   exec       CLI-18  hidden
+--correlation-id                               required   exec       CLI-18  hidden
+--forward-home-settings                        required   exec       CLI-18  hidden
+--attach-serve                                 required   exec       CLI-18  hidden
+--teleport                                     optional   exec       CLI-18
+--remote-control                               optional   exec       CLI-18
+--rc                                           optional   exec       CLI-18  hidden
+--remote-control-session-name-prefix           required   exec       CLI-18
+--deep-link-origin                             none       exec       CLI-18  hidden
+--deep-link-repo                               required   exec       CLI-18  hidden
+--deep-link-last-fetch                         required   exec       CLI-18  hidden
+--deep-link-cwd-b64                            required   exec       CLI-18  hidden
+--prefill                                      required   consume    CLI-18  hidden
+--prefill-b64                                  required   consume    CLI-18  hidden
+--agent-id                                     required   forward    CLI-08  hidden
+--agent-name                                   required   forward    CLI-08  hidden
+--agent-type                                   required   forward    CLI-08  hidden
+--agent-color                                  required   forward    CLI-08  hidden
+--team-name                                    required   forward    CLI-08  hidden
+--parent-session-id                            required   forward    CLI-08  hidden
+--plan-mode-required                           none       forward    CLI-08  hidden
+--teammate-mode                                required   warn       CLI-08  hidden
+--debug,-d                                     optional   forward    CLI-09
+--debug-to-stderr,-d2e                         none       forward    CLI-09  hidden
+--debug-file                                   required   forward    CLI-09
+--verbose                                      none       forward    CLI-09
+--ax-screen-reader                             none       consume    CLI-10
+--version,-v                                   none       consume    CLI-13
+--help,-h                                      none       consume    CLI-14
+--safe                                         none       consume    CLI-01  mantle
