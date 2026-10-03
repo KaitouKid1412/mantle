@@ -135,6 +135,8 @@ func (f *Feature) renderLocalCommand(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 	case *proto.LocalCommandOutput:
 		text = d.Content
+	case *proto.User:
+		text = d.Message.Content.PlainText()
 	case string:
 		text = d
 	}
@@ -144,11 +146,29 @@ func (f *Feature) renderLocalCommand(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		return ext.Block{}
 	}
 	width := max(rc.Width-len(resultHang), 1)
+	if looksLikeMarkdown(text) {
+		md := render.Markdown(render.Strip(text), f.mdOptions(rc, width))
+		return ext.Block{Lines: indentLines(md, true)}
+	}
 	var lines []string
 	for _, l := range strings.Split(render.ExpandTabs(text, 4), "\n") {
 		lines = append(lines, render.WrapWith(stylesFor(rc).dim.Render(l), render.WrapOptions{Width: width})...)
 	}
 	return ext.Block{Lines: indentLines(lines, true)}
+}
+
+// looksLikeMarkdown reports whether command output is structured markdown
+// (headings, tables, fences) rather than column-aligned plain text, which
+// markdown would reflow.
+func looksLikeMarkdown(text string) bool {
+	for _, l := range strings.Split(text, "\n") {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "#") || strings.HasPrefix(l, "```") ||
+			(strings.HasPrefix(l, "|") && strings.HasSuffix(l, "|")) {
+			return true
+		}
+	}
+	return false
 }
 
 func stripTags(s string, tags ...string) string {
@@ -285,7 +305,7 @@ func (f *Feature) renderRateLimit(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 	}
 	if t := resetTime(info.ResetsAt); !t.IsZero() {
-		text += " · resets " + t.Local().Format("Jan 2 3:04 PM")
+		text += " · resets " + f.zoned(t).Format("Jan 2 3:04 PM")
 	}
 	return ext.Block{Lines: render.WrapWith(style.Render(text), render.WrapOptions{Width: rc.Width, First: style.Render(glyphDot) + " ", Rest: dotIndent})}
 }
@@ -361,7 +381,15 @@ func (f *Feature) renderTaskNotification(rc ext.RenderCtx, it *ext.Item) ext.Blo
 	case "stopped":
 		dot, verb = st.dim, "stopped"
 	}
-	lines := header(rc, st, dot, "Background task "+verb, "")
+	name, args := "Background task "+verb, ""
+	if id := f.store.TaskTool(n.TaskID); id != "" {
+		var in agentInput
+		if it := f.store.Get(id); it != nil && toolUse(it) != nil {
+			decodeInput(toolUse(it).Input, &in)
+			name = "Agent \"" + oneLine(in.Description) + "\" " + verb
+		}
+	}
+	lines := header(rc, st, dot, name, args)
 	if s := firstNonEmpty(n.Summary, n.Reason); s != "" {
 		lines = append(lines, result(rc, st.dim, oneLine(s))...)
 	}
