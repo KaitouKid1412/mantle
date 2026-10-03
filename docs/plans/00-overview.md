@@ -344,6 +344,9 @@ Two ways:
 cost.
 
 ### Milestones
+- **`proto-v1` tagged** (2026-10-03, plan 02): `pkg/proto` landed on branch
+  `worktree-mantle-02`; the tag holds only bootstrap + `pkg/proto`, so run
+  `git merge proto-v1` in your worktree. Additive-only from here.
 - **M1, daily driver:** every `[M1]` task in Part B is done. The user can use `mantle`
   instead of `claude` for real work:
   - trust gate; new, resume and continue sessions;
