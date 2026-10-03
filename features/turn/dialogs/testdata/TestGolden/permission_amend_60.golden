@@ -1,0 +1,15 @@
+╭─ Bash command ───────────────────────────────────────────╮
+│   npm test                                               │
+│   Run tests                                              │
+│                                                          │
+│ Do you want to proceed?                                  │
+│   1. Yes                                                 │
+│   2. Yes, and don't ask again for Bash(npm test:*) in    │
+│      this project                                        │
+│   3. No, and tell Claude what to do differently          │
+│   4. No, and stop                                        │
+│                                                          │
+│ Amend the input, then press enter to run it:             │
+│ > npm test                                               │
+│ enter to run · esc to go back                            │
+╰──────────────────────────────────────────────────────────╯

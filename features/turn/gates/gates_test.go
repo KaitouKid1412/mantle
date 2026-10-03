@@ -163,7 +163,7 @@ func TestTrustMalformedClaudeJSON(t *testing.T) {
 	}
 	// Wrong-typed fields are skipped one by one; the rest still works.
 	f.claudeJSON(map[string]any{"projects": map[string]any{
-		f.proj:      map[string]any{"hasTrustDialogAccepted": "yes"},
+		f.proj:       map[string]any{"hasTrustDialogAccepted": "yes"},
 		"/elsewhere": "junk",
 	}, "customApiKeyResponses": map[string]any{"approved": []any{1, "abc"}}})
 	gc := LoadGlobalConfig(f.env)
