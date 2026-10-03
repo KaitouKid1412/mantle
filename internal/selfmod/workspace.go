@@ -47,6 +47,8 @@ type Request struct {
 	Kind    string `json:"kind"`
 	// Target is the mod an undo or edit applies to.
 	Target string `json:"target,omitempty"`
+	// Original is the target mod's request, for edits.
+	Original string `json:"original,omitempty"`
 	// Base is the commit the worktree started from.
 	Base   string `json:"base"`
 	Branch string `json:"branch"`
@@ -255,6 +257,61 @@ func (w *Workspace) StartUndo(target string) (*Request, error) {
 	return r, nil
 }
 
+// StartEdit creates a worktree for changing mod target with a new request.
+// Promotion commits the result under the target's Mantle-Mod id, so the mod
+// stays one unit for show, undo and update.
+func (w *Workspace) StartEdit(target, request string) (*Request, error) {
+	mods, err := w.Mods()
+	if err != nil {
+		return nil, err
+	}
+	i := slices.IndexFunc(mods, func(m Mod) bool { return m.ID == target })
+	if i < 0 {
+		return nil, fmt.Errorf("no mod %q (see /mantle list)", target)
+	}
+	if mods[i].State == ModUndone {
+		return nil, fmt.Errorf("mod %q is undone; make a new request instead", target)
+	}
+	r, err := w.Start(request, RequestEdit, target)
+	if err != nil {
+		return nil, err
+	}
+	r.Original = mods[i].Request
+	return r, w.Save(r)
+}
+
+// ModsCacheEntry is one mod in mods.json.
+type ModsCacheEntry struct {
+	ID      string    `json:"id"`
+	Request string    `json:"request"`
+	Kind    string    `json:"kind"`
+	State   string    `json:"state"`
+	Date    time.Time `json:"date"`
+	Commits []string  `json:"commits"`
+}
+
+// WriteModsCache rewrites mods.json from git history. It is only a cache:
+// the Mantle-Mod trailers are the source of truth.
+func (w *Workspace) WriteModsCache() error {
+	mods, err := w.Mods()
+	if err != nil {
+		return err
+	}
+	entries := []ModsCacheEntry{}
+	for _, m := range mods {
+		e := ModsCacheEntry{ID: m.ID, Request: m.Request, Kind: m.Kind(), State: m.State, Date: m.Date}
+		for _, c := range m.Commits {
+			e.Commits = append(e.Commits, c.SHA)
+		}
+		entries = append(entries, e)
+	}
+	data, err := json.MarshalIndent(entries, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(w.Layout.ModsCache(), append(data, '\n'), 0o644)
+}
+
 // Vet runs the pipeline over the request's worktree as the next round and
 // records the outcome.
 func (w *Workspace) Vet(ctx context.Context, r *Request) (*Report, error) {
@@ -377,6 +434,7 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 	w.Save(r)
 	if w.Branch != "" {
 		w.removeWorktree(r)
+		w.WriteModsCache()
 	}
 	return p, nil
 }
