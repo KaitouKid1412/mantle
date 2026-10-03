@@ -157,6 +157,8 @@ func visible(c ext.Ctx, o options.Option) bool {
 		return false // the IDE bridge is not part of mantle yet
 	case options.NotInIDE:
 		return os.Getenv("TERM_PROGRAM") != "vscode"
+	case options.InIDETerminal:
+		return os.Getenv("TERM_PROGRAM") == "vscode"
 	}
 	return true
 }
