@@ -306,7 +306,15 @@ func (c *Commands) Doctor(args []string) int {
 		ok("removed %d stale run file(s)", n)
 	}
 	if runs, _ := l.RunFiles(); len(runs) > 0 {
-		ok("%d mantle instance(s) running", len(runs))
+		uis, engines := 0, 0
+		for _, rf := range runs {
+			if rf.IsEngine() {
+				engines++
+			} else {
+				uis++
+			}
+		}
+		ok("%d mantle instance(s) and %d engine(s) running", uis, engines)
 	}
 	if data, err := os.ReadFile(l.DisabledFeatures()); err == nil {
 		var disabled map[string]any

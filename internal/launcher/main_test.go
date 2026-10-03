@@ -112,6 +112,17 @@ func fakeUI(dir string) int {
 		WriteRunFile(l.RunFile(os.Getpid()), runFile)
 		os.WriteFile(filepath.Join(dir, "engine.pgid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o644)
 		return code
+	case "enginerecord":
+		// Like internal/engine: a record per engine, naming this UI.
+		cmd := exec.Command("sleep", "30")
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		if err := cmd.Start(); err != nil {
+			return 99
+		}
+		pid := cmd.Process.Pid
+		WriteRunFile(l.RunFile(pid), RunFile{PID: pid, PGID: pid, UIPID: os.Getpid(), EngineID: "builder-x"})
+		os.WriteFile(filepath.Join(dir, "engine.pgid"), []byte(strconv.Itoa(pid)), 0o644)
+		return code
 	case "wait":
 		ch := make(chan os.Signal, 4)
 		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)

@@ -410,11 +410,24 @@ func waitFor(t *testing.T, path string) {
 }
 
 func TestCrashKillsEngineGroup(t *testing.T) {
-	h := newHarness(t, "engine:3")
+	for _, mode := range []string{"engine:3", "enginerecord:3"} {
+		t.Run(mode, func(t *testing.T) { testCrashKillsEngineGroup(t, mode) })
+	}
+}
+
+func testCrashKillsEngineGroup(t *testing.T, mode string) {
+	h := newHarness(t, mode)
 	h.install("v1", true)
 	h.current("v1")
+	// An engine record of another live UI must survive.
+	other := RunFile{PID: os.Getpid(), PGID: os.Getpid(), UIPID: 1, EngineID: "main"}
+	h.must(WriteRunFile(h.l.RunFile(os.Getpid()), other))
 	if code := h.run(); code != 3 {
 		t.Fatalf("exit code %d, stderr:\n%s", code, h.stderr)
+	}
+	runs, _ := h.l.RunFiles()
+	if len(runs) != 1 || runs[0].PID != os.Getpid() {
+		t.Errorf("run files after reap = %+v; want only the other UI's engine record", runs)
 	}
 	data, err := os.ReadFile(filepath.Join(h.dir, "engine.pgid"))
 	if err != nil {

@@ -149,7 +149,7 @@ func (s *Supervisor) Run(opts LaunchOptions) int {
 			return 1
 		}
 		res := s.runOnce(t, args, dir, sigs)
-		s.reapEngines(res.runFile.EnginePGIDs)
+		s.reapEngines(s.enginesOf(res))
 		out := Classify(res.status, res.forwarded)
 
 		d := Decision{Abnormal: out == OutcomeCrash || out == OutcomeInterrupted}
@@ -348,11 +348,32 @@ func exitStatusOf(ps *os.ProcessState) ExitStatus {
 	return ExitStatus{Code: ps.ExitCode()}
 }
 
+// enginesOf collects the engine process groups of a finished child: those
+// in its run file and those of engine records naming it as their UI. The
+// engine records are removed.
+func (s *Supervisor) enginesOf(res runResult) []int {
+	var pgids []int
+	for _, pg := range res.runFile.EnginePGIDs {
+		pgids = append(pgids, pg)
+	}
+	if res.pid <= 0 {
+		return pgids
+	}
+	runs, _ := s.Layout.RunFiles()
+	for _, rf := range runs {
+		if rf.IsEngine() && rf.UIPID == res.pid {
+			pgids = append(pgids, rf.enginePGID())
+			os.Remove(s.Layout.RunFile(rf.PID))
+		}
+	}
+	return pgids
+}
+
 // reapEngines kills engine process groups left behind by mantle-ui: SIGTERM,
 // then SIGKILL after KillGrace. A healthy mantle-ui has already ended its
 // engines, so this is normally a no-op. macOS has no PDEATHSIG, so without it
 // a crashed UI would leave its engines running.
-func (s *Supervisor) reapEngines(pgids map[string]int) {
+func (s *Supervisor) reapEngines(pgids []int) {
 	var live []int
 	for _, pg := range pgids {
 		if killableGroup(pg) && syscall.Kill(-pg, 0) == nil && !slices.Contains(live, pg) {

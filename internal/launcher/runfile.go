@@ -34,6 +34,24 @@ type RunFile struct {
 	EnginePGIDs map[string]int `json:"engine_pgids,omitempty"`
 	Started     time.Time      `json:"started,omitzero"`
 	Updated     time.Time      `json:"updated,omitzero"`
+
+	// Engine records share run/: internal/engine writes run/<engine-pid>.json
+	// with these fields for every engine it spawns, so the launcher can kill
+	// the engines of a UI that died.
+	EngineID string `json:"engine_id,omitempty"`
+	PGID     int    `json:"pgid,omitempty"`
+	UIPID    int    `json:"ui_pid,omitempty"`
+}
+
+// IsEngine reports whether rf is an engine record rather than a UI run file.
+func (rf RunFile) IsEngine() bool { return rf.EngineID != "" }
+
+// enginePGID is the process group of an engine record.
+func (rf RunFile) enginePGID() int {
+	if rf.PGID != 0 {
+		return rf.PGID
+	}
+	return rf.PID
 }
 
 // RelaunchArgs returns the arguments for relaunching mantle-ui after this
