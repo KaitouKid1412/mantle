@@ -27,6 +27,11 @@ type Prompt struct {
 	Priority string // "now" | "next" | "later" ("" = engine default)
 	UUID     string
 	Composed bool // client_composed: no @/slash expansion
+
+	// Since contracts-v1.2.
+	ShouldQuery   *bool           // stdin "shouldQuery"; nil = engine default (true)
+	InlinePastes  []string        // stdin "inline_pastes": pastes still in Blocks where the user put them
+	PastedContent json.RawMessage // stdin "pasted_content": pastes taken out of Blocks
 }
 
 // SpawnOpts configures an engine (re)start.
@@ -47,6 +52,9 @@ type SpawnOpts struct {
 	Env             map[string]string
 	SafeMode        bool
 	Stop            bool // stop without restarting (hand-off to interactive claude)
+	// UnsetEnv lists variables to remove from the engine's environment (since
+	// contracts-v1.2), e.g. ANTHROPIC_API_KEY after the user declined it.
+	UnsetEnv []string
 }
 
 // Messages from engines. All carry EngineID.
