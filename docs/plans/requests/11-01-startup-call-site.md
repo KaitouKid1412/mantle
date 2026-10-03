@@ -38,6 +38,15 @@ resolver := cli.ResolverFuncs{
 }
 ```
 
+mantle's own config store should take its flag scope from `st.FlagSettings()` instead of the
+raw `--settings` value: it is the user's `--settings` plus `{"verbose": true}` for
+`--verbose`, as claude applies it (plan 03 reads `Settings().Claude("verbose")`):
+
+```go
+flag, err := st.FlagSettings()
+store := config.NewStore(paths, flag)
+```
+
 `st.Prompt` is submitted by `features/cli` when the main engine first attaches (after the
 gates); nothing else is needed for it. `st.Verbose` and `st.PromptSuggestions` are there for
 the verbose view and `initialize.promptSuggestions` (plan 02).

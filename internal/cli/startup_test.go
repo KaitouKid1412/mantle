@@ -271,6 +271,24 @@ func TestMergeSettings(t *testing.T) {
 	}
 }
 
+func TestFlagSettings(t *testing.T) {
+	s := startup(t, "--settings", `{"theme":"dark"}`)
+	if got, err := s.FlagSettings(); err != nil || got != `{"theme":"dark"}` {
+		t.Errorf("no verbose: %q %v", got, err)
+	}
+	s = startup(t, "--verbose", "--settings", `{"theme":"dark","verbose":false}`)
+	got, err := s.FlagSettings()
+	if err != nil || got != `{"theme":"dark","verbose":true}` {
+		t.Errorf("verbose: %q %v", got, err)
+	}
+	if s.Spawn.Settings != `{"theme":"dark","verbose":false}` {
+		t.Errorf("engine settings changed: %q", s.Spawn.Settings)
+	}
+	if got, err := startup(t, "--verbose").FlagSettings(); err != nil || got != `{"verbose":true}` {
+		t.Errorf("verbose only: %q %v", got, err)
+	}
+}
+
 func TestCurrent(t *testing.T) {
 	ClearCurrent()
 	if _, ok := Current(); ok {

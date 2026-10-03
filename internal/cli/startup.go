@@ -67,12 +67,24 @@ type Startup struct {
 
 // MainSpawn returns the options to spawn the main engine with at startup
 // (app.Options.MainSpawn), or nil when the resume picker opens first.
-func (s *Startup) MainSpawn() *ext.SpawnOpts {
+func (s Startup) MainSpawn() *ext.SpawnOpts {
 	if s.Picker {
 		return nil
 	}
 	o := s.Spawn
 	return &o
+}
+
+// FlagSettings is the flag-scope settings for mantle's own config (plan 01's
+// config.NewStore): the user's --settings plus the UI keys that command-line flags imply,
+// as claude applies them (--verbose overrides the verbose setting). The engine still gets
+// the user's --settings unchanged.
+func (s Startup) FlagSettings() (string, error) {
+	overlay := map[string]any{}
+	if s.Verbose {
+		overlay["verbose"] = true
+	}
+	return MergeSettings(s.Spawn.Settings, overlay)
 }
 
 // ErrNoSession is returned for -c when the directory has no session to continue.
