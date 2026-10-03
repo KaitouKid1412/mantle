@@ -1,6 +1,9 @@
 # Request 04 → 01: user-message fields on `ext.Prompt` (additive)
 
-**From:** plan 04 (input). **To:** plan 01 (pkg/ext steward). **Status:** done. The fields are in pkg/ext (integration-1); features/input sets them.
+**From:** plan 04 (input). **To:** plan 01 (pkg/ext steward). **Status:** resolved
+2026-10-03 in `contracts-v1.2` (`Prompt.ShouldQuery`, `InlinePastes`, `PastedContent`). The
+host does not send drafts itself: plan 04's send stage calls `Engine.Send` and returns
+`Consumed` (a core fallback stage at priority MaxInt32 only sends drafts nobody consumed).
 
 ## What
 

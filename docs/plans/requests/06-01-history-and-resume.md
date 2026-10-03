@@ -1,6 +1,8 @@
 # 06 → 01 (cc 02, 03, 11): history hand-off and startup resume
 
-**Status:** open (2026-10-03).
+**Status:** resolved for plan 01 (2026-10-03): `ext.TranscriptHistoryMsg` in `contracts-v1.2`
+as proposed; `app.Options.Session` (filled from plan 11's `Startup.Session` in
+`cmd/mantle-ui`) is the main engine's SessionInfo before any OnStart hook runs.
 
 Plan 06 turns JSONL history into `ext.Item`s (`features/sessions/normalize.go`), using
 plan 03's conventions: `user.prompt`/`user.bash` carry `*proto.User` (ID `user:<uuid>`),
