@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -35,6 +37,43 @@ type SmokeConfig struct {
 	Script []SmokeAction
 	// ExitCode is the expected exit code (0).
 	ExitCode int
+	// FakeEngine, if set, is a package built from the candidate (for example
+	// "./cmd/fakeclaude") and used as the engine through MANTLE_CLAUDE_BIN.
+	FakeEngine string
+	// FakeScript is the fake engine's script, written to the build folder and
+	// passed as FAKECLAUDE_SCRIPT.
+	FakeScript string
+}
+
+// smokeEngineScript answers initialize, then replies "smoke reply" to the
+// first prompt (plan 02's enginefake format).
+const smokeEngineScript = `# mantle pipeline smoke boot
+{"on": {"type": "control_request", "request": {"subtype": "initialize"}}, "respond": {"commands": [], "models": [], "account": {}}}
+{"expect": {"type": "user"}, "timeout": 30000}
+{"emit": {"type": "assistant", "session_id": "smoke", "message": {"id": "msg_smoke", "type": "message", "role": "assistant", "model": "fake", "content": [{"type": "text", "text": "smoke reply"}], "stop_reason": "end_turn"}}}
+{"emit": {"type": "result", "subtype": "success", "session_id": "smoke", "is_error": false, "result": "smoke reply", "num_turns": 1, "duration_ms": 1, "duration_api_ms": 1, "total_cost_usd": 0}}
+`
+
+// DefaultSmokeConfig is the M1 smoke boot: against the candidate's own
+// fakeclaude, wait for the first frame, type a prompt, see the scripted
+// reply, open /help, quit with ctrl+c twice, expect exit 0.
+func DefaultSmokeConfig() SmokeConfig {
+	return SmokeConfig{
+		FakeEngine: "./cmd/fakeclaude",
+		FakeScript: smokeEngineScript,
+		Script: []SmokeAction{
+			Expect(`\S`),
+			Send("hello\r"),
+			Expect(`smoke reply`),
+			Send("/help\r"),
+			Expect(`(?i)help|commands`),
+			Send("\x1b"), // close the help view
+			Sleep(200 * time.Millisecond),
+			Send("\x03"),
+			Sleep(100 * time.Millisecond),
+			Send("\x03"),
+		},
+	}
 }
 
 // SmokeAction is one scripted interaction. Exactly one field is set.
@@ -73,7 +112,19 @@ func (sc *stepCtx) smoke(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	env := sc.env(append(sc.safetyEnv(), append([]string{"TERM=xterm-256color", "COLORTERM=truecolor"}, cfg.Env...)...))
+	extra := append(sc.safetyEnv(), "TERM=xterm-256color", "COLORTERM=truecolor")
+	if cfg.FakeEngine != "" {
+		fake := filepath.Join(sc.r.OutDir, "fakeclaude")
+		if out, err := sc.exec(ctx, sc.r.Dir, sc.env(nil), sc.p.cfg.Go, "build", "-o", fake, cfg.FakeEngine); err != nil {
+			return &stepFailure{summary: "cannot build the fake engine " + cfg.FakeEngine, lines: extractErrors(out)}
+		}
+		script := filepath.Join(sc.r.LogDir, "smoke-engine.jsonl")
+		if err := os.WriteFile(script, []byte(cfg.FakeScript), 0o644); err != nil {
+			return err
+		}
+		extra = append(extra, launcher.EnvClaudeBin+"="+fake, "FAKECLAUDE_SCRIPT="+script)
+	}
+	env := sc.env(append(extra, cfg.Env...))
 	if err := RunSmoke(ctx, bin, sc.r.Dir, env, cfg, sc.log); err != nil {
 		var se *SmokeError
 		if errors.As(err, &se) {
