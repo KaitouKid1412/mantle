@@ -103,29 +103,49 @@ Everything about conversations as objects:
 
 ## Part A: start immediately (`internal/sessions`, pure)
 
-- [ ] **A1 Paths.** Slug function with the long-path hash (golden tests against real slugs
+- [x] **A1 Paths.** Slug function with the long-path hash (golden tests against real slugs
   observed under `~/.claude/projects`); honour `CLAUDE_CONFIG_DIR`; locate session, subagent
   and tool-result files.
-- [ ] **A2 Tolerant streaming JSONL reader (`reader.go`).** A line-by-line decoder with big
+- [x] **A2 Tolerant streaming JSONL reader (`reader.go`).** A line-by-line decoder with big
   buffers that keeps raw JSON. Unknown record types are kept as `Unknown`; malformed lines
   are skipped with a counter. Typed records for the message and metadata records above.
-- [ ] **A3 Conversation tree.** Build the `parentUuid` tree; pick the active branch (leaf from
+- [x] **A3 Conversation tree.** Build the `parentUuid` tree; pick the active branch (leaf from
   the last `last-prompt.leafUuid`, else the newest leaf); linearize; drop sidechains from
   the main view (they belong to subagents).
-- [ ] **A4 Session index (`index.go`).**
+- [x] **A4 Session index (`index.go`).**
   - Metadata per session: id, cwd, project, git branch, created/modified time, first and
     last prompt, ai-title, custom name, message count, cost, entrypoint.
   - Read from **file tails and heads** (no full parse).
   - Cache at `~/.mantle/cache/sessions.idx`, keyed by (path, size, mtime).
   - Index all projects lazily.
-- [ ] **A5 Subagent files.** Load `.meta.json` and `agent-*.jsonl` for nesting (tool_use_id →
+- [x] **A5 Subagent files.** Load `.meta.json` and `agent-*.jsonl` for nesting (tool_use_id →
   child transcript).
-- [ ] **A6 Stats helpers.** Totals per session and per project from `cost-state` and
+- [x] **A6 Stats helpers.** Totals per session and per project from `cost-state` and
   `modelUsage`, for `/stats` and `/usage` fallbacks.
-- [ ] **A7 Tests.** Fixture JSONL files (sanitized copies trimmed to the essentials: plain
+- [x] **A7 Tests.** Fixture JSONL files (sanitized copies trimmed to the essentials: plain
   turns, tool use, subagent, compact boundary, branches, malformed lines, unknown types).
   An opt-in test (`MANTLE_TEST_REAL_SESSIONS=1`) parses every local session read-only and
   reports unknown record types. Benchmark: index 1,000 sessions in < 200 ms warm.
+
+**Part A notes (verified against the 2.1.288 binary and local sessions):**
+- Long-slug hash: `h = h*31 + unit` in int32 over the cwd's UTF-16 units, then
+  `base36(|h|)`; non-BMP characters count as two units. Goldens in `paths_test.go` come
+  from node. Older engines hashed differently, so `Layout.ProjectDirs` also scans sibling
+  dirs with the same 200-char prefix and checks their recorded cwd (as the engine does).
+- `CLAUDE_CODE_PROJECT_DIR_NAME` replaces the slug, but only when `CLAUDE_CONFIG_DIR` is set.
+- The engine reads 64 KiB heads and tails for its own listing and re-stamps title,
+  last-prompt, tag, mode, pr-link, worktree-state and similar metadata at the end of
+  the file, so the index reads those windows only. Lines can start with NUL bytes.
+- `SessionMeta.Hidden` marks `sdk-cli`/`sdk-ts`/`sdk-py` entrypoints and daemon sessions
+  (what Claude Code's picker hides); mantle's picker shows them.
+- `cost-state.modelUsage[model]` = `{inputTokens, outputTokens, thinkingTokens?,
+  cacheReadInputTokens, cacheCreationInputTokens, webSearchRequests, costUSD}`. Sessions
+  without a cost-state fall back to summing assistant `usage` once per message id.
+- Compact boundaries start a new chain (`parentUuid: null`) and point back with
+  `logicalParentUuid`; `BranchOptions.AcrossCompaction` follows it.
+- Opt-in run over local sessions: 649 files and 162k records parsed, no malformed lines,
+  no unknown types, 490/490 slugs match. Index: 1,000 synthetic sessions in 4.5 ms warm
+  (18 ms cold).
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
