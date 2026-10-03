@@ -202,11 +202,21 @@ func (c *Ctx) Area() ext.Area {
 	return ext.Area{Width: c.W, Mode: c.LayoutMode}
 }
 
-// Settings is a fake ext.Settings backed by maps.
+// Settings is a fake ext.Settings (and ext.ScopedSettings) backed by maps.
 type Settings struct {
 	ClaudeM map[string]any
 	MantleM map[string]any
+	Scopes  map[string]map[string]any // scope → raw settings (ScopedSettings)
+	Sources []ext.SettingsSource
 }
+
+var _ ext.ScopedSettings = (*Settings)(nil)
+
+// ClaudeScope returns s.Scopes[scope].
+func (s *Settings) ClaudeScope(scope string) map[string]any { return s.Scopes[scope] }
+
+// ClaudeSources returns s.Sources.
+func (s *Settings) ClaudeSources() []ext.SettingsSource { return s.Sources }
 
 // NewSettings returns settings with the given merged Claude Code values.
 func NewSettings(claude map[string]any) *Settings {
