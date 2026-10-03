@@ -288,7 +288,7 @@ func TestMultipleEngines(t *testing.T) {
 func TestHandleStartStopAndCommands(t *testing.T) {
 	script := enginefake.New(enginefake.InitializeRule(nil),
 		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))
-	m, sp, rec := setup(t, script)
+	m, sp, rec := setup(t, script, enginefake.New(enginefake.InitializeRule(nil)))
 	cmd := m.Handle(ext.EngineStartMsg{EngineID: "builder-1", Opts: ext.SpawnOpts{PermissionMode: "acceptEdits"}})
 	if cmd == nil {
 		t.Fatal("start not handled")
@@ -319,5 +319,19 @@ func TestHandleStartStopAndCommands(t *testing.T) {
 	}
 	if m.Handle(ext.SessionChangedMsg{}) != nil {
 		t.Error("other messages must return nil")
+	}
+
+	// Spawn/StopEngine (app.Options.Spawn/Stop): start, restart in place, stop.
+	if err := m.Spawn("btw", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Spawn("btw", ext.SpawnOpts{Model: "haiku"}); err != nil {
+		t.Fatal(err)
+	}
+	if specs := sp.Specs(); !strings.Contains(strings.Join(specs[len(specs)-1].Args, " "), "--model haiku") {
+		t.Error("restart did not use the new options")
+	}
+	if err := m.StopEngine("btw"); err != nil || m.Engine("btw") != nil {
+		t.Errorf("stop: %v", err)
 	}
 }
