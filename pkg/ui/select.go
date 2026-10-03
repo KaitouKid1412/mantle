@@ -35,8 +35,8 @@ type Select struct {
 	OnCancel func(ext.Ctx) tea.Cmd
 	OnChange func(ext.Ctx, int, Item) tea.Cmd // highlight moved (live previews)
 
-	cursor  int   // index into visible
-	offset  int   // first visible row
+	cursor  int // index into visible
+	offset  int // first visible row
 	filter  string
 	visible []int // indices into Items
 }
@@ -51,8 +51,8 @@ func NewSelect(id string, items ...Item) *Select {
 	return s
 }
 
-func (s *Select) ID() string            { return s.IDValue }
-func (s *Select) Init(ext.Ctx) tea.Cmd  { s.refilter(); return nil }
+func (s *Select) ID() string                      { return s.IDValue }
+func (s *Select) Init(ext.Ctx) tea.Cmd            { s.refilter(); return nil }
 func (s *Select) Update(ext.Ctx, tea.Msg) tea.Cmd { return nil }
 func (s *Select) KeyContext() string {
 	if s.Context != "" {
