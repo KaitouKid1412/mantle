@@ -69,17 +69,21 @@ func (f *Feature) clockTime(t time.Time) string {
 	if t.IsZero() || (!f.cfg.showTimestamps && f.cfg.timeFormat == "") {
 		return ""
 	}
-	if f.cfg.timeZone != "" {
-		if loc, err := time.LoadLocation(f.cfg.timeZone); err == nil {
-			t = t.In(loc)
-		}
-	} else {
-		t = t.Local()
-	}
+	t = f.zoned(t)
 	if f.cfg.timeFormat == "24h" {
 		return t.Format("15:04")
 	}
 	return t.Format("3:04 PM")
+}
+
+// zoned converts a time to the timeZone setting (local time by default).
+func (f *Feature) zoned(t time.Time) time.Time {
+	if f.cfg.timeZone != "" {
+		if loc, err := time.LoadLocation(f.cfg.timeZone); err == nil {
+			return t.In(loc)
+		}
+	}
+	return t.Local()
 }
 
 var errorText = map[string]string{

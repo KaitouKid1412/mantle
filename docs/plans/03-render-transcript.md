@@ -193,7 +193,7 @@ or redraw cost.
   `viewMode` default|verbose|focus; `/focus` (prompt, summary and response only); brief
   mode (ctrl+shift+b, `app:toggleBrief`). Each mode is a `RenderCtx.Mode`; switching
   triggers `Reprint`.
-- [ ] **B8 [M2] ctrl+o transcript viewer (`app:toggleTranscript`, `PlaceAltScreen`).**
+- [x] **B8 [M2] ctrl+o transcript viewer (`app:toggleTranscript`, `PlaceAltScreen`).**
   - Full store with timestamps and the model per message; collapsed items expandable;
     ctrl+e show-all.
   - Less-style keys (j/k, ctrl+u/d/b/f, g/G, space, b, arrows, home/end, `/` search, n/N).

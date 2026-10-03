@@ -47,6 +47,7 @@ type Store struct {
 	hooks      map[string]*ext.Item        // hook_id → item
 	notes      []string                    // pending markers for the commit policy
 	rateStatus string                      // last rate_limit_event status
+	models     map[string]string           // item ID → model that wrote it
 	_          struct{}
 }
 
@@ -90,6 +91,7 @@ func (s *Store) reset() {
 	s.tools = map[string]*ToolInfo{}
 	s.tasks = map[string]string{}
 	s.hooks = map[string]*ext.Item{}
+	s.models = map[string]string{}
 	s.retry = nil
 	s.rev++
 }
@@ -113,6 +115,9 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// Model returns the model that produced an assistant item ("" if unknown).
+func (s *Store) Model(id string) string { return s.models[id] }
 
 // Rev is bumped on every change to the store.
 func (s *Store) Rev() int { return s.rev }
@@ -470,6 +475,13 @@ func (s *Store) applyAssistant(e *proto.Assistant) {
 	}
 	parent := e.ParentToolUseID
 	msg := e.Message.ID
+	defer func() {
+		if m := e.Message.Model; m != "" && m != proto.SyntheticModel {
+			for _, id := range s.uuids[e.UUID] {
+				s.models[id] = m
+			}
+		}
+	}()
 
 	// Synthetic messages: local command output and API errors.
 	if e.LocalCommandRun != nil || e.LocalCommandSource != "" ||
