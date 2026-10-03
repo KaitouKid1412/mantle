@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -90,6 +91,13 @@ func (f *Feature) renderPrompt(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	}
 	bg := render.Style{Bg: st.p.Color(string(tokUserBg))}
 	lines := render.WrapWith(text, render.WrapOptions{Width: rc.Width, First: st.dim.Render(">") + " ", Rest: "  "})
+	if f.cfg.showTimestamps {
+		if ts := f.clockTime(it.Start); ts != "" {
+			if gap := rc.Width - render.Width(lines[0]) - render.Width(ts); gap >= 2 {
+				lines[0] += strings.Repeat(" ", gap) + st.dim.Render(ts)
+			}
+		}
+	}
 	collapsible := false
 	if !verbose(rc) && len(lines) > promptCollapse {
 		hidden := len(lines) - promptCollapse
@@ -260,8 +268,8 @@ func (f *Feature) renderThinking(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	}
 	if it.State.Finished() {
 		label := glyphThought + " Thought"
-		if !it.Start.IsZero() && it.End.After(it.Start) {
-			label += " for " + formatDuration(it.End.Sub(it.Start))
+		if d := it.End.Sub(it.Start); !it.Start.IsZero() && d >= time.Second {
+			label += " for " + formatDuration(d.Truncate(time.Second))
 		}
 		head = think.Render(label)
 	}

@@ -24,7 +24,8 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 	if c.Layout() != ext.Inline {
 		return nil
 	}
-	w, _ := c.Size()
+	tw, _ := c.Size()
+	w := printWidth(tw)
 	var out []string
 	for _, n := range f.store.TakeNotes() {
 		if n == NoteReplaced {
@@ -73,6 +74,12 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 	}
 	return c.Print(strings.Join(out, "\n"))
 }
+
+// printWidth is the width items are rendered at for scrollback (and the live
+// area, so committing never reflows): one less than the terminal, because a
+// line filling the last column loses its last cell when printed above the
+// live frame.
+func printWidth(termWidth int) int { return max(1, termWidth-1) }
 
 // appendItem adds a whole item's lines with a blank line before it.
 func appendItem(out, lines []string) []string { return appendChunk(out, lines, true) }
@@ -283,7 +290,8 @@ func (l *liveView) View(c ext.Ctx, a ext.Area) ext.Rendered {
 	if a.Mode != ext.Inline {
 		return ext.Rendered{}
 	}
-	chunks, running := l.f.liveItems(c, a.Width)
+	w := printWidth(a.Width)
+	chunks, running := l.f.liveItems(c, w)
 	dim := stylesFor(ext.RenderCtx{Theme: c.Theme()}).dim
 	lines := fitLive(chunks, running, a.MaxHeight, func(n int, run bool) string {
 		label := "… +" + plural(n, "more item", "more items")
@@ -293,7 +301,7 @@ func (l *liveView) View(c ext.Ctx, a ext.Area) ext.Rendered {
 		return dim.Render(label)
 	})
 	for i, ln := range lines {
-		lines[i] = render.Truncate(ln, a.Width, "…")
+		lines[i] = render.Truncate(ln, w, "…")
 	}
 	return ext.Rendered{Text: strings.Join(lines, "\n")}
 }

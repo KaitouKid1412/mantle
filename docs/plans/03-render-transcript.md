@@ -97,17 +97,17 @@ or redraw cost.
   go-udiff): line-number gutter, +/- colouring, word-level highlights within changed line
   pairs (go-diff), context folding, a dimmed variant for rejected edits, and a max-lines cap
   with a "+N lines" footer.
-- [ ] **A6 Tests and stories.** Goldens at widths 40/60/100/160 for headings, lists,
+- [x] **A6 Tests and stories.** Goldens at widths 40/60/100/160 for headings, lists,
   tables, code, links, CJK, emoji, and long URLs; diff goldens; streaming tests (feed
   character by character; closed-block cache hits; final output equals a one-shot render).
   Benchmark: render a 2k-token answer incrementally.
   - Done: goldens, diff goldens, streaming tests, fuzzed wrapper, benchmarks
     (incremental 2k-token answer ≈ 2 ms total vs ≈ 16 ms re-rendering each delta).
-    Stories land with Part B (they need `ext.Story`).
+    Stories: 21 in `features/transcript/stories.go` (goldens at 60/100/160).
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
-- [ ] **B1 [M1] Transcript store (`features/transcript/store.go`).**
+- [x] **B1 [M1] Transcript store (`features/transcript/store.go`).**
   - Builds `ext.Item`s from Engine*Msg, merging stream deltas into the open item.
   - Groups assistant blocks by `message.id`; attaches tool_results to their tool_use;
     nests by `parent_tool_use_id`.
@@ -116,7 +116,7 @@ or redraw cost.
   - Implements `ext.Transcript`.
   - Accepts history items produced by plan 06's JSONL normalizer, which are already
     `Item`s.
-- [ ] **B2 [M1] Commit policy (`features/transcript/commit.go`).**
+- [x] **B2 [M1] Commit policy (`features/transcript/commit.go`).**
   - Maintain a watermark.
   - Commit the longest prefix of items whose state is Done, Failed or Interrupted. Render
     at the current width and mode, and call `Ctx.Print`.
@@ -127,9 +127,9 @@ or redraw cost.
     plus the new content.
   - `Reprint()` on /clear, ctrl+l, rewind, session switch or theme change (optional),
     using the whole store.
-- [ ] **B3 [M1] Live area (`SlotLive` component).** Running and streaming items, capped to
+- [x] **B3 [M1] Live area (`SlotLive` component).** Running and streaming items, capped to
   the budget. Beyond it: "+N more running". The streaming tail shows its last K lines.
-- [ ] **B4 [M1] Renderers (`features/transcript/render_*.go`), each registered with
+- [x] **B4 [M1] Renderers (`features/transcript/render_*.go`), each registered with
   `AddRenderer`:**
   - `user.prompt`: prompt text with image/paste chips (`[Image #1]`,
     `[Pasted text #1 +40 lines]`), user background token; `user.bash` for `!` commands
@@ -180,13 +180,13 @@ or redraw cost.
     - `system.local_command`: output of headless local commands (synthetic assistant text,
       `result.local_command`).
     - `system.notification`, `tool_use_summary`.
-- [ ] **B5 [M1] Spinner and status (`SlotStatus`).**
+- [x] **B5 [M1] Spinner and status (`SlotStatus`).**
   - Verb rotation from built-in verbs (write our own list) merged with `spinnerVerbs`;
     shimmer animation unless `prefersReducedMotion`.
   - Elapsed time; token count (↓ from `thinking_tokens` / usage deltas); "esc to interrupt".
   - Tips line (respect `spinnerTipsEnabled` and `spinnerTipsOverride{tips, tipsFile}`).
   - Driven by `session_state_changed` and `result`; stops on idle.
-- [ ] **B6 [M1] Turn duration and timestamps.** On `result`, a duration line from
+- [x] **B6 [M1] Turn duration and timestamps.** On `result`, a duration line from
   `duration_ms` and the time (`showTurnDuration`, `timeFormat`, `timeZone`); message
   timestamps when `showMessageTimestamps` is on.
 - [ ] **B7 [M2] View modes.** `verbose` setting / `--verbose` (show everything expanded);
@@ -199,6 +199,18 @@ or redraw cost.
   - Less-style keys (j/k, ctrl+u/d/b/f, g/G, space, b, arrows, home/end, `/` search, n/N).
   - q, esc or ctrl+c to exit. `v` opens the transcript in `$EDITOR`.
   - Context `Transcript`.
+
+### Part B status (M1)
+
+- Done: store, commit policy (progressive commit, MCP grouping, "(response replaced)",
+  reprint on `ScreenClearedMsg`, history via `ext.TranscriptHistoryMsg`), live area,
+  renderers for every key above, spinner and turn duration with timestamps.
+- Tests: store and commit unit tests on `exttest`; vt replays through the real host
+  (`TestReplayScrollback` at 80×24, 120×40, 61×16; `TestStreamingNoArtifacts`):
+  scrollback equals the committed transcript, no ghost lines. Benchmarks: 10k-item
+  replay ≈ 29 ms; steady-state live `View()` ≈ 0.5 µs with 10k items.
+- Committed lines render at the print width (terminal − 1), like the host's
+  `app.PrintWidth`; the live area uses the same width so committing never reflows.
 
 ## Design notes
 

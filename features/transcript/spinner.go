@@ -194,13 +194,13 @@ func (s *spinner) View(c ext.Ctx, a ext.Area) ext.Rendered {
 		line += render.Fg(p, string(tok)).Render(verb + "…")
 	}
 	var details []string
-	details = append(details, formatDuration(elapsed.Truncate(time.Second)))
+	details = append(details, formatElapsed(elapsed))
 	if n := s.tokens; n > 0 {
 		details = append(details, "↓ "+formatTokens(n)+" tokens")
 	}
 	key := "esc"
 	if keys := c.KeysFor(ext.ContextChat, ext.ActChatCancel); len(keys) > 0 {
-		key = keys[0]
+		key = strings.Replace(keys[0], "escape", "esc", 1)
 	}
 	details = append(details, key+" to interrupt")
 	line += " " + st.dim.Render("("+strings.Join(details, " · ")+")")
@@ -210,6 +210,14 @@ func (s *spinner) View(c ext.Ctx, a ext.Area) ext.Rendered {
 		lines = append(lines, render.Truncate(st.dim.Render(resultIndent+"Tip: "+tip), a.Width, "…"))
 	}
 	return ext.Rendered{Text: strings.Join(lines, "\n")}
+}
+
+// formatElapsed renders whole seconds of a running turn ("0s", "12s", "1m 5s").
+func formatElapsed(d time.Duration) string {
+	if d < time.Second {
+		return "0s"
+	}
+	return formatDuration(d.Truncate(time.Second))
 }
 
 // tip returns the tip to show after the turn has run a little while.

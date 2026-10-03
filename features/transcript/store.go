@@ -36,17 +36,18 @@ type Store struct {
 	rev       int // bumped on every change
 
 	// streaming state, per parent_tool_use_id ("" = main thread)
-	curMsg  map[string]string           // parent → message.id of the message being streamed
-	blocks  map[blockKey]*ext.Item      // (parent, message.id, index) → item
-	pending map[msgKey][]*ext.Item      // streamed items not yet matched by an assistant message
-	inputs  map[string]*strings.Builder // tool_use id → partial input JSON
-	uuids   map[string][]string         // assistant message uuid → item IDs (supersedes)
-	tools   map[string]*ToolInfo        // tool_use id → progress
-	tasks   map[string]string           // task_id → tool_use id
-	retry   *ext.Item                   // the live api_retry item, if any
-	hooks   map[string]*ext.Item        // hook_id → item
-	notes   []string                    // pending markers for the commit policy
-	_       struct{}
+	curMsg     map[string]string           // parent → message.id of the message being streamed
+	blocks     map[blockKey]*ext.Item      // (parent, message.id, index) → item
+	pending    map[msgKey][]*ext.Item      // streamed items not yet matched by an assistant message
+	inputs     map[string]*strings.Builder // tool_use id → partial input JSON
+	uuids      map[string][]string         // assistant message uuid → item IDs (supersedes)
+	tools      map[string]*ToolInfo        // tool_use id → progress
+	tasks      map[string]string           // task_id → tool_use id
+	retry      *ext.Item                   // the live api_retry item, if any
+	hooks      map[string]*ext.Item        // hook_id → item
+	notes      []string                    // pending markers for the commit policy
+	rateStatus string                      // last rate_limit_event status
+	_          struct{}
 }
 
 type blockKey struct {
@@ -263,6 +264,19 @@ func (s *Store) Apply(ev proto.Event) bool {
 		}
 		if it := s.byID[e.ToolUseID]; it != nil {
 			s.touch(it)
+		}
+	case *proto.RateLimitEvent:
+		// Warnings and rejections show inline, once per change of status.
+		st := e.RateLimitInfo.Status
+		if st != s.rateStatus {
+			s.rateStatus = st
+			if st != "" && st != "allowed" {
+				id := "rate:" + e.UUID
+				if e.UUID == "" {
+					id = "rate:" + itoa(s.rev)
+				}
+				s.add(&ext.Item{ID: id, Key: ext.KeySystemRateLimit, Data: e, State: ext.Done})
+			}
 		}
 	case *proto.ToolUseSummary:
 		s.add(&ext.Item{ID: "summary:" + e.UUID, Key: KeyToolUseSummary, Data: e, State: ext.Done})

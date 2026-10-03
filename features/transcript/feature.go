@@ -1,6 +1,7 @@
 package transcript
 
 import (
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -91,9 +92,14 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		}
 		return nil
 	})
-	ext.Subscribe(r, "transcript.history", func(c ext.Ctx, m HistoryMsg) tea.Cmd {
-		if m.EngineID != "" && m.EngineID != f.store.engineID {
+	ext.Subscribe(r, "transcript.history", func(c ext.Ctx, m ext.TranscriptHistoryMsg) tea.Cmd {
+		if !f.forEngine(m.EngineID) {
 			return nil
+		}
+		if m.Reset {
+			f.store.Reset()
+			f.texts = map[string]*textEntry{}
+			f.commit = commitState{}
 		}
 		f.store.AppendHistory(m.Items)
 		c.Invalidate(LiveID)
@@ -104,21 +110,17 @@ func (f *Feature) Setup(r ext.Registrar) error {
 	return nil
 }
 
-// HistoryMsg delivers earlier turns of a resumed session (plan 06's JSONL
-// normalizer produces the items).
-type HistoryMsg struct {
-	EngineID string
-	Items    []*ext.Item
-}
-
 func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
-	if m.EngineID != f.store.engineID && !(m.EngineID == "" && f.store.engineID == ext.MainEngine) {
+	if !f.forEngine(m.EngineID) {
 		return nil
 	}
 	if init, ok := m.Event.(*proto.SystemInit); ok && init.CWD != "" {
 		f.cwd = init.CWD
 	}
 	spin := f.spinner.onEvent(c, m.Event)
+	if n, ok := m.Event.(*proto.Notification); ok && strings.TrimSpace(n.Text) != "" {
+		spin = tea.Batch(spin, c.Notify(engineNotice(n)))
+	}
 	if _, ok := m.Event.(*proto.ConversationReset); ok {
 		f.store.Apply(m.Event)
 		f.texts = map[string]*textEntry{}
@@ -131,6 +133,29 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	}
 	c.Invalidate(LiveID)
 	return tea.Batch(spin, f.commitReady(c))
+}
+
+// engineNotice turns an engine notification into a transient notice.
+func engineNotice(n *proto.Notification) ext.Notice {
+	level := ext.NoticeInfo
+	switch n.Priority {
+	case "high", "immediate":
+		level = ext.NoticeWarning
+	}
+	key := n.Key
+	if key == "" {
+		key = "engine.notification"
+	}
+	return ext.Notice{Key: key, Text: oneLine(n.Text), Level: level, Timeout: msToDuration(n.TimeoutMS), Source: FeatureID}
+}
+
+// forEngine reports whether a message for an engine belongs to this feature
+// ("" means the main engine).
+func (f *Feature) forEngine(id string) bool {
+	if id == "" {
+		id = ext.MainEngine
+	}
+	return id == f.store.engineID
 }
 
 // renderCtx builds the RenderCtx for an item at a width.
