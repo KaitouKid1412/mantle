@@ -5,6 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/term/prbadge"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
 
@@ -26,7 +27,19 @@ func footerStories() []ext.Story {
 	}
 	busy := st(ModeAcceptEdits)
 	busy.Vim, busy.Background, busy.EditorEmpty = "INSERT", 2, false
+	prStory := ext.Story{ID: FooterID + "/pr-links", Render: func(ctx ext.Ctx, a ext.Area) ext.Rendered {
+		f := newFooter()
+		f.s = st(ModeDefault)
+		f.pr = prWatch{links: true, maxLinks: 3,
+			pr: &prbadge.PR{Number: 446, URL: "https://example.com/acme/app/pull/446", Review: prbadge.Pending},
+			found: []prbadge.Link{
+				{Text: "PROJ-12", URL: "https://jira.example/browse/PROJ-12"},
+				{Text: "PROJ-31", URL: "https://jira.example/browse/PROJ-31"},
+			}}
+		return f.View(ctx, a)
+	}}
 	return []ext.Story{
+		prStory,
 		mk("default", st(ModeDefault), false),
 		mk("accept-edits", st(ModeAcceptEdits), false),
 		mk("plan", st(ModePlan), false),

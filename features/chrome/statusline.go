@@ -149,6 +149,13 @@ func (c *statusLineComp) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 			return cmd
 		}
 		return tea.Batch(cmd, c.push(ctx, true))
+	case prStatusMsg:
+		pr, repo := statusLinePR(m)
+		if samePRInfo(c.d.pr, pr) && sameRepo(c.d.repo, repo) {
+			return nil
+		}
+		c.d.pr, c.d.repo = pr, repo
+		return c.push(ctx, false)
 	case ext.DialogOpenedMsg:
 		c.dialogs++
 		ctx.Invalidate(StatusLineID)
@@ -240,6 +247,20 @@ func (c *statusLineComp) resetTimer(ctx ext.Ctx) tea.Cmd {
 	return ctx.Clock().Tick(max(d, time.Second), func(time.Time) tea.Msg {
 		return ext.AddressedMsg{To: StatusLineID, Msg: slTickMsg{gen}}
 	})
+}
+
+func samePRInfo(a, b *statusline.PR) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+func sameRepo(a, b *statusline.Repo) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
 }
 
 func waitResult(gen int, ch <-chan statusline.Result) tea.Cmd {

@@ -85,7 +85,7 @@ func TestUserStyleScript(t *testing.T) {
 		if res.Err != nil || len(res.Lines) != 1 || res.Lines[0] != "\x1b[36mOpus\x1b[0m | 100 cols" {
 			t.Errorf("res = %+v %q", res, res.Lines)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(30 * time.Second): // macOS scans fresh executables on first run
 		t.Fatal("no result")
 	}
 }

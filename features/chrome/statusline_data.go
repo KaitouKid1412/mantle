@@ -254,7 +254,9 @@ func modelDisplayName(id string) string {
 
 // transcriptPath is Claude Code's JSONL path for a session:
 // <config>/projects/<cwd with every non-alphanumeric character replaced by '-'>/<id>.jsonl.
-// TODO(07): use plan 06's internal/sessions path helper once it is merged.
+// TODO(07): after integration use plan 06's helpers (sessions.DefaultLayout,
+// sessions.SessionFile(l.ProjectDir(sessions.CanonicalPath(cwd)), id)); this local slug
+// differs for non-BMP characters and paths over 200 characters.
 func transcriptPath(configDir, projectDir, sessionID string) string {
 	if sessionID == "" || projectDir == "" {
 		return ""

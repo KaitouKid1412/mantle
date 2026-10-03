@@ -57,9 +57,11 @@ func init() {
 	})
 	ext.Register(ext.Feature{
 		ID: TerminalID, Order: order,
-		Parity: []string{"CH-23", "CH-24", "CH-30"},
+		Parity: []string{"CH-23", "CH-24", "CH-25", "CH-26", "CH-29", "CH-30"},
 		Setup: func(r ext.Registrar) error {
-			r.AddComponent(ext.SlotStatus, newTerminal(terminal.OS()), ext.SlotOpts{Weight: 1000})
+			tc := newTerminal(terminal.OS())
+			r.AddComponent(ext.SlotStatus, tc, ext.SlotOpts{Weight: 1000})
+			r.AddInterceptor("chrome.activity", -1000, tc.intercept)
 			r.AddAction(ext.Action{
 				ID: ext.ActAppRedraw, Context: ext.ContextGlobal,
 				Description: "Redraw the screen",

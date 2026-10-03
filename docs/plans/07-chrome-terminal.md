@@ -215,9 +215,9 @@ Notes:
 - [ ] **B7 [M2] `/tasks` (alias `/bashes`).** A dialog listing `background_tasks`; view
   output (`get_task_output`, live refresh); stop (`stop_task`). Also the footer hint when
   background work exists.
-- [ ] **B8 [M2] PR badge and footer links** in the footer (A6), refreshed on branch change
+- [x] **B8 [M2] PR badge and footer links** in the footer (A6), refreshed on branch change
   and turn end.
-- [ ] **B9 [M2] Notifications.** Trigger on `session_state_changed=requires_action`
+- [x] **B9 [M2] Notifications.** Trigger on `session_state_changed=requires_action`
   (permission, dialog or question waiting) and on turn end after a long turn while the
   terminal is unfocused.
   - Honour `preferredNotifChannel`, `inputNeededNotifEnabled` and quiet settings.

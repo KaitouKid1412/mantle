@@ -3,6 +3,7 @@ package chrome
 import (
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/term/notify"
 	"github.com/KaitouKid1412/mantle/internal/term/osc"
 	"github.com/KaitouKid1412/mantle/internal/term/terminal"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -16,6 +17,7 @@ const TerminalID = "chrome.terminal"
 type terminalComp struct {
 	s        sessionState
 	progress ProgressTracker
+	notif    notifier
 
 	env             terminal.Env
 	titleDisabled   bool // CLAUDE_CODE_DISABLE_TERMINAL_TITLE
@@ -24,7 +26,7 @@ type terminalComp struct {
 }
 
 func newTerminal(env terminal.Env) *terminalComp {
-	return &terminalComp{s: newSessionState(), env: env}
+	return &terminalComp{s: newSessionState(), env: env, notif: notifier{policy: notify.DefaultPolicy}}
 }
 
 func (c *terminalComp) ID() string { return TerminalID }
@@ -39,16 +41,18 @@ func (c *terminalComp) readSettings(ctx ext.Ctx) {
 	c.titleDisabled = TitleDisabled(c.env)
 	c.titleFromRename = ext.ClaudeBool(s, "terminalTitleFromRename", true)
 	c.progressOn = ext.ClaudeBool(s, "terminalProgressBarEnabled", true) && osc.ProgressSupported(c.env)
+	c.notif.readSettings(s, c.env)
 }
 
 func (c *terminalComp) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 	c.s.observe(msg)
+	cmd := c.notif.observe(ctx, msg, notifyTitle(&c.s))
 	switch m := msg.(type) {
 	case ext.SettingsMsg:
 		c.readSettings(ctx)
 	case ext.EngineEventMsg:
 		if !isMain(m.EngineID) {
-			return nil
+			return cmd
 		}
 		switch e := m.Event.(type) {
 		case *proto.SessionStateChanged:
@@ -61,14 +65,24 @@ func (c *terminalComp) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 			c.progress.Clear() // the user moved on from a failed turn
 		}
 	}
-	return nil
+	return cmd
+}
+
+// intercept records key presses and pastes as user activity (focus.Tracker) and lets
+// every message through.
+func (c *terminalComp) intercept(ctx ext.Ctx, msg tea.Msg) (tea.Msg, tea.Cmd) {
+	switch msg.(type) {
+	case tea.KeyPressMsg, tea.PasteMsg:
+		c.notif.activity(ctx.Clock().Now())
+	}
+	return msg, nil
 }
 
 // View draws nothing; the component only contributes terminal state.
 func (c *terminalComp) View(ext.Ctx, ext.Area) ext.Rendered { return ext.Rendered{} }
 
 func (c *terminalComp) TerminalState(ext.Ctx) ext.TerminalState {
-	var ts ext.TerminalState
+	ts := ext.TerminalState{ReportFocus: true}
 	if !c.titleDisabled {
 		ts.WindowTitle = WindowTitle(TitleInput{
 			SessionName: c.s.Title,
