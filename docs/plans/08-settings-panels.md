@@ -194,14 +194,16 @@ and `claude` is seamless.
   - `/vim` toggles `editorMode` between `normal` and `vim` (in 2.1.288 it is a "moved to
     /config" stub; mantle keeps it as a convenience).
 - [ ] **B10 [M2] Small commands.**
-  - `/focus`: toggles focus view; the view itself is plan 03's mode, switched via an ext
-    action.
+  - ~~`/focus`~~ and ~~`/scroll-speed`~~: dropped from plan 08 by the coordinator
+    (2026-10-03). Plan 03 owns `/focus` (VW-10) and plan 12 owns `/scroll-speed` (VW-21);
+    registering them here too would make the host report a command conflict.
   - `/tui [default|fullscreen]`: persists `tui`; fullscreen is plan 12's, so until it ships,
     show a notice.
-  - `/scroll-speed`: fullscreen only; persist the setting.
   - `/advisor [model|off]` and `/autocompact [auto|tokens]`: E passthrough plus a small
     picker when called without arguments.
   - `/privacy-settings`: H (hand off via plan 06's generic handoff action).
+  - Ownership: PARITY.md CU-08 (`/autocompact`) and CL-24 (`/privacy-settings`) moved to
+    plan 08 by the coordinator (2026-10-03); neither 06's nor 09's plan file listed them.
 - [ ] **B11 [M2] Read-back test harness.** In a temp HOME / `CLAUDE_CONFIG_DIR`, perform
   every write path, then read effective settings back through real `claude` with a
   zero-token `initialize` + `get_settings` (the probe pattern from plan 02). Values must
