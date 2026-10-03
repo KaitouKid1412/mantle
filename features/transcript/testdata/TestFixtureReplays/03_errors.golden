@@ -19,7 +19,7 @@
   ⎿  [38;2;139;139;147mDeleting files outside the project is not allowed in[m
      [38;2;139;139;147mauto mode[m
 
-[38;2;239;122;128m⏺[m [1mUpdate[m(README.md)
+[38;2;239;122;128m⏺[m [1mUpdate[m(]8;;file:///work/app/README.mdREADME.md]8;;)
   ⎿  [38;2;139;139;147mRejected[m
      [48;2;51;32;31m- [m[38;2;139;139;147;48;2;51;32;31mteh build[m[48;2;51;32;31m                                            [m
      [48;2;26;44;32m+ [m[38;2;139;139;147;48;2;26;44;32mthe build[m[48;2;26;44;32m                                            [m
@@ -56,7 +56,7 @@
 [38;2;239;122;128m⏺[m [1mDenied: Bash[m
   ⎿  [38;2;139;139;147mDeleting files outside the project is not allowed in auto mode[m
 
-[38;2;239;122;128m⏺[m [1mUpdate[m(README.md)
+[38;2;239;122;128m⏺[m [1mUpdate[m(]8;;file:///work/app/README.mdREADME.md]8;;)
   ⎿  [38;2;139;139;147mRejected[m
      [48;2;51;32;31m- [m[38;2;139;139;147;48;2;51;32;31mteh build[m[48;2;51;32;31m                                                                                    [m
      [48;2;26;44;32m+ [m[38;2;139;139;147;48;2;26;44;32mthe build[m[48;2;26;44;32m                                                                                    [m
@@ -92,7 +92,7 @@
 [38;2;239;122;128m⏺[m [1mDenied: Bash[m
   ⎿  [38;2;139;139;147mDeleting files outside the project is not allowed in auto mode[m
 
-[38;2;239;122;128m⏺[m [1mUpdate[m(README.md)
+[38;2;239;122;128m⏺[m [1mUpdate[m(]8;;file:///work/app/README.mdREADME.md]8;;)
   ⎿  [38;2;139;139;147mRejected[m
      [48;2;51;32;31m- [m[38;2;139;139;147;48;2;51;32;31mteh build[m[48;2;51;32;31m                                                                                                                                                [m
      [48;2;26;44;32m+ [m[38;2;139;139;147;48;2;26;44;32mthe build[m[48;2;26;44;32m                                                                                                                                                [m

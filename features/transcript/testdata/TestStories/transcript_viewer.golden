@@ -14,7 +14,7 @@
 [38;2;230;227;222m⏺[m I'll start by reading the worker and searching for the
   retry path.
 
-[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+[38;2;111;194;139m⏺[m [1mRead[m(]8;;file:///work/app/internal/queue/worker.gointernal/queue/worker.go]8;;)
   ⎿  [38;2;139;139;147mRead 5 lines[m
      [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
      [38;2;139;139;147m2[m 
@@ -24,7 +24,7 @@
 
 [38;2;139;139;147mlines 1–22 of 123[m
 ── width 100 ──
-[1mTranscript[m[38;2;139;139;147m · ctrl+e to expand all · / search · v editor · q to exit[m
+[1mTranscript[m[38;2;139;139;147m · ctrl+e to expand all · / search · v editor · q or [ to exit[m
 
 [38;2;139;139;147mYou · 15:04:05[m
 [48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m       [m
@@ -36,7 +36,7 @@
 [38;2;139;139;147mClaude · 15:04:05[m
 [38;2;230;227;222m⏺[m I'll start by reading the worker and searching for the retry path.
 
-[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+[38;2;111;194;139m⏺[m [1mRead[m(]8;;file:///work/app/internal/queue/worker.gointernal/queue/worker.go]8;;)
   ⎿  [38;2;139;139;147mRead 5 lines[m
      [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
      [38;2;139;139;147m2[m 
@@ -49,7 +49,7 @@
      internal/queue/worker.go
 [38;2;139;139;147mlines 1–22 of 115[m
 ── width 160 ──
-[1mTranscript[m[38;2;139;139;147m · ctrl+e to expand all · / search · v editor · q to exit[m
+[1mTranscript[m[38;2;139;139;147m · ctrl+e to expand all · / search · v editor · q or [ to exit[m
 
 [38;2;139;139;147mYou · 15:04:05[m
 [48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m                                                                   [m
@@ -61,7 +61,7 @@
 [38;2;139;139;147mClaude · 15:04:05[m
 [38;2;230;227;222m⏺[m I'll start by reading the worker and searching for the retry path.
 
-[38;2;111;194;139m⏺[m [1mRead[m(internal/queue/worker.go)
+[38;2;111;194;139m⏺[m [1mRead[m(]8;;file:///work/app/internal/queue/worker.gointernal/queue/worker.go]8;;)
   ⎿  [38;2;139;139;147mRead 5 lines[m
      [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
      [38;2;139;139;147m2[m 

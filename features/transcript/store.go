@@ -17,6 +17,7 @@ const (
 	KeyToolUseSummary   ext.ContentKey = "system.tool_use_summary"  // Data *proto.ToolUseSummary
 	KeyTaskNotification ext.ContentKey = "system.task_notification" // Data *proto.TaskNotification
 	KeyNotification     ext.ContentKey = "system.notification"      // Data *proto.Notification
+	KeyMemoryRecall     ext.ContentKey = "system.memory_recall"     // Data *proto.MemoryRecall
 )
 
 // Store is the transcript: ordered items with stable IDs and revisions. It is the
@@ -289,6 +290,8 @@ func (s *Store) Apply(ev proto.Event) bool {
 				s.add(&ext.Item{ID: id, Key: ext.KeySystemRateLimit, Data: e, State: ext.Done})
 			}
 		}
+	case *proto.MemoryRecall:
+		s.add(&ext.Item{ID: "mem:" + e.UUID, Key: KeyMemoryRecall, Data: e, State: ext.Done})
 	case *proto.ToolUseSummary:
 		s.add(&ext.Item{ID: "summary:" + e.UUID, Key: KeyToolUseSummary, Data: e, State: ext.Done})
 	case *proto.ConversationReset:

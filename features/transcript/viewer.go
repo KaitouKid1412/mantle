@@ -139,6 +139,8 @@ func (v *viewer) HandleKey(c ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
 		v.next(-1)
 	case "v":
 		return true, v.openEditor(c)
+	case "[":
+		return true, c.CloseDialog(v.ID()) // back to the scrollback
 	default:
 		return false, nil
 	}
@@ -227,7 +229,7 @@ func (v *viewer) View(c ext.Ctx, a ext.Area) ext.Rendered {
 	if v.showAll {
 		verb = "collapse"
 	}
-	head := st.bold.Render("Transcript") + st.dim.Render(" · "+expand+" to "+verb+" · / search · v editor · q to exit")
+	head := st.bold.Render("Transcript") + st.dim.Render(" · "+expand+" to "+verb+" · / search · v editor · q or [ to exit")
 	out := []string{render.Truncate(head, w, "…")}
 
 	matchLine := -1
