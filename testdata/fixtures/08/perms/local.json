@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": ["Bash(make build)", "Bash(oops"],
+    "deny": ["Read(./.env)"]
+  },
+  "autoMode": {
+    "soft_deny": ["Deleting files outside the repository"]
+  }
+}

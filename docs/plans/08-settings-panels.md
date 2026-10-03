@@ -103,26 +103,26 @@ and `claude` is seamless.
   returns the effective state.
 
 ## Part A: start immediately (no other session needed)
-- [ ] **A1 Model data layer.**
+- [x] **A1 Model data layer.**
   - Turn `[]ModelInfo` into picker rows: display name, description, effort levels,
     fast/auto support, a "Default (recommended)" row and the current marker.
   - Effort resolution order: session flag, then `modelSettings[model].effortLevel`, then
     `effortLevel`, then the model default. Clamp to `supportedEffortLevels`.
   - Tests use ModelInfo fixtures. Write the types locally against the spec;
     `pkg/proto.ModelInfo` replaces them after `proto-v1`.
-- [ ] **A2 `/config` option table.** One entry per user-facing setting:
+- [x] **A2 `/config` option table.** One entry per user-facing setting:
   - fields: key, store (settings scope / global config / mantle), type, allowed values,
     default, label and description (in mantle's own words), and write path
     (`update_settings` / `apply_flag_settings` / config writer / engine `/config k=v`);
   - built from the research inventories (the UI keys in inventory-docs section 8 and the
     settings in inventory-binary section 4);
   - test that every key is unique and has a write path.
-- [ ] **A3 `/status` data assembly.** A struct and builder:
+- [x] **A3 `/status` data assembly.** A struct and builder:
   - mantle and engine versions, model, account (email, org, subscription, `apiProvider`),
     cwd and additional dirs;
   - settings sources in effect, MCP servers with status, memory files, tools count, output
     style, permission mode, fast mode, sandbox status.
-- [ ] **A4 `/terminal-setup` installers.** Pure functions from (terminal, current config
+- [x] **A4 `/terminal-setup` installers.** Pure functions from (terminal, current config
   file contents) to (a proposed edit and a human-readable diff), then apply with a backup.
   - Terminals: Ghostty, iTerm2, VS Code / Cursor / Windsurf, Terminal.app, WezTerm, kitty,
     Alacritty.
@@ -131,16 +131,16 @@ and `claude` is seamless.
     v2 requests by default, so shift+enter already works there. The installer should say so
     instead of editing. The user's terminal is Ghostty.
   - Tests use fixture config files.
-- [ ] **A5 Permission rules model.**
+- [x] **A5 Permission rules model.**
   - Parse and print rule strings (round-trip tests).
   - A merged view across scopes with a source label on each rule.
   - Edit operations (add/remove allow, deny or ask; add/remove directory; set
     `defaultMode`) that produce settings patches per scope; managed rules are shown
     read-only.
-- [ ] **A6 Theme list model.** Built-in names plus `custom:*` from `~/.claude/themes`;
+- [x] **A6 Theme list model.** Built-in names plus `custom:*` from `~/.claude/themes`;
   current theme; preview-selection state machine (move, preview, confirm, cancel restores
   the original).
-- [ ] **A7 Help model.** Group commands by source (built-in native / engine / skills /
+- [x] **A7 Help model.** Group commands by source (built-in native / engine / skills /
   plugins / MCP prompts / mantle mods), including aliases and argument hints; group key
   bindings by context from the keymap table. Pure function over plain lists.
 
@@ -206,6 +206,29 @@ and `claude` is seamless.
   every write path, then read effective settings back through real `claude` with a
   zero-token `initialize` + `get_settings` (the probe pattern from plan 02). Values must
   match.
+
+## Facts verified in Part A (2.1.288 binary)
+- **Where `/config` writes.** Most keys go to user settings. `spinnerTipsEnabled`,
+  `prefersReducedMotion`, `outputStyle` and `defaultView` go to *local* settings. Several
+  keys moved from `~/.claude.json` to user settings and are only read back from the global
+  config as a fallback: `theme`, `editorMode`, `verbose`, `preferredNotifChannel`,
+  `autoCompactEnabled`, `autoScrollEnabled`, `fileCheckpointingEnabled`, `showTurnDuration`,
+  `showMessageTimestamps`, `terminalProgressBarEnabled`, `todoFeatureEnabled`,
+  `teammateMode`, `inputNeededNotifEnabled`, `agentPushNotifEnabled`. Still global-only:
+  `respectGitignore`, `copyFullResponse`, `copyOnSelect`, `externalEditorContext`,
+  `prStatusFooterEnabled`, `autoConnectIde`, `autoInstallIdeExtension`, `diffTool`,
+  `claudeInChromeDefaultEnabled`. The table in `features/settings/options` encodes this.
+- **Headless `/config k=v` matches panel row IDs, not setting keys** (case-insensitive):
+  `gitignore`, `prStatus`, `chrome`, `turnDuration`, `editor`, `notifChannel`, … A single
+  pair keeps spaces in its value; several pairs are whitespace-separated. Rows that the
+  panel only shows conditionally (e.g. `copyOnSelect` outside fullscreen, `diffTool`
+  without an IDE) may be refused.
+- **Thinking off** is stored as `alwaysThinkingEnabled: false`; turning it on removes the key.
+- **Effort.** `effortLevel` persists only low…xhigh (`max` is session-only).
+  `CLAUDE_CODE_EFFORT_LEVEL` also feeds resolution, and `maxEffortLevel` (top level or per
+  model) caps it. `ultracode` is a separate boolean setting.
+- `set_model` resets with `"default"` (as typed in `pkg/proto`). `unavailable_models`
+  entries are `ModelInfo` plus `disabled: true`.
 
 ## Design notes
 - **Structure.** One feature per panel (`settings.model`, `settings.config`,
