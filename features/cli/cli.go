@@ -29,7 +29,7 @@ func init() {
 	ext.Register(ext.Feature{
 		ID:     FeatureID,
 		Order:  900, // after the features whose commands it uses (resume)
-		Parity: []string{"CLI-03", "CLI-06", "CLI-27"},
+		Parity: []string{"CLI-03", "CLI-06", "CLI-25", "CLI-27"},
 		Setup:  setup,
 	})
 }
