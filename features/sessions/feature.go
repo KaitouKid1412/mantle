@@ -46,6 +46,7 @@ type feature struct {
 	away    awayState
 	// branching is a /branch waiting for its fork's session id.
 	branching *branching
+	seq       int // for IDs of items this feature adds
 
 	// startupSpawn returns the main engine's options as parsed from the command line
 	// (plan 11's cli.Current().Spawn).
@@ -110,6 +111,8 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerRename(r)
 	f.registerBranch(r)
 	f.registerExport(r)
+	f.registerContext(r)
+	f.registerUsage(r)
 	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
 	ext.Subscribe(r, "sessions.notify", f.onNotify)
 	ext.Subscribe(r, "sessions.cwd-changed", f.onCwdChanged)

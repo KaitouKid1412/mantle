@@ -206,10 +206,10 @@ Everything about conversations as objects:
   (engine; show the active goal from `active_goal`), `/plan [open|desc]` (enable plan mode
   or open the plan file in `$EDITOR`), `/add-dir <path>` (engine command plus
   `register_repo_root`), `/cd <path>` (unstable `set_cwd` or H).
-- [ ] **B13 [M2] `/context`.** A coloured grid from `get_context_usage` (categories: system
+- [x] **B13 [M2] `/context`.** A coloured grid from `get_context_usage` (categories: system
   prompt, tools, MCP tools, memory files, messages, free space), with percentages and token
   counts; `/context all` for detail.
-- [ ] **B14 [M2] `/usage` (aliases cost, stats).** Session cost and tokens per model
+- [x] **B14 [M2] `/usage` (aliases cost, stats).** Session cost and tokens per model
   (`result.modelUsage`), plan usage bars from `get_usage` (rate limits with
   utilization/resetsAt; `d`/`w` toggles day/week), local stats from the index. Auto-compact
   warning when context is high ("Context left until auto-compact: N%") from
