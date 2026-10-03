@@ -90,6 +90,21 @@ type FocusAware interface {
 	OnBlur(Ctx) tea.Cmd
 }
 
+// TerminalStater is an optional Component interface for terminal-level view state.
+// When building each frame the host polls every mounted implementer in slot order: the
+// first non-empty WindowTitle wins, the first non-nil Progress wins, ReportFocus is
+// OR-ed. Since contracts-v1.1.
+type TerminalStater interface {
+	TerminalState(Ctx) TerminalState
+}
+
+// TerminalState is what a TerminalStater contributes to the frame.
+type TerminalState struct {
+	WindowTitle string
+	Progress    *tea.ProgressBar // OSC 9;4
+	ReportFocus bool             // ask for tea.FocusMsg / tea.BlurMsg
+}
+
 // Placement is where the host shows a dialog.
 type Placement int
 
