@@ -88,7 +88,7 @@ Also provide:
   (part of `/doctor` and the startup notices).
 
 ## Part A: start immediately (no other session needed)
-- [ ] **A1 `internal/claudecli`, the safe runner.**
+- [x] **A1 `internal/claudecli`, the safe runner.**
   - `Run(ctx, sub Subcommand, args ...string) (stdout, stderr []byte, err)`, where
     `Subcommand` is a closed enum (`MCPList`, `MCPGet`, `MCPAdd`, `PluginList`, `AuthStatus`,
     `AgentsList`, `Import`, `AutoModeDefaults`, …) mapping to a fixed argv prefix.
@@ -100,7 +100,7 @@ Also provide:
   - **Regression test:** a fake `claude` on `PATH` records argv. Assert that every
     Subcommand produces separate argv elements and that no call can produce a lone free-text
     positional argument.
-- [ ] **A2 Typed wrappers on A1:**
+- [x] **A2 Typed wrappers on A1:**
   - `mcp list/get` (text parsers with fixtures; tolerant of format drift), `mcp
     add/add-json/remove/login/logout`;
   - `plugin list --json [--available]`, `plugin marketplace list --json`,
@@ -110,7 +110,7 @@ Also provide:
     defaults|config` (used by plan 08's `/permissions`).
 
   Fixture-based tests.
-- [ ] **A3 Discovery.** Scanners for agents, skills, commands, memory files and hooks at the
+- [x] **A3 Discovery.** Scanners for agents, skills, commands, memory files and hooks at the
   locations above:
   - each item reports name, path, scope (user/project/local/plugin/managed) and parsed
     frontmatter (a small YAML-frontmatter parser for `name, description, tools, model,
@@ -118,7 +118,7 @@ Also provide:
   - these enrich what the engine reports (`initialize.agents`, `init.skills`,
     `get_hooks_listing`) with file paths for editing;
   - tests use temp directory trees.
-- [ ] **A4 mantle doctor checks**, each returning ok/warn/fail plus a fix hint:
+- [x] **A4 mantle doctor checks**, each returning ok/warn/fail plus a fix hint:
   - Go toolchain present and its version (needed for `/mantle`);
   - `claude` found, its version, and pinned or probe status (read plan 02's pin file when
     it exists);
@@ -258,3 +258,39 @@ Also provide:
 **Reminder of the parallel rules:** edit mainly your primary paths; contracts are
 additive-only; no repo-wide rewriters (`make fmt-09`); commit only your files with `[09]`;
 per-area build tag `no_ecosystem`.
+
+## Facts verified on 2.1.288 (Part A)
+
+- **`--` before operands** works for the commander-based subcommands (`mcp get -- "<name>"`,
+  `plugin configure --json -- <id>`): `mcp get -- -p` looks up a server named `-p`.
+  `import`, `logs`, `attach` and `stop` parse argv themselves and reject `--`
+  (`unknown option '--'`, or a usage error for `import`), so `internal/claudecli` gives
+  them strict operands instead (an enum for `import`, `[A-Za-z0-9._-]` IDs for the rest).
+- Flags are always emitted as `--long=value`. Commander's variadic options (`mcp add -e`,
+  `-H`, `marketplace add --sparse`) swallow following words in the `-e A B` form but not
+  in the `--env=A` form.
+- `mcp list` / `mcp get` print text only. Row format `name: target - <glyph> <status>`;
+  statuses seen in the binary: Connected, Connected · tools fetch failed, Needs
+  authentication, Failed to connect, Pending approval, Rejected, Disabled for this
+  project, Not configured (glyph `-`). No servers: a single "No MCP servers configured"
+  line.
+- Plugin and marketplace mutations with `--json` print one result line
+  (`{command, outcome, plugin, message, failureCode}`); failures also exit 1. A
+  marketplace-declared install command is reported as `shownCommand.sha256` and accepted
+  with `--accept-command <sha256>`. mantle never passes a blanket `--yes` to
+  install/update: the panel shows the command and re-runs with `--accept-command`.
+- `plugin list --available --json` is `{installed: [...], available: [...]}`; `source`
+  is a relative path string or an object keyed by `source` (`url`, `git-subdir`, …).
+  `plugin marketplace list --json` omits the built-in directory and claude.ai-hosted
+  marketplaces that the text output shows.
+- `auth status --json`: `{loggedIn, authMethod, apiProvider, email, orgId, orgName,
+  subscriptionType, …}`. `agents --json`: interactive sessions have no `id`; background
+  ones have `id` and `state`.
+- `import --dry-run` reports `(scan digest: <d>)`; apply with `import --yes=<d> [source]`.
+- `skillOverrides` values: `on`, `name-only`, `user-invocable-only`, `off`.
+- Managed policy directory: `/Library/Application Support/ClaudeCode` (macOS),
+  `/etc/claude-code` (Linux); managed skills in `<dir>/.claude/skills`, rules in
+  `<dir>/.claude/rules`, user rules in `~/.claude/rules`.
+- `autoMemoryDirectory` is honoured from managed, local and user settings, not from the
+  checked-in project file. Auto memory is keyed by the main checkout of the git repo
+  (worktrees share it): `~/.claude/projects/<slug>/memory/MEMORY.md`.
