@@ -152,18 +152,18 @@ Everything about conversations as objects:
 - [x] **B1 [M1] Normalizer (`features/sessions/normalize.go`).** JSONL records → `ext.Item`s
   with the same `ContentKey`s plan 03 uses (user.prompt, assistant.text, assistant.thinking,
   tool.<Name> with Result, system.*). Hide meta attachments; nest subagent items.
-- [ ] **B2 [M1] Resume flow.**
+- [x] **B2 [M1] Resume flow.**
   - `mantle -r <id>` / `--continue` / picker choice: normalize history, hand it to the
     transcript store, commit it to scrollback in chunks (`Ctx.Print`), then spawn the
     engine with `--resume=<id>` (`Engine.Restart`).
   - `--fork-session` support.
   - The session name shows in the prompt bar and title (plan 07 renders it).
-- [ ] **B3 [M1] `/clear` and `/compact`.**
+- [x] **B3 [M1] `/clear` and `/compact`.**
   - `/clear` (aliases reset, new): send to the engine; on `conversation_reset`, clear the
     store and `Reprint()` with a fresh header; the session id updates.
   - `/compact [instructions]`: send to the engine; spinner text "Compacting conversation";
     show the boundary item.
-- [ ] **B4 [M1] `/resume` picker (alias `/continue`; `dialog.resume`, alt-screen or
+- [x] **B4 [M1] `/resume` picker (alias `/continue`; `dialog.resume`, alt-screen or
   centered).**
   - Lists current-project sessions by default, including sdk-cli ones.
   - Fuzzy search over title, first/last prompt and branch.
@@ -172,7 +172,7 @@ Everything about conversations as objects:
   - ctrl+a toggles all projects; ctrl+w worktrees; ctrl+b branch filter; search by PR URL
     if a session is PR-linked.
   - Enter resumes (an engine restart).
-- [ ] **B5 [M1] Generic H handoff command** (`ext.Command` helper used by plans 08 and 09
+- [x] **B5 [M1] Generic H handoff command** (`ext.Command` helper used by plans 08 and 09
   for any not-yet-native `local-jsx` command). Procedure as above, with a notice "Opening in
   Claude Code; exit to return to mantle".
 - [ ] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
