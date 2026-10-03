@@ -1,0 +1,3573 @@
+{
+  "claude_version": "2.1.288",
+  "lists": [
+    {
+      "kind": "flag",
+      "source": "claude --help, claude \u003csubcommand\u003e --help",
+      "items": [
+        {
+          "name": "--add-dir",
+          "attrs": {
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--agent",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--allow-dangerously-skip-permissions",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--allowedTools",
+          "attrs": {
+            "aliases": "--allowed-tools",
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--append-system-prompt",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--autocompact",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--ax-screen-reader",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--bare",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--betas",
+          "attrs": {
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--bg",
+          "attrs": {
+            "aliases": "--background",
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--brief",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--chrome",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--cloud",
+          "attrs": {
+            "arity": "optional"
+          }
+        },
+        {
+          "name": "--continue",
+          "attrs": {
+            "arity": "none",
+            "short": "-c"
+          }
+        },
+        {
+          "name": "--dangerously-skip-permissions",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--debug",
+          "attrs": {
+            "arity": "optional",
+            "short": "-d"
+          }
+        },
+        {
+          "name": "--debug-file",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--desktop",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--disable-slash-commands",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--disallowedTools",
+          "attrs": {
+            "aliases": "--disallowed-tools",
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--effort",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--environment",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--exclude-dynamic-system-prompt-sections",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--fallback-model",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--file",
+          "attrs": {
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--fork-session",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--forward-subagent-text",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--from-pr",
+          "attrs": {
+            "arity": "optional"
+          }
+        },
+        {
+          "name": "--help",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--ide",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--include-hook-events",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--include-partial-messages",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--input-format",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--json-schema",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--max-budget-usd",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--mcp-config",
+          "attrs": {
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--model",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--name",
+          "attrs": {
+            "arity": "required",
+            "short": "-n"
+          }
+        },
+        {
+          "name": "--no-chrome",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--no-session-persistence",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--output-format",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--permission-mode",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--permission-prompts",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--plugin-dir",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--plugin-url",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--print",
+          "attrs": {
+            "arity": "none",
+            "short": "-p"
+          }
+        },
+        {
+          "name": "--prompt-suggestions",
+          "attrs": {
+            "arity": "optional"
+          }
+        },
+        {
+          "name": "--remote-control",
+          "attrs": {
+            "arity": "optional"
+          }
+        },
+        {
+          "name": "--remote-control-session-name-prefix",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--replay-user-messages",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--restricted",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--resume",
+          "attrs": {
+            "arity": "optional",
+            "short": "-r"
+          }
+        },
+        {
+          "name": "--safe-mode",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--session-id",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--setting-sources",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--settings",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--strict-mcp-config",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--system-prompt",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--system-prompt-snapshot",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--teleport",
+          "attrs": {
+            "arity": "optional"
+          }
+        },
+        {
+          "name": "--tmux",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--tools",
+          "attrs": {
+            "arity": "variadic"
+          }
+        },
+        {
+          "name": "--verbose",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--version",
+          "attrs": {
+            "arity": "none",
+            "short": "-v"
+          }
+        },
+        {
+          "name": "--worktree",
+          "attrs": {
+            "arity": "optional",
+            "short": "-w"
+          }
+        },
+        {
+          "name": "--add-dir",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--agent",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--all",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--allow-dangerously-skip-permissions",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--cwd",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--dangerously-skip-permissions",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--effort",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--mcp-config",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--model",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--permission-mode",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--plugin-dir",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--restricted",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--setting-sources",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--settings",
+          "scope": "agents",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--strict-mcp-config",
+          "scope": "agents",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "auth",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "auto-mode",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "daemon",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json-path",
+          "scope": "daemon",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--log-file",
+          "scope": "daemon",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "design-login",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "design-login",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--status",
+          "scope": "design-login",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "doctor",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "drop-worktree-registrations",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "drop-worktree-registrations",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "edit-chrome-settings",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "edit-chrome-settings",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "edit-hook",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "edit-hook",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "edit-memory-settings",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "edit-memory-settings",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "edit-permission-rules",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "edit-permission-rules",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "edit-sandbox-settings",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "edit-sandbox-settings",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "edit-skill-overrides",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "edit-skill-overrides",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--config",
+          "scope": "gateway",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "gateway",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--dry-run",
+          "scope": "import",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "import",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--yes",
+          "scope": "import",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--cwd",
+          "scope": "import-conversations",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--dry-run",
+          "scope": "import-conversations",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "import-conversations",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--force",
+          "scope": "install",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "install",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "mcp",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "plugin",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "project",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--all",
+          "scope": "purge",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--dry-run",
+          "scope": "purge",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "purge",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--interactive",
+          "scope": "purge",
+          "attrs": {
+            "arity": "none",
+            "short": "-i"
+          }
+        },
+        {
+          "name": "--yes",
+          "scope": "purge",
+          "attrs": {
+            "arity": "none",
+            "short": "-y"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "sandbox",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "setup-token",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "ultrareview",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        },
+        {
+          "name": "--json",
+          "scope": "ultrareview",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--no-post",
+          "scope": "ultrareview",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--post",
+          "scope": "ultrareview",
+          "attrs": {
+            "arity": "none"
+          }
+        },
+        {
+          "name": "--timeout",
+          "scope": "ultrareview",
+          "attrs": {
+            "arity": "required"
+          }
+        },
+        {
+          "name": "--help",
+          "scope": "update",
+          "attrs": {
+            "arity": "none",
+            "short": "-h"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "keybinding-action",
+      "source": "claude binary",
+      "items": [
+        {
+          "name": "abovePrompt:focus"
+        },
+        {
+          "name": "abovePrompt:highlightNext"
+        },
+        {
+          "name": "abovePrompt:highlightPrevious"
+        },
+        {
+          "name": "abovePrompt:leave"
+        },
+        {
+          "name": "abovePrompt:next"
+        },
+        {
+          "name": "abovePrompt:press"
+        },
+        {
+          "name": "abovePrompt:previous"
+        },
+        {
+          "name": "abovePrompt:toggle"
+        },
+        {
+          "name": "agents:find"
+        },
+        {
+          "name": "agents:nextGroup"
+        },
+        {
+          "name": "agents:previousGroup"
+        },
+        {
+          "name": "agents:rename"
+        },
+        {
+          "name": "agents:setGroup"
+        },
+        {
+          "name": "agents:switchView"
+        },
+        {
+          "name": "agents:togglePin"
+        },
+        {
+          "name": "app:cycleDiffBase"
+        },
+        {
+          "name": "app:diffFileListDown"
+        },
+        {
+          "name": "app:diffFileListUp"
+        },
+        {
+          "name": "app:exit"
+        },
+        {
+          "name": "app:interrupt"
+        },
+        {
+          "name": "app:openArtifact"
+        },
+        {
+          "name": "app:redraw"
+        },
+        {
+          "name": "app:toggleBrief"
+        },
+        {
+          "name": "app:toggleDiffNoiseFilter"
+        },
+        {
+          "name": "app:toggleDiffPreSession"
+        },
+        {
+          "name": "app:toggleReplTab"
+        },
+        {
+          "name": "app:toggleTerminal"
+        },
+        {
+          "name": "app:toggleTodos"
+        },
+        {
+          "name": "app:toggleTranscript"
+        },
+        {
+          "name": "attachments:exit"
+        },
+        {
+          "name": "attachments:next"
+        },
+        {
+          "name": "attachments:previous"
+        },
+        {
+          "name": "attachments:remove"
+        },
+        {
+          "name": "autocomplete:accept"
+        },
+        {
+          "name": "autocomplete:dismiss"
+        },
+        {
+          "name": "autocomplete:next"
+        },
+        {
+          "name": "autocomplete:previous"
+        },
+        {
+          "name": "chat:attentionDown"
+        },
+        {
+          "name": "chat:attentionUp"
+        },
+        {
+          "name": "chat:cancel"
+        },
+        {
+          "name": "chat:clearInput"
+        },
+        {
+          "name": "chat:clearScreen"
+        },
+        {
+          "name": "chat:cycleMode"
+        },
+        {
+          "name": "chat:cycleProactivity"
+        },
+        {
+          "name": "chat:decreaseEffort"
+        },
+        {
+          "name": "chat:defaultToNewerModel"
+        },
+        {
+          "name": "chat:externalEditor"
+        },
+        {
+          "name": "chat:fastMode"
+        },
+        {
+          "name": "chat:imagePaste"
+        },
+        {
+          "name": "chat:increaseEffort"
+        },
+        {
+          "name": "chat:killAgents"
+        },
+        {
+          "name": "chat:modelPicker"
+        },
+        {
+          "name": "chat:newline"
+        },
+        {
+          "name": "chat:queueSubmit"
+        },
+        {
+          "name": "chat:sendNow"
+        },
+        {
+          "name": "chat:stash"
+        },
+        {
+          "name": "chat:submit"
+        },
+        {
+          "name": "chat:thinkingToggle"
+        },
+        {
+          "name": "chat:undo"
+        },
+        {
+          "name": "chat:workflowKeywordToggle"
+        },
+        {
+          "name": "confirm:cycleMode"
+        },
+        {
+          "name": "confirm:next"
+        },
+        {
+          "name": "confirm:nextField"
+        },
+        {
+          "name": "confirm:no"
+        },
+        {
+          "name": "confirm:previous"
+        },
+        {
+          "name": "confirm:previousField"
+        },
+        {
+          "name": "confirm:toggle"
+        },
+        {
+          "name": "confirm:yes"
+        },
+        {
+          "name": "diff:back"
+        },
+        {
+          "name": "diff:dismiss"
+        },
+        {
+          "name": "diff:nextFile"
+        },
+        {
+          "name": "diff:nextSource"
+        },
+        {
+          "name": "diff:previousFile"
+        },
+        {
+          "name": "diff:previousSource"
+        },
+        {
+          "name": "diff:viewDetails"
+        },
+        {
+          "name": "effortSlider:decreaseEffort"
+        },
+        {
+          "name": "effortSlider:increaseEffort"
+        },
+        {
+          "name": "effortSlider:thisSessionOnly"
+        },
+        {
+          "name": "effortSlider:toggleUltracode"
+        },
+        {
+          "name": "footer:clearSelection"
+        },
+        {
+          "name": "footer:close"
+        },
+        {
+          "name": "footer:dismiss"
+        },
+        {
+          "name": "footer:down"
+        },
+        {
+          "name": "footer:next"
+        },
+        {
+          "name": "footer:openSelected"
+        },
+        {
+          "name": "footer:previous"
+        },
+        {
+          "name": "footer:up"
+        },
+        {
+          "name": "help:dismiss"
+        },
+        {
+          "name": "history:next"
+        },
+        {
+          "name": "history:previous"
+        },
+        {
+          "name": "history:search"
+        },
+        {
+          "name": "historySearch:accept"
+        },
+        {
+          "name": "historySearch:cancel"
+        },
+        {
+          "name": "historySearch:cycleScope"
+        },
+        {
+          "name": "historySearch:execute"
+        },
+        {
+          "name": "historySearch:next"
+        },
+        {
+          "name": "messageSelector:bottom"
+        },
+        {
+          "name": "messageSelector:down"
+        },
+        {
+          "name": "messageSelector:select"
+        },
+        {
+          "name": "messageSelector:top"
+        },
+        {
+          "name": "messageSelector:up"
+        },
+        {
+          "name": "modelPicker:decreaseEffort"
+        },
+        {
+          "name": "modelPicker:increaseEffort"
+        },
+        {
+          "name": "modelPicker:thisSessionOnly"
+        },
+        {
+          "name": "pane:bottom"
+        },
+        {
+          "name": "pane:close"
+        },
+        {
+          "name": "pane:grow"
+        },
+        {
+          "name": "pane:next"
+        },
+        {
+          "name": "pane:pageDown"
+        },
+        {
+          "name": "pane:pageUp"
+        },
+        {
+          "name": "pane:previous"
+        },
+        {
+          "name": "pane:scrollDown"
+        },
+        {
+          "name": "pane:scrollUp"
+        },
+        {
+          "name": "pane:shrink"
+        },
+        {
+          "name": "pane:top"
+        },
+        {
+          "name": "permission:toggleDebug"
+        },
+        {
+          "name": "plugin:cycleMarketplace"
+        },
+        {
+          "name": "plugin:favorite"
+        },
+        {
+          "name": "plugin:install"
+        },
+        {
+          "name": "plugin:toggle"
+        },
+        {
+          "name": "proactivityMenu:nextMode"
+        },
+        {
+          "name": "proactivityMenu:previousMode"
+        },
+        {
+          "name": "scroll:bottom"
+        },
+        {
+          "name": "scroll:fullPageDown"
+        },
+        {
+          "name": "scroll:fullPageUp"
+        },
+        {
+          "name": "scroll:halfPageDown"
+        },
+        {
+          "name": "scroll:halfPageUp"
+        },
+        {
+          "name": "scroll:lineDown"
+        },
+        {
+          "name": "scroll:lineUp"
+        },
+        {
+          "name": "scroll:pageDown"
+        },
+        {
+          "name": "scroll:pageUp"
+        },
+        {
+          "name": "scroll:top"
+        },
+        {
+          "name": "select:accept"
+        },
+        {
+          "name": "select:cancel"
+        },
+        {
+          "name": "select:first"
+        },
+        {
+          "name": "select:last"
+        },
+        {
+          "name": "select:next"
+        },
+        {
+          "name": "select:pageDown"
+        },
+        {
+          "name": "select:pageUp"
+        },
+        {
+          "name": "select:previous"
+        },
+        {
+          "name": "selection:clear"
+        },
+        {
+          "name": "selection:copy"
+        },
+        {
+          "name": "selection:extendDown"
+        },
+        {
+          "name": "selection:extendLeft"
+        },
+        {
+          "name": "selection:extendLineEnd"
+        },
+        {
+          "name": "selection:extendLineStart"
+        },
+        {
+          "name": "selection:extendRight"
+        },
+        {
+          "name": "selection:extendUp"
+        },
+        {
+          "name": "settings:periodDay"
+        },
+        {
+          "name": "settings:periodWeek"
+        },
+        {
+          "name": "settings:retry"
+        },
+        {
+          "name": "settings:search"
+        },
+        {
+          "name": "settings:sortByTokens"
+        },
+        {
+          "name": "strip:jump1"
+        },
+        {
+          "name": "strip:jump2"
+        },
+        {
+          "name": "strip:jump3"
+        },
+        {
+          "name": "strip:jump4"
+        },
+        {
+          "name": "strip:jump5"
+        },
+        {
+          "name": "strip:jump6"
+        },
+        {
+          "name": "strip:jump7"
+        },
+        {
+          "name": "strip:jump8"
+        },
+        {
+          "name": "strip:jump9"
+        },
+        {
+          "name": "strip:new"
+        },
+        {
+          "name": "strip:next"
+        },
+        {
+          "name": "strip:previous"
+        },
+        {
+          "name": "strip:toggle"
+        },
+        {
+          "name": "tabs:next"
+        },
+        {
+          "name": "tabs:previous"
+        },
+        {
+          "name": "task:background"
+        },
+        {
+          "name": "theme:editCustom"
+        },
+        {
+          "name": "theme:toggleSyntaxHighlighting"
+        },
+        {
+          "name": "transcript:exit"
+        },
+        {
+          "name": "transcript:toggleShowAll"
+        },
+        {
+          "name": "voice:pushToTalk"
+        }
+      ]
+    },
+    {
+      "kind": "keybinding-context",
+      "source": "claude binary",
+      "items": [
+        {
+          "name": "AbovePrompt"
+        },
+        {
+          "name": "AbovePromptInput"
+        },
+        {
+          "name": "AbovePromptSelect"
+        },
+        {
+          "name": "Agents"
+        },
+        {
+          "name": "Attachments"
+        },
+        {
+          "name": "Autocomplete"
+        },
+        {
+          "name": "Chat"
+        },
+        {
+          "name": "Confirmation"
+        },
+        {
+          "name": "DiffDialog"
+        },
+        {
+          "name": "DiffPanel"
+        },
+        {
+          "name": "EffortSlider"
+        },
+        {
+          "name": "Footer"
+        },
+        {
+          "name": "Global"
+        },
+        {
+          "name": "Help"
+        },
+        {
+          "name": "HistorySearch"
+        },
+        {
+          "name": "MessageSelector"
+        },
+        {
+          "name": "ModelPicker"
+        },
+        {
+          "name": "Pane"
+        },
+        {
+          "name": "PaneField"
+        },
+        {
+          "name": "Plugin"
+        },
+        {
+          "name": "ProactivityMenu"
+        },
+        {
+          "name": "Scroll"
+        },
+        {
+          "name": "Select"
+        },
+        {
+          "name": "Settings"
+        },
+        {
+          "name": "Tabs"
+        },
+        {
+          "name": "Task"
+        },
+        {
+          "name": "Terminal"
+        },
+        {
+          "name": "ThemePicker"
+        },
+        {
+          "name": "Transcript"
+        }
+      ]
+    },
+    {
+      "kind": "model",
+      "source": "engine session",
+      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+    },
+    {
+      "kind": "output-style",
+      "source": "engine session",
+      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+    },
+    {
+      "kind": "protocol",
+      "source": "engine session",
+      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+    },
+    {
+      "kind": "setting",
+      "source": "https://www.schemastore.org/claude-code-settings.json (cached)",
+      "items": [
+        {
+          "name": "$schema"
+        },
+        {
+          "name": "advisorModel"
+        },
+        {
+          "name": "agent"
+        },
+        {
+          "name": "agentPushNotifEnabled"
+        },
+        {
+          "name": "allowAllClaudeAiMcps"
+        },
+        {
+          "name": "allowManagedHooksOnly"
+        },
+        {
+          "name": "allowManagedMcpServersOnly"
+        },
+        {
+          "name": "allowManagedPermissionRulesOnly"
+        },
+        {
+          "name": "allowedChannelPlugins"
+        },
+        {
+          "name": "allowedHttpHookUrls"
+        },
+        {
+          "name": "allowedMcpServers"
+        },
+        {
+          "name": "alwaysThinkingEnabled"
+        },
+        {
+          "name": "apiKeyHelper"
+        },
+        {
+          "name": "askUserQuestionTimeout"
+        },
+        {
+          "name": "attribution"
+        },
+        {
+          "name": "attribution.commit"
+        },
+        {
+          "name": "attribution.pr"
+        },
+        {
+          "name": "attribution.sessionUrl"
+        },
+        {
+          "name": "autoCompactEnabled"
+        },
+        {
+          "name": "autoConnectIde"
+        },
+        {
+          "name": "autoInstallIdeExtension"
+        },
+        {
+          "name": "autoMemoryDirectory"
+        },
+        {
+          "name": "autoMemoryEnabled"
+        },
+        {
+          "name": "autoMode"
+        },
+        {
+          "name": "autoMode.allow"
+        },
+        {
+          "name": "autoMode.classifyAllShell"
+        },
+        {
+          "name": "autoMode.environment"
+        },
+        {
+          "name": "autoMode.hard_deny"
+        },
+        {
+          "name": "autoMode.soft_deny"
+        },
+        {
+          "name": "autoScrollEnabled"
+        },
+        {
+          "name": "autoUpdatesChannel"
+        },
+        {
+          "name": "availableModels"
+        },
+        {
+          "name": "awaySummaryEnabled"
+        },
+        {
+          "name": "awsAuthRefresh"
+        },
+        {
+          "name": "awsCredentialExport"
+        },
+        {
+          "name": "axScreenReader"
+        },
+        {
+          "name": "blockedMarketplaces"
+        },
+        {
+          "name": "browserExternalPageTools"
+        },
+        {
+          "name": "channelsEnabled"
+        },
+        {
+          "name": "claudeMd"
+        },
+        {
+          "name": "claudeMdExcludes"
+        },
+        {
+          "name": "cleanupPeriodDays"
+        },
+        {
+          "name": "companyAnnouncements"
+        },
+        {
+          "name": "defaultShell"
+        },
+        {
+          "name": "deniedMcpServers"
+        },
+        {
+          "name": "diffTool"
+        },
+        {
+          "name": "disableAgentView"
+        },
+        {
+          "name": "disableAllHooks"
+        },
+        {
+          "name": "disableArtifact"
+        },
+        {
+          "name": "disableAutoMode"
+        },
+        {
+          "name": "disableBrowserExternalNavigation"
+        },
+        {
+          "name": "disableBundledSkills"
+        },
+        {
+          "name": "disableClaudeAiConnectors"
+        },
+        {
+          "name": "disableDeepLinkRegistration"
+        },
+        {
+          "name": "disableMobileSimulatorTools"
+        },
+        {
+          "name": "disableRemoteControl"
+        },
+        {
+          "name": "disableSideloadFlags"
+        },
+        {
+          "name": "disableSkillShellExecution"
+        },
+        {
+          "name": "disableWorkflows"
+        },
+        {
+          "name": "disabledMcpjsonServers"
+        },
+        {
+          "name": "editorMode"
+        },
+        {
+          "name": "effortLevel"
+        },
+        {
+          "name": "emojiCompletionEnabled"
+        },
+        {
+          "name": "enableAllProjectMcpServers"
+        },
+        {
+          "name": "enableArtifact"
+        },
+        {
+          "name": "enabledMcpjsonServers"
+        },
+        {
+          "name": "enabledPlugins"
+        },
+        {
+          "name": "enforceAvailableModels"
+        },
+        {
+          "name": "env"
+        },
+        {
+          "name": "env.ANTHROPIC_API_KEY"
+        },
+        {
+          "name": "env.ANTHROPIC_AUTH_TOKEN"
+        },
+        {
+          "name": "env.ANTHROPIC_AWS_API_KEY"
+        },
+        {
+          "name": "env.ANTHROPIC_AWS_BASE_URL"
+        },
+        {
+          "name": "env.ANTHROPIC_AWS_WORKSPACE_ID"
+        },
+        {
+          "name": "env.ANTHROPIC_BASE_URL"
+        },
+        {
+          "name": "env.ANTHROPIC_BEDROCK_BASE_URL"
+        },
+        {
+          "name": "env.ANTHROPIC_BEDROCK_MANTLE_BASE_URL"
+        },
+        {
+          "name": "env.ANTHROPIC_BEDROCK_SERVICE_TIER"
+        },
+        {
+          "name": "env.ANTHROPIC_BETAS"
+        },
+        {
+          "name": "env.ANTHROPIC_CUSTOM_HEADERS"
+        },
+        {
+          "name": "env.ANTHROPIC_CUSTOM_MODEL_OPTION"
+        },
+        {
+          "name": "env.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION"
+        },
+        {
+          "name": "env.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME"
+        },
+        {
+          "name": "env.ANTHROPIC_CUSTOM_MODEL_OPTION_SUPPORTED_CAPABILITIES"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_FABLE_MODEL"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_FABLE_MODEL_DESCRIPTION"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_FABLE_MODEL_NAME"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_FABLE_MODEL_SUPPORTED_CAPABILITIES"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_HAIKU_MODEL"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_HAIKU_MODEL_SUPPORTED_CAPABILITIES"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_OPUS_MODEL"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_OPUS_MODEL_NAME"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_OPUS_MODEL_SUPPORTED_CAPABILITIES"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_SONNET_MODEL"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_SONNET_MODEL_NAME"
+        },
+        {
+          "name": "env.ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES"
+        },
+        {
+          "name": "env.ANTHROPIC_FOUNDRY_API_KEY"
+        },
+        {
+          "name": "env.ANTHROPIC_FOUNDRY_AUTH_TOKEN"
+        },
+        {
+          "name": "env.ANTHROPIC_FOUNDRY_BASE_URL"
+        },
+        {
+          "name": "env.ANTHROPIC_FOUNDRY_RESOURCE"
+        },
+        {
+          "name": "env.ANTHROPIC_MODEL"
+        },
+        {
+          "name": "env.ANTHROPIC_SMALL_FAST_MODEL"
+        },
+        {
+          "name": "env.ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION"
+        },
+        {
+          "name": "env.ANTHROPIC_VERTEX_BASE_URL"
+        },
+        {
+          "name": "env.ANTHROPIC_VERTEX_PROJECT_ID"
+        },
+        {
+          "name": "env.ANTHROPIC_WORKSPACE_ID"
+        },
+        {
+          "name": "env.API_FORCE_IDLE_TIMEOUT"
+        },
+        {
+          "name": "env.API_TIMEOUT_MS"
+        },
+        {
+          "name": "env.AWS_BEARER_TOKEN_BEDROCK"
+        },
+        {
+          "name": "env.AWS_REGION"
+        },
+        {
+          "name": "env.BASH_DEFAULT_TIMEOUT_MS"
+        },
+        {
+          "name": "env.BASH_MAX_OUTPUT_LENGTH"
+        },
+        {
+          "name": "env.BASH_MAX_TIMEOUT_MS"
+        },
+        {
+          "name": "env.BETA_TRACING_ENDPOINT"
+        },
+        {
+          "name": "env.CCR_FORCE_BUNDLE"
+        },
+        {
+          "name": "env.CLAUDECODE"
+        },
+        {
+          "name": "env.CLAUDE_AFK_COUNTDOWN_MS"
+        },
+        {
+          "name": "env.CLAUDE_AFK_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS"
+        },
+        {
+          "name": "env.CLAUDE_AGENT_SDK_MCP_NO_PREFIX"
+        },
+        {
+          "name": "env.CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"
+        },
+        {
+          "name": "env.CLAUDE_AUTO_BACKGROUND_TASKS"
+        },
+        {
+          "name": "env.CLAUDE_AX_SCREEN_READER"
+        },
+        {
+          "name": "env.CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR"
+        },
+        {
+          "name": "env.CLAUDE_CLIENT_PRESENCE_FILE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ACCESSIBILITY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ALWAYS_ENABLE_EFFORT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_API_KEY_HELPER_TTL_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ARTIFACT_AUTO_OPEN"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ATTRIBUTION_HEADER"
+        },
+        {
+          "name": "env.CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+        },
+        {
+          "name": "env.CLAUDE_CODE_AUTO_CONNECT_IDE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_AWS_CHAIN_RESOLVE_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_BRIDGE_SESSION_ID"
+        },
+        {
+          "name": "env.CLAUDE_CODE_CERT_STORE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_CHILD_SESSION"
+        },
+        {
+          "name": "env.CLAUDE_CODE_CLIENT_CERT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_CLIENT_KEY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_CLIENT_KEY_PASSPHRASE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DEBUG_LOGS_DIR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DEBUG_LOG_LEVEL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_1M_CONTEXT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_AGENT_VIEW"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_ARTIFACT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_ATTACHMENTS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_BEDROCK_CONTENT_TYPE_GUARD"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_BUNDLED_SKILLS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_CLAUDE_MDS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_CRON"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_FAST_MODE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_LEGACY_MODEL_REMAP"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_MOUSE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_MOUSE_CLICKS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_NOTIFICATION_PRESENCE_CHECK"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_POLICY_SKILLS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_TERMINAL_TITLE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_THINKING"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_DISABLE_WORKFLOWS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_EFFORT_LEVEL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_APPEND_SUBAGENT_PROMPT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_AUTO_MODE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_AWAY_SUMMARY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_BACKGROUND_PLUGIN_REFRESH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_FEEDBACK_SURVEY_FOR_OTEL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_FINE_GRAINED_TOOL_STREAMING"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_TASKS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENABLE_TELEMETRY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_ENHANCED_TELEMETRY_BETA"
+        },
+        {
+          "name": "env.CLAUDE_CODE_EXIT_AFTER_STOP_DELAY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_EXTRA_BODY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_FORCE_SESSION_PERSISTENCE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_FORCE_STRIKETHROUGH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_FORCE_SYNC_OUTPUT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_FORK_SUBAGENT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_FORWARD_SUBAGENT_TEXT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_GIT_BASH_PATH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_GLOB_HIDDEN"
+        },
+        {
+          "name": "env.CLAUDE_CODE_GLOB_NO_IGNORE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_GLOB_TIMEOUT_SECONDS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_HIDE_CWD"
+        },
+        {
+          "name": "env.CLAUDE_CODE_IDE_HOST_OVERRIDE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_IDE_SKIP_VALID_CHECK"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_CONTEXT_TOKENS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_OUTPUT_TOKENS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_RETRIES"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_TURNS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MCP_ALLOWLIST_ENV"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_NATIVE_CURSOR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_NEW_INIT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_NO_FLICKER"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OAUTH_REFRESH_TOKEN"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OAUTH_SCOPES"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OAUTH_TOKEN"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OTEL_CONTENT_MAX_LENGTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OTEL_DIAG_STDERR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OTEL_FLUSH_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OTEL_HEADERS_HELPER_DEBOUNCE_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_OTEL_SHUTDOWN_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PACKAGE_MANAGER_AUTO_UPDATE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PERFORCE_MODE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PLUGIN_CACHE_DIR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PLUGIN_GIT_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PLUGIN_PREFER_HTTPS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PLUGIN_SEED_DIR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_POWERSHELL_RESPECT_EXECUTION_POLICY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PROCESS_WRAPPER"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PROPAGATE_TRACEPARENT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"
+        },
+        {
+          "name": "env.CLAUDE_CODE_PROXY_RESOLVES_HOSTS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_REMOTE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_REMOTE_SESSION_ID"
+        },
+        {
+          "name": "env.CLAUDE_CODE_RESUME_INTERRUPTED_TURN"
+        },
+        {
+          "name": "env.CLAUDE_CODE_RESUME_INTERRUPTED_TURN_MAX_AGE_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_RESUME_PROMPT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_RETRY_WATCHDOG"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SAFE_MODE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SCRIPT_CAPS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SCROLL_SPEED"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SESSION_ID"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SHELL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SHELL_PREFIX"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SIMPLE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_ANTHROPIC_AWS_AUTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_AWS_CRED_CACHE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_BEDROCK_AUTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_FAST_MODE_NETWORK_ERRORS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_FAST_MODE_ORG_CHECK"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_FOUNDRY_AUTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_MANTLE_AUTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_PROMPT_HISTORY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SKIP_VERTEX_AUTH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_STOP_HOOK_BLOCK_CAP"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SUBAGENT_MODEL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SYNC_PLUGIN_INSTALL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SYNC_SKILLS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SYNC_SKILLS_INSTALL_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SYNC_SKILLS_WAIT_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_SYNTAX_HIGHLIGHT"
+        },
+        {
+          "name": "env.CLAUDE_CODE_TASK_LIST_ID"
+        },
+        {
+          "name": "env.CLAUDE_CODE_TEAM_NAME"
+        },
+        {
+          "name": "env.CLAUDE_CODE_TEAM_TEARDOWN_PARK_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_TMPDIR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_TMUX_TRUECOLOR"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_ANTHROPIC_AWS"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_BEDROCK"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_FOUNDRY"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_MANTLE"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_NATIVE_FILE_SEARCH"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_POWERSHELL_TOOL"
+        },
+        {
+          "name": "env.CLAUDE_CODE_USE_VERTEX"
+        },
+        {
+          "name": "env.CLAUDE_CONFIG_DIR"
+        },
+        {
+          "name": "env.CLAUDE_DISABLE_ADOPT"
+        },
+        {
+          "name": "env.CLAUDE_EFFORT"
+        },
+        {
+          "name": "env.CLAUDE_ENABLE_BYTE_WATCHDOG"
+        },
+        {
+          "name": "env.CLAUDE_ENABLE_BYTE_WATCHDOG_BEDROCK"
+        },
+        {
+          "name": "env.CLAUDE_ENABLE_STREAM_WATCHDOG"
+        },
+        {
+          "name": "env.CLAUDE_ENV_FILE"
+        },
+        {
+          "name": "env.CLAUDE_PID"
+        },
+        {
+          "name": "env.CLAUDE_PROJECT_DIR"
+        },
+        {
+          "name": "env.CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX"
+        },
+        {
+          "name": "env.CLAUDE_STREAM_IDLE_TIMEOUT_MS"
+        },
+        {
+          "name": "env.CLOUD_ML_REGION"
+        },
+        {
+          "name": "env.DEBUG"
+        },
+        {
+          "name": "env.DISABLE_AUTOUPDATER"
+        },
+        {
+          "name": "env.DISABLE_AUTO_COMPACT"
+        },
+        {
+          "name": "env.DISABLE_COMPACT"
+        },
+        {
+          "name": "env.DISABLE_COST_WARNINGS"
+        },
+        {
+          "name": "env.DISABLE_DOCTOR_COMMAND"
+        },
+        {
+          "name": "env.DISABLE_ERROR_REPORTING"
+        },
+        {
+          "name": "env.DISABLE_EXTRA_USAGE_COMMAND"
+        },
+        {
+          "name": "env.DISABLE_FEEDBACK_COMMAND"
+        },
+        {
+          "name": "env.DISABLE_GROWTHBOOK"
+        },
+        {
+          "name": "env.DISABLE_INSTALLATION_CHECKS"
+        },
+        {
+          "name": "env.DISABLE_INSTALL_GITHUB_APP_COMMAND"
+        },
+        {
+          "name": "env.DISABLE_INTERLEAVED_THINKING"
+        },
+        {
+          "name": "env.DISABLE_LOGIN_COMMAND"
+        },
+        {
+          "name": "env.DISABLE_LOGOUT_COMMAND"
+        },
+        {
+          "name": "env.DISABLE_PROMPT_CACHING"
+        },
+        {
+          "name": "env.DISABLE_PROMPT_CACHING_FABLE"
+        },
+        {
+          "name": "env.DISABLE_PROMPT_CACHING_HAIKU"
+        },
+        {
+          "name": "env.DISABLE_PROMPT_CACHING_OPUS"
+        },
+        {
+          "name": "env.DISABLE_PROMPT_CACHING_SONNET"
+        },
+        {
+          "name": "env.DISABLE_TELEMETRY"
+        },
+        {
+          "name": "env.DISABLE_UPDATES"
+        },
+        {
+          "name": "env.DISABLE_UPGRADE_COMMAND"
+        },
+        {
+          "name": "env.DO_NOT_TRACK"
+        },
+        {
+          "name": "env.ENABLE_BETA_TRACING_DETAILED"
+        },
+        {
+          "name": "env.ENABLE_CLAUDEAI_MCP_SERVERS"
+        },
+        {
+          "name": "env.ENABLE_PROMPT_CACHING_1H"
+        },
+        {
+          "name": "env.ENABLE_TOOL_SEARCH"
+        },
+        {
+          "name": "env.FALLBACK_FOR_ALL_PRIMARY_MODELS"
+        },
+        {
+          "name": "env.FORCE_AUTOUPDATE_PLUGINS"
+        },
+        {
+          "name": "env.FORCE_HYPERLINK"
+        },
+        {
+          "name": "env.FORCE_PROMPT_CACHING_5M"
+        },
+        {
+          "name": "env.GOOGLE_APPLICATION_CREDENTIALS"
+        },
+        {
+          "name": "env.HTTPS_PROXY"
+        },
+        {
+          "name": "env.HTTP_PROXY"
+        },
+        {
+          "name": "env.IS_DEMO"
+        },
+        {
+          "name": "env.MAX_MCP_OUTPUT_TOKENS"
+        },
+        {
+          "name": "env.MAX_STRUCTURED_OUTPUT_RETRIES"
+        },
+        {
+          "name": "env.MAX_THINKING_TOKENS"
+        },
+        {
+          "name": "env.MCP_CLIENT_SECRET"
+        },
+        {
+          "name": "env.MCP_CONNECTION_NONBLOCKING"
+        },
+        {
+          "name": "env.MCP_CONNECT_TIMEOUT_MS"
+        },
+        {
+          "name": "env.MCP_OAUTH_CALLBACK_PORT"
+        },
+        {
+          "name": "env.MCP_REMOTE_SERVER_CONNECTION_BATCH_SIZE"
+        },
+        {
+          "name": "env.MCP_SERVER_CONNECTION_BATCH_SIZE"
+        },
+        {
+          "name": "env.MCP_TIMEOUT"
+        },
+        {
+          "name": "env.MCP_TOOL_TIMEOUT"
+        },
+        {
+          "name": "env.NODE_EXTRA_CA_CERTS"
+        },
+        {
+          "name": "env.NO_PROXY"
+        },
+        {
+          "name": "env.OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_CERTIFICATE"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_CLIENT_KEY"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_ENDPOINT"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_HEADERS"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_LOGS_CLIENT_CERTIFICATE"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_LOGS_CLIENT_KEY"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_LOGS_PROTOCOL"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_METRICS_CLIENT_CERTIFICATE"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_METRICS_CLIENT_KEY"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_METRICS_PROTOCOL"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_PROTOCOL"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
+        },
+        {
+          "name": "env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL"
+        },
+        {
+          "name": "env.OTEL_LOGS_EXPORTER"
+        },
+        {
+          "name": "env.OTEL_LOGS_EXPORT_INTERVAL"
+        },
+        {
+          "name": "env.OTEL_LOG_ASSISTANT_RESPONSES"
+        },
+        {
+          "name": "env.OTEL_LOG_RAW_API_BODIES"
+        },
+        {
+          "name": "env.OTEL_LOG_TOOL_CONTENT"
+        },
+        {
+          "name": "env.OTEL_LOG_TOOL_DETAILS"
+        },
+        {
+          "name": "env.OTEL_LOG_USER_PROMPTS"
+        },
+        {
+          "name": "env.OTEL_METRICS_EXPORTER"
+        },
+        {
+          "name": "env.OTEL_METRICS_INCLUDE_ACCOUNT_UUID"
+        },
+        {
+          "name": "env.OTEL_METRICS_INCLUDE_ENTRYPOINT"
+        },
+        {
+          "name": "env.OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES"
+        },
+        {
+          "name": "env.OTEL_METRICS_INCLUDE_SESSION_ID"
+        },
+        {
+          "name": "env.OTEL_METRICS_INCLUDE_VERSION"
+        },
+        {
+          "name": "env.OTEL_METRIC_EXPORT_INTERVAL"
+        },
+        {
+          "name": "env.OTEL_RESOURCE_ATTRIBUTES"
+        },
+        {
+          "name": "env.OTEL_TRACES_EXPORTER"
+        },
+        {
+          "name": "env.OTEL_TRACES_EXPORT_INTERVAL"
+        },
+        {
+          "name": "env.SLASH_COMMAND_TOOL_CHAR_BUDGET"
+        },
+        {
+          "name": "env.TASK_MAX_OUTPUT_LENGTH"
+        },
+        {
+          "name": "env.USE_BUILTIN_RIPGREP"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_3_5_HAIKU"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_3_5_SONNET"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_3_7_SONNET"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_0_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_0_SONNET"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_1_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_5_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_5_SONNET"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_6_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_6_SONNET"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_7_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_4_8_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_5_OPUS"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_5_SONNET"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_FABLE_5"
+        },
+        {
+          "name": "env.VERTEX_REGION_CLAUDE_HAIKU_4_5"
+        },
+        {
+          "name": "externalEditorContext"
+        },
+        {
+          "name": "extraKnownMarketplaces"
+        },
+        {
+          "name": "fallbackModel"
+        },
+        {
+          "name": "fastMode"
+        },
+        {
+          "name": "fastModePerSessionOptIn"
+        },
+        {
+          "name": "feedbackSurveyRate"
+        },
+        {
+          "name": "fileCheckpointingEnabled"
+        },
+        {
+          "name": "fileSuggestion"
+        },
+        {
+          "name": "fileSuggestion.command"
+        },
+        {
+          "name": "fileSuggestion.type"
+        },
+        {
+          "name": "footerLinksRegexes"
+        },
+        {
+          "name": "forceLoginGatewayUrl"
+        },
+        {
+          "name": "forceLoginMethod"
+        },
+        {
+          "name": "forceLoginOrgUUID"
+        },
+        {
+          "name": "forceRemoteSettingsRefresh"
+        },
+        {
+          "name": "gcpAuthRefresh"
+        },
+        {
+          "name": "hooks"
+        },
+        {
+          "name": "hooks.ConfigChange"
+        },
+        {
+          "name": "hooks.CwdChanged"
+        },
+        {
+          "name": "hooks.DirectoryAdded"
+        },
+        {
+          "name": "hooks.Elicitation"
+        },
+        {
+          "name": "hooks.ElicitationResult"
+        },
+        {
+          "name": "hooks.FileChanged"
+        },
+        {
+          "name": "hooks.InstructionsLoaded"
+        },
+        {
+          "name": "hooks.MessageDisplay"
+        },
+        {
+          "name": "hooks.Notification"
+        },
+        {
+          "name": "hooks.PermissionDenied"
+        },
+        {
+          "name": "hooks.PermissionRequest"
+        },
+        {
+          "name": "hooks.PostCompact"
+        },
+        {
+          "name": "hooks.PostToolBatch"
+        },
+        {
+          "name": "hooks.PostToolUse"
+        },
+        {
+          "name": "hooks.PostToolUseFailure"
+        },
+        {
+          "name": "hooks.PreCompact"
+        },
+        {
+          "name": "hooks.PreToolUse"
+        },
+        {
+          "name": "hooks.SessionEnd"
+        },
+        {
+          "name": "hooks.SessionStart"
+        },
+        {
+          "name": "hooks.Setup"
+        },
+        {
+          "name": "hooks.Stop"
+        },
+        {
+          "name": "hooks.StopFailure"
+        },
+        {
+          "name": "hooks.SubagentStart"
+        },
+        {
+          "name": "hooks.SubagentStop"
+        },
+        {
+          "name": "hooks.TaskCompleted"
+        },
+        {
+          "name": "hooks.TaskCreated"
+        },
+        {
+          "name": "hooks.TeammateIdle"
+        },
+        {
+          "name": "hooks.UserPromptExpansion"
+        },
+        {
+          "name": "hooks.UserPromptSubmit"
+        },
+        {
+          "name": "hooks.WorktreeCreate"
+        },
+        {
+          "name": "hooks.WorktreeRemove"
+        },
+        {
+          "name": "httpHookAllowedEnvVars"
+        },
+        {
+          "name": "includeCoAuthoredBy"
+        },
+        {
+          "name": "includeGitInstructions"
+        },
+        {
+          "name": "inputNeededNotifEnabled"
+        },
+        {
+          "name": "language"
+        },
+        {
+          "name": "managedMcpServers"
+        },
+        {
+          "name": "minimumVersion"
+        },
+        {
+          "name": "model"
+        },
+        {
+          "name": "modelOverrides"
+        },
+        {
+          "name": "otelHeadersHelper"
+        },
+        {
+          "name": "outputStyle"
+        },
+        {
+          "name": "parentSettingsBehavior"
+        },
+        {
+          "name": "permissionExplainerEnabled"
+        },
+        {
+          "name": "permissions"
+        },
+        {
+          "name": "permissions.additionalDirectories"
+        },
+        {
+          "name": "permissions.allow"
+        },
+        {
+          "name": "permissions.ask"
+        },
+        {
+          "name": "permissions.defaultMode"
+        },
+        {
+          "name": "permissions.deny"
+        },
+        {
+          "name": "permissions.disableAutoMode"
+        },
+        {
+          "name": "permissions.disableBypassPermissionsMode"
+        },
+        {
+          "name": "plansDirectory"
+        },
+        {
+          "name": "pluginConfigs"
+        },
+        {
+          "name": "pluginSuggestionMarketplaces"
+        },
+        {
+          "name": "pluginTrustMessage"
+        },
+        {
+          "name": "policyHelper"
+        },
+        {
+          "name": "policyHelper.path"
+        },
+        {
+          "name": "policyHelper.refreshIntervalMs"
+        },
+        {
+          "name": "policyHelper.timeoutMs"
+        },
+        {
+          "name": "prUrlTemplate"
+        },
+        {
+          "name": "preferredNotifChannel"
+        },
+        {
+          "name": "prefersReducedMotion"
+        },
+        {
+          "name": "processWrapper"
+        },
+        {
+          "name": "remoteControlAtStartup"
+        },
+        {
+          "name": "requireCoworkFullVmSandbox"
+        },
+        {
+          "name": "requiredMaximumVersion"
+        },
+        {
+          "name": "requiredMinimumVersion"
+        },
+        {
+          "name": "respectGitignore"
+        },
+        {
+          "name": "respondToBashCommands"
+        },
+        {
+          "name": "sandbox"
+        },
+        {
+          "name": "sandbox.allowAppleEvents"
+        },
+        {
+          "name": "sandbox.allowUnsandboxedCommands"
+        },
+        {
+          "name": "sandbox.autoAllowBashIfSandboxed"
+        },
+        {
+          "name": "sandbox.bwrapPath"
+        },
+        {
+          "name": "sandbox.credentials"
+        },
+        {
+          "name": "sandbox.enableWeakerNestedSandbox"
+        },
+        {
+          "name": "sandbox.enableWeakerNetworkIsolation"
+        },
+        {
+          "name": "sandbox.enabled"
+        },
+        {
+          "name": "sandbox.enabledPlatforms"
+        },
+        {
+          "name": "sandbox.excludedCommands"
+        },
+        {
+          "name": "sandbox.failIfUnavailable"
+        },
+        {
+          "name": "sandbox.filesystem"
+        },
+        {
+          "name": "sandbox.ignoreViolations"
+        },
+        {
+          "name": "sandbox.network"
+        },
+        {
+          "name": "sandbox.ripgrep"
+        },
+        {
+          "name": "sandbox.socatPath"
+        },
+        {
+          "name": "showClearContextOnPlanAccept"
+        },
+        {
+          "name": "showThinkingSummaries"
+        },
+        {
+          "name": "showTurnDuration"
+        },
+        {
+          "name": "skillListingBudgetFraction"
+        },
+        {
+          "name": "skillListingMaxDescChars"
+        },
+        {
+          "name": "skillOverrides"
+        },
+        {
+          "name": "skipDangerousModePermissionPrompt"
+        },
+        {
+          "name": "skipWebFetchPreflight"
+        },
+        {
+          "name": "skippedMarketplaces"
+        },
+        {
+          "name": "skippedPlugins"
+        },
+        {
+          "name": "spinnerTipsEnabled"
+        },
+        {
+          "name": "spinnerTipsOverride"
+        },
+        {
+          "name": "spinnerTipsOverride.excludeDefault"
+        },
+        {
+          "name": "spinnerTipsOverride.tips"
+        },
+        {
+          "name": "spinnerVerbs"
+        },
+        {
+          "name": "spinnerVerbs.mode"
+        },
+        {
+          "name": "spinnerVerbs.verbs"
+        },
+        {
+          "name": "sshConfigs"
+        },
+        {
+          "name": "sshHostAllowlist"
+        },
+        {
+          "name": "statusLine"
+        },
+        {
+          "name": "statusLine.command"
+        },
+        {
+          "name": "statusLine.hideVimModeIndicator"
+        },
+        {
+          "name": "statusLine.padding"
+        },
+        {
+          "name": "statusLine.refreshInterval"
+        },
+        {
+          "name": "statusLine.type"
+        },
+        {
+          "name": "strictKnownMarketplaces"
+        },
+        {
+          "name": "strictPluginOnlyCustomization"
+        },
+        {
+          "name": "subagentStatusLine"
+        },
+        {
+          "name": "subagentStatusLine.command"
+        },
+        {
+          "name": "subagentStatusLine.type"
+        },
+        {
+          "name": "syntaxHighlightingDisabled"
+        },
+        {
+          "name": "teammateDefaultModel"
+        },
+        {
+          "name": "teammateMode"
+        },
+        {
+          "name": "terminalProgressBarEnabled"
+        },
+        {
+          "name": "theme"
+        },
+        {
+          "name": "tui"
+        },
+        {
+          "name": "useAutoModeDuringPlan"
+        },
+        {
+          "name": "verbose"
+        },
+        {
+          "name": "viewMode"
+        },
+        {
+          "name": "vimInsertModeRemaps"
+        },
+        {
+          "name": "voice"
+        },
+        {
+          "name": "voice.autoSubmit"
+        },
+        {
+          "name": "voice.enabled"
+        },
+        {
+          "name": "voice.mode"
+        },
+        {
+          "name": "voiceEnabled"
+        },
+        {
+          "name": "wheelScrollAccelerationEnabled"
+        },
+        {
+          "name": "workflowKeywordTriggerEnabled"
+        },
+        {
+          "name": "workflowSizeGuideline"
+        },
+        {
+          "name": "worktree"
+        },
+        {
+          "name": "worktree.baseRef"
+        },
+        {
+          "name": "worktree.bgIsolation"
+        },
+        {
+          "name": "worktree.sparsePaths"
+        },
+        {
+          "name": "worktree.symlinkDirectories"
+        },
+        {
+          "name": "wslInheritsWindowsSettings"
+        }
+      ]
+    },
+    {
+      "kind": "slash-command",
+      "source": "engine session",
+      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+    },
+    {
+      "kind": "subcommand",
+      "source": "claude --help, claude \u003csubcommand\u003e --help",
+      "items": [
+        {
+          "name": "agents"
+        },
+        {
+          "name": "attach"
+        },
+        {
+          "name": "auth"
+        },
+        {
+          "name": "auto-mode"
+        },
+        {
+          "name": "daemon",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "design-login",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "doctor"
+        },
+        {
+          "name": "drop-worktree-registrations",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "edit-chrome-settings",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "edit-hook",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "edit-memory-settings",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "edit-permission-rules",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "edit-sandbox-settings",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "edit-skill-overrides",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "gateway"
+        },
+        {
+          "name": "import"
+        },
+        {
+          "name": "import-conversations",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "install"
+        },
+        {
+          "name": "logs"
+        },
+        {
+          "name": "mcp"
+        },
+        {
+          "name": "plugin",
+          "attrs": {
+            "aliases": "plugins"
+          }
+        },
+        {
+          "name": "project",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "purge"
+        },
+        {
+          "name": "respawn"
+        },
+        {
+          "name": "rm"
+        },
+        {
+          "name": "sandbox",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "self-hosted-runner",
+          "attrs": {
+            "hidden": "true"
+          }
+        },
+        {
+          "name": "setup-token"
+        },
+        {
+          "name": "stop",
+          "attrs": {
+            "aliases": "kill"
+          }
+        },
+        {
+          "name": "ultrareview"
+        },
+        {
+          "name": "update",
+          "attrs": {
+            "aliases": "upgrade"
+          }
+        },
+        {
+          "name": "login",
+          "scope": "auth"
+        },
+        {
+          "name": "logout",
+          "scope": "auth"
+        },
+        {
+          "name": "status",
+          "scope": "auth"
+        },
+        {
+          "name": "config",
+          "scope": "auto-mode"
+        },
+        {
+          "name": "critique",
+          "scope": "auto-mode"
+        },
+        {
+          "name": "defaults",
+          "scope": "auto-mode"
+        },
+        {
+          "name": "reset",
+          "scope": "auto-mode"
+        },
+        {
+          "name": "add",
+          "scope": "mcp"
+        },
+        {
+          "name": "add-from-claude-desktop",
+          "scope": "mcp"
+        },
+        {
+          "name": "add-json",
+          "scope": "mcp"
+        },
+        {
+          "name": "get",
+          "scope": "mcp"
+        },
+        {
+          "name": "list",
+          "scope": "mcp"
+        },
+        {
+          "name": "login",
+          "scope": "mcp"
+        },
+        {
+          "name": "logout",
+          "scope": "mcp"
+        },
+        {
+          "name": "remove",
+          "scope": "mcp"
+        },
+        {
+          "name": "reset-project-choices",
+          "scope": "mcp"
+        },
+        {
+          "name": "serve",
+          "scope": "mcp"
+        },
+        {
+          "name": "configure",
+          "scope": "plugin"
+        },
+        {
+          "name": "details",
+          "scope": "plugin"
+        },
+        {
+          "name": "disable",
+          "scope": "plugin"
+        },
+        {
+          "name": "enable",
+          "scope": "plugin"
+        },
+        {
+          "name": "eval",
+          "scope": "plugin"
+        },
+        {
+          "name": "init",
+          "scope": "plugin",
+          "attrs": {
+            "aliases": "new"
+          }
+        },
+        {
+          "name": "install",
+          "scope": "plugin",
+          "attrs": {
+            "aliases": "i"
+          }
+        },
+        {
+          "name": "list",
+          "scope": "plugin"
+        },
+        {
+          "name": "marketplace",
+          "scope": "plugin"
+        },
+        {
+          "name": "prune",
+          "scope": "plugin",
+          "attrs": {
+            "aliases": "autoremove"
+          }
+        },
+        {
+          "name": "tag",
+          "scope": "plugin"
+        },
+        {
+          "name": "test",
+          "scope": "plugin"
+        },
+        {
+          "name": "uninstall",
+          "scope": "plugin",
+          "attrs": {
+            "aliases": "remove"
+          }
+        },
+        {
+          "name": "update",
+          "scope": "plugin"
+        },
+        {
+          "name": "validate",
+          "scope": "plugin"
+        },
+        {
+          "name": "install",
+          "scope": "sandbox"
+        },
+        {
+          "name": "status",
+          "scope": "sandbox"
+        }
+      ]
+    },
+    {
+      "kind": "subcommand-candidate",
+      "source": "claude binary",
+      "items": [
+        {
+          "name": "clear"
+        },
+        {
+          "name": "setup"
+        },
+        {
+          "name": "show"
+        },
+        {
+          "name": "xaa"
+        }
+      ]
+    },
+    {
+      "kind": "tool",
+      "source": "engine session",
+      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+    }
+  ]
+}
