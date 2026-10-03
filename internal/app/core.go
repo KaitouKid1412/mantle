@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/ui"
 )
 
 // ExitConfirmWindow is how long a second ctrl+c (or ctrl+d) has to follow the first.
@@ -35,6 +36,16 @@ func CoreFeatures() []ext.Feature {
 				Description: "Redraw the screen",
 				Run:         func(c ext.Ctx) (bool, tea.Cmd) { return true, c.Reprint() },
 			})
+			return nil
+		},
+	}, {
+		ID:     "core.widgets",
+		Order:  -99,
+		Parity: []string{"CORE-02"},
+		Setup: func(r ext.Registrar) error {
+			for _, s := range ui.Stories() {
+				r.AddStory(s)
+			}
 			return nil
 		},
 	}}
