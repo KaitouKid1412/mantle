@@ -205,7 +205,7 @@ and `claude` is seamless.
     (`features/ecosystem/handoff`, CL-24), so plan 08 does not.
   - Ownership: PARITY.md CU-08 (`/autocompact`) moved to plan 08 by the coordinator
     (2026-10-03); plan 06's file did not list it.
-- [ ] **B11 [M2] Read-back test harness.** In a temp HOME / `CLAUDE_CONFIG_DIR`, perform
+- [x] **B11 [M2] Read-back test harness.** In a temp HOME / `CLAUDE_CONFIG_DIR`, perform
   every write path, then read effective settings back through real `claude` with a
   zero-token `initialize` + `get_settings` (the probe pattern from plan 02). Values must
   match.
@@ -232,6 +232,20 @@ and `claude` is seamless.
   model) caps it. `ultracode` is a separate boolean setting.
 - `set_model` resets with `"default"` (as typed in `pkg/proto`). `unavailable_models`
   entries are `ModelInfo` plus `disabled: true`.
+
+## Facts verified by the B11 read-back harness (real 2.1.288 against fakeapi)
+- Every `/config` key mantle writes to settings files, plus the `/model`, `/theme`,
+  `/permissions`, `/sandbox`, `/fast`, `ultracode` and `/tui` writes, passes the engine's
+  strict schema and is read back unchanged per source.
+- On startup the engine **migrates `model: "opus"` to `"opus[1m]"`** and rewrites the user
+  settings file in its own key order (it also adds `env` entries from the environment).
+- `update_settings {source: userSettings, settings: {effortLevel}}` stores the effort on
+  the **session model's `modelSettings` entry**, not as top-level `effortLevel`.
+- After `/config row=value` the engine answers at once but writes `~/.claude.json`
+  **lazily** (by the time it exits). The panel shows its own value meanwhile.
+- `/config autoInstallIdeExtension=…` exists only inside an IDE terminal; `/config
+  chrome=…` is refused (it needs the panel's consent flow), so the Chrome row is not in
+  mantle's table (plan 09's `/chrome` hand-off covers it).
 
 ## Design notes
 - **Structure.** One feature per panel (`settings.model`, `settings.config`,
