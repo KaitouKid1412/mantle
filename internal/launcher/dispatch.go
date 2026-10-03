@@ -11,12 +11,19 @@ import (
 // PassthroughSubcommands are the claude subcommands the launcher execs
 // straight to claude, so they work even when the UI build is broken.
 //
-// This is a copy of plan 11's canonical list in internal/cli (minus doctor,
-// which belongs to the launcher). The launcher stays standard-library-only,
-// so it cannot import internal/cli; a test asserts the two lists match.
+// This is a copy of plan 11's canonical list, cli.PassthroughSubcommands()
+// (names and aliases, sorted, minus doctor, which belongs to the launcher).
+// It includes claude's hidden root subcommands: without them `mantle rc`
+// would become a model prompt. The launcher stays standard-library-only, so
+// it cannot import internal/cli; a test in internal/selfmod asserts the two
+// lists match.
 var PassthroughSubcommands = []string{
-	"agents", "attach", "auth", "auto-mode", "gateway", "import", "install",
-	"kill", "logs", "mcp", "plugin", "plugins", "purge", "respawn", "rm",
+	"agents", "attach", "auth", "auto-mode", "daemon", "design-login",
+	"drop-worktree-registrations", "edit-chrome-settings", "edit-hook",
+	"edit-memory-settings", "edit-permission-rules", "edit-sandbox-settings",
+	"edit-skill-overrides", "gateway", "import", "import-conversations",
+	"install", "kill", "logs", "mcp", "plugin", "plugins", "project", "purge",
+	"rc", "remote-control", "respawn", "rm", "sandbox", "self-hosted-runner",
 	"setup-token", "stop", "ultrareview", "update", "upgrade",
 }
 
