@@ -1,0 +1,3 @@
+claude.ai Example Docs:
+  Scope: claude.ai config
+  Status: ✔ Connected
