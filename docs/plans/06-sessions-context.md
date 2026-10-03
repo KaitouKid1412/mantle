@@ -182,7 +182,7 @@ Everything about conversations as objects:
   - Actions: restore code + conversation, conversation only, or code only. Summarize from
     here / up to here: emulate via compact instructions or H.
   - Restore the pre-`/clear` session.
-- [ ] **B7 [M2] `/branch [name]` and `/fork [prompt]`.** Branch = fork at the current point
+- [x] **B7 [M2] `/branch [name]` and `/fork [prompt]`.** Branch = fork at the current point
   (`--fork-session`, restart, keep the old one resumable). `/fork` = spawn a background
   session via `claude --bg` or H (Claude Code sends forks to the background).
 - [ ] **B8 [M2] `/export [filename]` and `/copy [N]`.**

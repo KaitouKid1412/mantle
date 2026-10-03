@@ -44,6 +44,8 @@ type feature struct {
 	ho      *handoff          // the hand-off in progress, if any
 	goal    *goal             // the main session's active /goal
 	away    awayState
+	// branching is a /branch waiting for its fork's session id.
+	branching *branching
 
 	// startupSpawn returns the main engine's options as parsed from the command line
 	// (plan 11's cli.Current().Spawn).
@@ -54,6 +56,8 @@ type feature struct {
 	worktrees  func(cwd string) []string
 	claudePath func() (string, error)
 	getwd      func() (string, error)
+	// runBackground runs a claude command that returns at once (/fork).
+	runBackground func(bin, cwd string, argv []string) (string, error)
 }
 
 // engineState is what the feature tracks per engine.
@@ -77,10 +81,11 @@ func newFeature(l sessions.Layout, cachePath string) *feature {
 			st, ok := cli.Current()
 			return st.Spawn, ok
 		},
-		now:        time.Now,
-		worktrees:  gitWorktrees,
-		claudePath: findClaude,
-		getwd:      os.Getwd,
+		now:           time.Now,
+		worktrees:     gitWorktrees,
+		claudePath:    findClaude,
+		getwd:         os.Getwd,
+		runBackground: runBackgroundClaude,
 	}
 }
 
@@ -103,6 +108,7 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerPicker(r)
 	f.registerPassthrough(r)
 	f.registerRename(r)
+	f.registerBranch(r)
 	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
 	ext.Subscribe(r, "sessions.notify", f.onNotify)
 	ext.Subscribe(r, "sessions.cwd-changed", f.onCwdChanged)
@@ -166,6 +172,9 @@ func (f *feature) onSessionChanged(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd
 	}
 	st.session = sid
 	var cmds []tea.Cmd
+	if m.EngineID == ext.MainEngine {
+		cmds = append(cmds, f.onBranchSession(ctx, sid))
+	}
 	if t := f.titles[sid]; t != "" && m.Info.Title == "" {
 		info := m.Info
 		info.Title = t
