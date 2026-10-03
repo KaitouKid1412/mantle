@@ -93,12 +93,8 @@ func TestRewindConversation(t *testing.T) {
 	if len(hist) != 1 || !hist[0].Reset || len(hist[0].Items) != 4 || hist[0].Items[3].ID != "result:"+u("1s", 1) {
 		t.Fatalf("history = %d items", len(hist[0].Items))
 	}
-	offered := false
-	for _, n := range h.ctx.Notices {
-		offered = offered || strings.Contains(n.Text, "And the tests?")
-	}
-	if !offered {
-		t.Fatalf("prompt not offered back: %+v", h.ctx.Notices)
+	if set := find[ext.EditorSetTextMsg](h); len(set) != 1 || set[0].Text != "And the tests?" {
+		t.Fatalf("prompt not put back: %+v", set)
 	}
 }
 

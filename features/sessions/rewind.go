@@ -362,11 +362,10 @@ func (f *feature) onRewindPoint(ctx ext.Ctx, m rewindPointMsg) tea.Cmd {
 	}), refill)
 }
 
-// refillPrompt puts the rewound prompt back into the input box (EditorSetTextMsg once
-// the input feature has it); until then the text is shown in a notice.
+// refillPrompt puts the rewound prompt back into the input box for editing.
 func (f *feature) refillPrompt(ctx ext.Ctx, text string) tea.Cmd {
 	if strings.TrimSpace(text) == "" {
 		return nil
 	}
-	return notice(ctx, "rewind-prompt", "Rewound prompt: "+truncateRunes(text, 200), ext.NoticeInfo)
+	return ext.Msg(ext.EditorSetTextMsg{Text: text})
 }
