@@ -230,7 +230,16 @@
     table: native / E / H), `init.tools` (vs plan 03's renderer keys; tools without a
     renderer fall back to the generic renderer and are flagged), output styles and models.
   - Integrate `scripts/sdk-diff` (plan 02) for protocol message and control subtypes.
-- [ ] **B4 [M2] Runtime drift notice.** When plan 02 detects an engine version change
+- [x] **B4 [M2] Runtime drift notice.** Done in `features/cli` + `cli.RuntimeDrift`: on
+  start, a background Cmd runs `claude --version`; when it differs from
+  `~/.mantle/state/drift.json`, it compares `claude --help` flags and a zero-token engine
+  session's built-in commands and tools with the tables embedded in the binary
+  (`internal/cli/known_engine.json`, written by `scripts/drift -accept`, and the flag
+  table), records the result and shows one notice. New flags' arity is fed back to the
+  parser on later starts (`TableWithLearnt`), so a new flag's value is never taken for the
+  prompt. `MANTLE_DRIFT_CHECK=off` disables it (tests, CI). Plan 02's version probe (B9)
+  isn't needed: the check keys on the version itself.
+  Original text: When plan 02 detects an engine version change
   (probe), compare engine-reported commands, tools and flags against the tables embedded in
   the binary. Show one notice, e.g. "Claude Code 2.1.290 adds 3 commands mantle doesn't know
   yet; they work as engine passthrough". Record the result in `~/.mantle/state/drift.json`.

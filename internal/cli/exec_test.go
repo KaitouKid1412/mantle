@@ -41,6 +41,7 @@ esac
 		t.Fatal(err)
 	}
 	t.Setenv(EnvClaudeBin, bin)
+	t.Setenv("MANTLE_HOME", filepath.Join(dir, "mantle"))
 	return bin, out
 }
 

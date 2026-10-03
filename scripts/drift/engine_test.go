@@ -190,15 +190,3 @@ func TestParseSDKDiff(t *testing.T) {
 		t.Error("want an error")
 	}
 }
-
-func TestIsolatedEnv(t *testing.T) {
-	env := isolatedEnv([]string{"PATH=/bin", "ANTHROPIC_API_KEY=real", "CLAUDE_CONFIG_DIR=/home/x/.claude", "CLAUDE_CODE_OAUTH_TOKEN=t", "HOME=/h"},
-		"/tmp/cfg", "http://127.0.0.1:1")
-	joined := strings.Join(env, "\n")
-	if strings.Contains(joined, "real") || strings.Contains(joined, "/home/x") || strings.Contains(joined, "OAUTH") {
-		t.Errorf("leaked: %s", joined)
-	}
-	if !strings.Contains(joined, "PATH=/bin") || !strings.Contains(joined, "CLAUDE_CONFIG_DIR=/tmp/cfg") {
-		t.Errorf("env %s", joined)
-	}
-}

@@ -290,6 +290,19 @@ func TestBaselineIsClassified(t *testing.T) {
 	}
 }
 
+// TestKnownEngineMatchesBaseline: the engine tables mantle embeds for its runtime check
+// are the accepted baseline's (`-accept` writes both).
+func TestKnownEngineMatchesBaseline(t *testing.T) {
+	b, err := loadSnapshot("baseline.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, got := knownEngine(b), cli.Known()
+	if want.ClaudeVersion != got.ClaudeVersion || !slices.Equal(want.Commands, got.Commands) || !slices.Equal(want.Tools, got.Tools) {
+		t.Errorf("internal/cli/known_engine.json is stale; run go run ./scripts/drift -from scripts/drift/baseline.json -accept")
+	}
+}
+
 // TestCompareGolden diffs a simulated next claude release (the 2.1.288 fixture with
 // changes applied) against tables derived from the fixture.
 func TestCompareGolden(t *testing.T) {
