@@ -364,6 +364,13 @@ cost.
 - **M2, full parity:** every PARITY.md row is done or explicitly H/X.
 - **M3, polish:** fullscreen renderer, fd-handoff instant restart, spellcheck.
 
+Contract tags reached (sessions run on separate worktree branches, so pull a tag into
+your branch with `git merge <tag>`):
+- `proto-v1` (2026-10-03, plan 02): `pkg/proto`.
+- `contracts-v1` (2026-10-03, plan 01): `pkg/ext` (+ `pkg/ext/exttest`), `pkg/theme`,
+  keymap ID table and defaults (`pkg/ext/keys.go`, `actions.go`), `internal/testkit`,
+  `internal/archtest`. Includes `proto-v1`.
+
 ## Rules for parallel sessions (also in CLAUDE.md)
 
 1. **Read first.** Before starting, read this file and your plan.
