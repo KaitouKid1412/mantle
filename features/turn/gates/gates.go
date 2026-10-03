@@ -52,7 +52,7 @@ func Evaluate(in Input) *Report {
 	r.Store = LoadGateStore(in.Env)
 	r.Trust = CheckTrust(in.Env, in.Cwd, r.Global)
 	if !in.Flags.StrictMcpConfig {
-		r.Mcp = McpApproval(in.Env, in.Cwd, r.Settings, r.Global)
+		r.Mcp = McpApproval(in.Env, in.Cwd, r.Settings, r.Global, r.Store)
 	}
 	r.TrustReport = CollectTrustReport(in.Cwd, r.Settings, r.Mcp)
 	r.BypassWarning = BypassWarningNeeded(in.Flags, r.Settings, r.Store)
@@ -106,6 +106,8 @@ type Answers struct {
 	// McpApproved maps a pending server name to the user's choice. Missing names count
 	// as not approved.
 	McpApproved map[string]bool
+	// McpEnableAll approves every current and future .mcp.json server of the project.
+	McpEnableAll bool
 	// APIKeyApproved is the answer to the API-key prompt (nil when not asked).
 	APIKeyApproved *bool
 }
@@ -134,7 +136,14 @@ func (r *Report) Resolve(a Answers) (Outcome, error) {
 	}
 	out := Outcome{Proceed: true}
 	add := map[string]any{}
-	if disabled := r.Mcp.Disabled(a.McpApproved); len(disabled) > 0 {
+	approved := a.McpApproved
+	if a.McpEnableAll {
+		approved = map[string]bool{}
+		for _, s := range r.Mcp.Pending() {
+			approved[s.Name] = true
+		}
+	}
+	if disabled := r.Mcp.Disabled(approved); len(disabled) > 0 {
 		add["disabledMcpjsonServers"] = disabled
 	}
 	s, err := FlagSettings(r.Input.Flags.Settings, r.Input.Cwd, add)
@@ -154,8 +163,7 @@ func (r *Report) Resolve(a Answers) (Outcome, error) {
 }
 
 // Record persists the answers to mantle's own stores: trust for the folder, the bypass
-// acceptance and the API-key answer. MCP choices are per-launch here; plan 05 Part B
-// persists them through the settings writer.
+// acceptance, the .mcp.json choices and the API-key answer.
 func (r *Report) Record(a Answers) error {
 	pending := r.Pending()
 	if slices.Contains(pending, KindTrust) && a.TrustAccepted {
@@ -165,6 +173,15 @@ func (r *Report) Record(a Answers) error {
 	}
 	if slices.Contains(pending, KindBypass) && a.BypassAccepted {
 		if err := RecordBypassAccepted(r.Input.Env); err != nil {
+			return err
+		}
+	}
+	if slices.Contains(pending, KindMcp) {
+		answered := map[string]bool{}
+		for _, s := range r.Mcp.Pending() {
+			answered[s.Name] = a.McpEnableAll || a.McpApproved[s.Name]
+		}
+		if err := RecordMcp(r.Input.Env, r.Input.Cwd, answered, a.McpEnableAll); err != nil {
 			return err
 		}
 	}

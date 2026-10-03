@@ -284,7 +284,7 @@ func TestMcpApproval(t *testing.T) {
 		`{"enabledMcpjsonServers":["docs"],"disabledMcpjsonServers":["web"]}`)
 	f.write(filepath.Join(f.env.Home, ".claude", "settings.json"), `{"enabledMcpjsonServers":["evil_name"]}`)
 	layers := LoadSettings(f.env, f.proj, "")
-	res := McpApproval(f.env, f.proj, layers, nil)
+	res := McpApproval(f.env, f.proj, layers, nil, nil)
 
 	got := map[string]McpDecision{}
 	for _, s := range res.Servers {
@@ -316,7 +316,7 @@ func TestMcpApprovalEnableAllAndLegacy(t *testing.T) {
 	f.claudeJSON(map[string]any{"projects": map[string]any{f.proj: map[string]any{
 		"disabledMcpjsonServers": []string{"db"}, "enableAllProjectMcpServers": true,
 	}}})
-	res := McpApproval(f.env, f.proj, LoadSettings(f.env, f.proj, ""), nil)
+	res := McpApproval(f.env, f.proj, LoadSettings(f.env, f.proj, ""), nil, nil)
 	if len(res.Pending()) != 0 {
 		t.Fatalf("enableAll should approve everything not rejected: %+v", res.Servers)
 	}
@@ -329,14 +329,32 @@ func TestMcpApprovalNearestFileWinsAndErrors(t *testing.T) {
 	f := newFixture(t)
 	f.write(filepath.Join(filepath.Dir(f.proj), ".mcp.json"), `{"mcpServers":{"db":{"command":"far"},"up":{"command":"u"}}}`)
 	f.write(filepath.Join(f.proj, ".mcp.json"), `{"mcpServers":{"db":{"command":"near"}}}`)
-	res := McpApproval(f.env, f.proj, nil, nil)
+	res := McpApproval(f.env, f.proj, nil, nil, nil)
 	if len(res.Servers) != 2 || res.Servers[0].Server.Command != "near" {
 		t.Fatalf("got %+v", res.Servers)
 	}
 	f.write(filepath.Join(f.proj, ".mcp.json"), `{oops`)
-	res = McpApproval(f.env, f.proj, nil, nil)
+	res = McpApproval(f.env, f.proj, nil, nil, nil)
 	if len(res.Errors) != 1 || len(res.Servers) != 2 || res.Servers[0].Server.Command != "far" {
 		t.Fatalf("malformed near file: %+v", res)
+	}
+}
+
+func TestMcpEnableAll(t *testing.T) {
+	f := newFixture(t)
+	f.write(filepath.Join(f.proj, ".mcp.json"), `{"mcpServers":{"a":{"command":"x"}}}`)
+	in := Input{Env: f.env, Cwd: f.proj, AutoTrust: true}
+	r := Evaluate(in)
+	a := Answers{McpEnableAll: true}
+	if out, _ := r.Resolve(a); out.Settings != "" {
+		t.Fatalf("enable-all should disable nothing: %q", out.Settings)
+	}
+	if err := r.Record(a); err != nil {
+		t.Fatal(err)
+	}
+	f.write(filepath.Join(f.proj, ".mcp.json"), `{"mcpServers":{"a":{"command":"x"},"b":{"command":"y"}}}`)
+	if got := Evaluate(in).Pending(); len(got) != 0 {
+		t.Fatalf("future servers should be approved: %v", got)
 	}
 }
 
@@ -525,7 +543,7 @@ func TestTrustReport(t *testing.T) {
 	f.write(filepath.Join(f.proj, ".mcp.json"), `{"mcpServers":{"db":{"command":"x"}}}`)
 	mustMkdir(t, filepath.Join(f.proj, ".claude", "commands"))
 	layers := LoadSettings(f.env, f.proj, "")
-	r := CollectTrustReport(f.proj, layers, McpApproval(f.env, f.proj, layers, nil))
+	r := CollectTrustReport(f.proj, layers, McpApproval(f.env, f.proj, layers, nil, nil))
 
 	if len(r.AllowRules) != 1 || r.AllowRules[0].Value != "Bash(npm test:*)" {
 		t.Fatalf("allow rules (user scope must be excluded): %+v", r.AllowRules)
@@ -582,9 +600,13 @@ func TestEvaluateResolveRecord(t *testing.T) {
 	if err := r.Record(a); err != nil {
 		t.Fatal(err)
 	}
-	// Next launch: trust, bypass and API key are remembered; MCP asks again (per launch).
-	if got := Evaluate(in).Pending(); !slices.Equal(got, []Kind{KindMcp}) {
+	// Next launch: every answer is remembered, and the rejected server stays disabled.
+	r2 := Evaluate(in)
+	if got := r2.Pending(); len(got) != 0 {
 		t.Fatalf("after record, pending = %v", got)
+	}
+	if out, _ := r2.Resolve(Answers{}); out.Settings != `{"disabledMcpjsonServers":["db"],"model":"m"}` {
+		t.Fatalf("remembered rejection lost: %s", out.Settings)
 	}
 	// AutoTrust and StrictMcpConfig skip their gates.
 	in2 := Input{Env: f.env, Cwd: filepath.Join(f.root, "other"), AutoTrust: true, Flags: LaunchFlags{StrictMcpConfig: true}}

@@ -54,8 +54,8 @@ type McpApprovalResult struct {
 //     so the caller must ask, and pass the ones not approved as disabledMcpjsonServers.
 //
 // The settings keys merge across every scope plus the legacy per-project entries in
-// ~/.claude.json. gc may be nil.
-func McpApproval(env Env, cwd string, layers Layers, gc *GlobalConfig) McpApprovalResult {
+// ~/.claude.json and the answers mantle recorded (store). gc and store may be nil.
+func McpApproval(env Env, cwd string, layers Layers, gc *GlobalConfig, store *GateStore) McpApprovalResult {
 	if gc == nil {
 		gc = LoadGlobalConfig(env)
 	}
@@ -92,6 +92,13 @@ func McpApproval(env Env, cwd string, layers Layers, gc *GlobalConfig) McpApprov
 			disabled = append(disabled, p.DisabledMcpjsonServers...)
 			enabled = append(enabled, p.EnabledMcpjsonServers...)
 			enableAll = enableAll || p.EnableAllProjectMcpServers
+		}
+		if store != nil {
+			if c, ok := store.Mcp[k]; ok {
+				disabled = append(disabled, c.Rejected...)
+				enabled = append(enabled, c.Approved...)
+				enableAll = enableAll || c.EnableAll
+			}
 		}
 	}
 

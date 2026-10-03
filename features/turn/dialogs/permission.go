@@ -311,14 +311,11 @@ func (p *Permission) HandlePaste(s string) (bool, Effect) {
 	return true, None
 }
 
+// SetPosition implements Positioner.
+func (p *Permission) SetPosition(index, total int) { p.ctx.Index, p.ctx.Total = index, total }
+
 // Title is the frame title, with the queue counter.
-func (p *Permission) Title() string {
-	t := p.view.title
-	if p.ctx.Total > 1 {
-		t += " (" + itoa(p.ctx.Index) + " of " + itoa(p.ctx.Total) + ")"
-	}
-	return t
-}
+func (p *Permission) Title() string { return p.view.title + counter(p.ctx.Index, p.ctx.Total) }
 
 // attribution names who is asking when it isn't the main session's own agent.
 func attribution(engine, agent string) string {

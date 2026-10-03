@@ -73,6 +73,9 @@ func NewAskQuestion(req ToolRequest, ctx PermissionContext) (*AskQuestion, error
 // Done reports whether the prompt has been answered.
 func (a *AskQuestion) Done() bool { return a.result != nil }
 
+// SetPosition implements Positioner.
+func (a *AskQuestion) SetPosition(index, total int) { a.ctx.Index, a.ctx.Total = index, total }
+
 // Response is the answer to send; nil until Done.
 func (a *AskQuestion) Response() *PermissionResult { return a.result }
 
@@ -379,7 +382,7 @@ func (a *AskQuestion) View(width int, st Styles) string {
 		body = append(body, "")
 		body = append(body, a.review.lines(w, st, true)...)
 		body = append(body, styleLines(st.Dim, wrap("enter to confirm · ←/→ to switch questions · esc to cancel", w))...)
-		return frame(title, body, width, "permission", st)
+		return frame(title+counter(a.ctx.Index, a.ctx.Total), body, width, "permission", st)
 	}
 
 	i := a.tab
@@ -469,5 +472,5 @@ func (a *AskQuestion) View(width int, st Styles) string {
 		hint += " · tab for next question"
 	}
 	body = append(body, styleLines(st.Dim, wrap(hint, w))...)
-	return frame(title, body, width, "permission", st)
+	return frame(title+counter(a.ctx.Index, a.ctx.Total), body, width, "permission", st)
 }

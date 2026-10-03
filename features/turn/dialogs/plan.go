@@ -265,9 +265,8 @@ func (p *PlanApproval) View(width int, st Styles) string {
 	} else {
 		body = append(body, styleLines(st.Dim, wrap("ctrl+g to edit the plan · esc to keep planning", w))...)
 	}
-	title := "Ready to code?"
-	if p.ctx.Total > 1 {
-		title += " (" + itoa(p.ctx.Index) + " of " + itoa(p.ctx.Total) + ")"
-	}
-	return frame(title, body, width, "planMode", st)
+	return frame("Ready to code?"+counter(p.ctx.Index, p.ctx.Total), body, width, "planMode", st)
 }
+
+// SetPosition implements Positioner.
+func (p *PlanApproval) SetPosition(index, total int) { p.ctx.Index, p.ctx.Total = index, total }

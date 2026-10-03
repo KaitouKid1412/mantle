@@ -3,6 +3,7 @@ package gates
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"sort"
 	"strings"
 	"time"
 )
@@ -19,6 +20,55 @@ type GateStore struct {
 	// APIKeys maps sha256(trimmed key) to "approved" or "rejected". mantle stores a hash,
 	// never the key or a slice of it.
 	APIKeys map[string]string `json:"apiKeys,omitempty"`
+	// Mcp holds .mcp.json server choices per project key. Claude Code keeps these in
+	// local settings; mantle keeps its own until the settings writer can merge safely.
+	Mcp map[string]McpChoices `json:"mcp,omitempty"`
+}
+
+// McpChoices are a project's answers to the .mcp.json approval dialog.
+type McpChoices struct {
+	Approved  []string `json:"approved,omitempty"`
+	Rejected  []string `json:"rejected,omitempty"`
+	EnableAll bool     `json:"enableAll,omitempty"`
+}
+
+// RecordMcp remembers the approval dialog's answers for cwd's project.
+func RecordMcp(env Env, cwd string, approved map[string]bool, enableAll bool) error {
+	_, key := projectRoots(absClean(cwd))
+	if key == "" {
+		key = absClean(cwd)
+	}
+	return updateJSON(env.GateStorePath(), func(s *GateStore) error {
+		s.Version = 1
+		if s.Mcp == nil {
+			s.Mcp = map[string]McpChoices{}
+		}
+		c := s.Mcp[key]
+		c.EnableAll = c.EnableAll || enableAll
+		for name, ok := range approved {
+			c.Approved = removeString(c.Approved, name)
+			c.Rejected = removeString(c.Rejected, name)
+			if ok {
+				c.Approved = append(c.Approved, name)
+			} else {
+				c.Rejected = append(c.Rejected, name)
+			}
+		}
+		sort.Strings(c.Approved)
+		sort.Strings(c.Rejected)
+		s.Mcp[key] = c
+		return nil
+	})
+}
+
+func removeString(list []string, s string) []string {
+	var out []string
+	for _, x := range list {
+		if x != s {
+			out = append(out, x)
+		}
+	}
+	return out
 }
 
 // LoadGateStore reads mantle's gate answers; a missing or corrupt file is empty.

@@ -251,6 +251,9 @@ func NewElicitation(req ElicitationRequest, ctx PermissionContext) *Elicitation 
 // Done reports whether the dialog has been answered.
 func (e *Elicitation) Done() bool { return e.result != nil }
 
+// SetPosition implements Positioner.
+func (e *Elicitation) SetPosition(index, total int) { e.ctx.Index, e.ctx.Total = index, total }
+
 // Response is the answer to send; nil until Done.
 func (e *Elicitation) Response() *ElicitationResult { return e.result }
 
@@ -491,8 +494,9 @@ func (e *Elicitation) View(width int, st Styles) string {
 }
 
 func (e *Elicitation) title() string {
+	t := "Input requested"
 	if e.req.Title != "" {
-		return SanitizeLine(e.req.Title)
+		t = SanitizeLine(e.req.Title)
 	}
-	return "Input requested"
+	return t + counter(e.ctx.Index, e.ctx.Total)
 }

@@ -35,6 +35,18 @@ type Model interface {
 	Done() bool
 }
 
+// Positioner is implemented by view-models that show a queue counter "(1 of 3)".
+type Positioner interface {
+	SetPosition(index, total int)
+}
+
+func counter(index, total int) string {
+	if total <= 1 {
+		return ""
+	}
+	return " (" + itoa(index) + " of " + itoa(total) + ")"
+}
+
 type act int
 
 const (
