@@ -17,9 +17,8 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
-// hostWithTurn runs the real host with only the turn feature, against a temp HOME, and
-// counts engine spawns.
-func hostWithTurn(t *testing.T) (*testkit.Harness, *atomic.Int32, string) {
+// hostEnv points HOME at a temp dir and clears variables the gates read.
+func hostEnv(t *testing.T) string {
 	t.Helper()
 	home, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
@@ -29,10 +28,22 @@ func hostWithTurn(t *testing.T) (*testkit.Harness, *atomic.Int32, string) {
 	t.Setenv("CLAUDE_CONFIG_DIR", "")
 	t.Setenv("ANTHROPIC_API_KEY", "")
 	t.Setenv("CLAUDE_CODE_SANDBOXED", "")
-	proj := filepath.Join(home, "proj")
+	return home
+}
+
+// projectDir creates an untrusted project under HOME.
+func projectDir(t *testing.T) string {
+	t.Helper()
+	proj := filepath.Join(os.Getenv("HOME"), "proj")
 	if err := os.MkdirAll(proj, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	return proj
+}
+
+// turnFeature returns the registered turn feature.
+func turnFeature(t *testing.T) []ext.Feature {
+	t.Helper()
 	var features []ext.Feature
 	for _, f := range ext.Pending() {
 		if f.ID == turn.FeatureID {
@@ -42,9 +53,18 @@ func hostWithTurn(t *testing.T) (*testkit.Harness, *atomic.Int32, string) {
 	if len(features) != 1 {
 		t.Fatalf("turn feature not registered: %d", len(features))
 	}
+	return features
+}
+
+// hostWithTurn runs the real host with only the turn feature, against a temp HOME, and
+// counts engine spawns.
+func hostWithTurn(t *testing.T) (*testkit.Harness, *atomic.Int32, string) {
+	t.Helper()
+	hostEnv(t)
+	proj := projectDir(t)
 	spawned := &atomic.Int32{}
 	root := app.New(app.Options{
-		Host:              app.NewHost(features, app.HostOptions{Core: app.CoreFeatures()}),
+		Host:              app.NewHost(turnFeature(t), app.HostOptions{Core: app.CoreFeatures()}),
 		NoBackgroundQuery: true,
 		Session:           ext.SessionInfo{EngineID: ext.MainEngine, Cwd: proj},
 		MainSpawn:         &ext.SpawnOpts{Cwd: proj},
