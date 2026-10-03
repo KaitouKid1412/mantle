@@ -101,51 +101,51 @@ submit pipeline and the menus.
 
 ## Part A: start immediately (`pkg/ui/editor`, pure; no `pkg/ext` imports until `contracts-v1`; afterwards wrap as an `ext.Focusable`)
 
-- [ ] **A1 Buffer (`pkg/ui/editor/buffer.go`).** Grapheme-aware rune buffer (use x/ansi or
+- [x] **A1 Buffer (`pkg/ui/editor/buffer.go`).** Grapheme-aware rune buffer (use x/ansi or
   uniseg for widths); logical lines; cursor plus a preferred column; soft wrap at width with
   a visual-line map; virtual and real cursor (expose a `tea.Cursor` position for IME).
-- [ ] **A2 Editing operations and readline keys (`keys.go`).**
+- [x] **A2 Editing operations and readline keys (`keys.go`).**
   - Insert, delete; word motions (alt+b/f, ctrl+left/right); line start/end (ctrl+a/e,
     home/end).
   - Kill-line ctrl+k, kill-to-start ctrl+u, kill-word-back ctrl+w (to whitespace), alt+d.
   - **Kill ring** with ctrl+y yank and alt+y yank-pop.
   - **Undo/redo** stack with coalescing of typing bursts (ctrl+_ / ctrl+-).
-- [ ] **A3 Newlines.** shift+enter (when keyboard enhancements are reported), ctrl+j,
+- [x] **A3 Newlines.** shift+enter (when keyboard enhancements are reported), ctrl+j,
   `\`+Enter (replace the trailing backslash), alt+enter. Plain enter submits.
-- [ ] **A4 Atomic chips (`chips.go`).** Paste and image chips are single cursor units:
+- [x] **A4 Atomic chips (`chips.go`).** Paste and image chips are single cursor units:
   deleted whole and serialized back to their content on submit. Attachment navigation mode
   (left/right/backspace/delete/down/esc, context `Attachments`).
-- [ ] **A5 Paste handling (`paste.go`).** Accumulate `PasteStart`…`PasteEnd`. Collapse above
+- [x] **A5 Paste handling (`paste.go`).** Accumulate `PasteStart`…`PasteEnd`. Collapse above
   800 chars or 3 lines into `[Pasted text #N +L lines]`, storing the text in
   `~/.claude/paste-cache/<sha>.txt`. Detect pasted image file paths (png, jpg, gif, webp)
   and turn them into image chips. Strip invisible characters (zero-width, bidi, tag chars)
   and ask for a second Enter when any were found.
-- [ ] **A6 Vim engine (`vim/`).** A pure state machine:
+- [x] **A6 Vim engine (`vim/`).** A pure state machine:
   - modes INSERT, NORMAL, VISUAL, VISUAL LINE, REPLACE;
   - motions h j k l w b e W B E 0 ^ $ gg G f/F/t/T ; ,;
   - operators d c y > < with counts; text objects iw aw i" a" i( a( i[ i{ ip;
   - `x` `X` `p` `P` `r` `u` ctrl+r, `.` repeat, `o` `O` `A` `I`;
   - insert remaps with a timeout (`vimInsertModeRemaps`).
-- [ ] **A7 History store (`pkg/ui/editor/history` or `features/input/history` I/O helper
+- [x] **A7 History store (`pkg/ui/editor/history` or `features/input/history` I/O helper
   kept pure).** Read `~/.claude/history.jsonl` filtered by project. Navigate with a
   draft-preserving cursor. Append atomically (one line per write, `O_APPEND`). Collapse
   consecutive duplicates. Includes `pastedContents`.
-- [ ] **A8 Image clipboard (`clipboard_darwin.go`).** Read PNG from the clipboard via
+- [x] **A8 Image clipboard (`clipboard_darwin.go`).** Read PNG from the clipboard via
   `osascript -e 'the clipboard as «class PNGf»'` into a temp file, convert to a base64 image
   block (cap the size; downscale if needed). Linux: `wl-paste` / `xclip` fallbacks. No cgo.
-- [ ] **A9 Ghost text.** A rendering hook for dim suggestion text after the cursor; tab or
+- [x] **A9 Ghost text.** A rendering hook for dim suggestion text after the cursor; tab or
   right-arrow at end of line accepts.
-- [ ] **A10 Tests.** Table-driven key-sequence tests (keys in, buffer/cursor out); vim test
+- [x] **A10 Tests.** Table-driven key-sequence tests (keys in, buffer/cursor out); vim test
   suite; 1 MB paste test (fast, collapsed); chip deletion and serialization; history
   round-trip against real-format fixtures (sanitized); goldens for the editor at widths
   40/80/120 with wrapping and chips.
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
-- [ ] **B1 [M1] Input feature (`features/input`).** Register the editor as the `SlotInput`
+- [x] **B1 [M1] Input feature (`features/input`).** Register the editor as the `SlotInput`
   component (context `Chat`), with the prompt frame from plan 07 and border colour by mode
   (`bashBorder` for `!`).
-- [ ] **B2 [M1] Submit pipeline (`PromptStage`s).**
+- [x] **B2 [M1] Submit pipeline (`PromptStage`s).**
   1. Slash routing: native registry first, else an engine command (sent as text).
   2. `!` bash mode: run via the engine as a prompt with the command (respect
      `respondToBashCommands`; spike S8/S2 decides between `shouldQuery` injection and a
@@ -155,35 +155,35 @@ submit pipeline and the menus.
      `chat:sendNow` uses `now`; `chat:queueSubmit` uses `later`. The queue display is
      plan 05.
   5. Append to history.
-- [ ] **B3 [M1] `/` menu (context `Autocomplete`).** Fuzzy filter (sahilm/fuzzy) over native
+- [x] **B3 [M1] `/` menu (context `Autocomplete`).** Fuzzy filter (sahilm/fuzzy) over native
   plus engine commands, showing name, description, argument hint and alias highlighting.
   Hidden commands are excluded unless typed exactly. Mid-prompt `/` completion and ghost
   completion of the top match. Refresh on `commands_changed`.
-- [ ] **B4 [M1] `@` mentions.** Debounced `file_suggestions` query; MCP resources
+- [x] **B4 [M1] `@` mentions.** Debounced `file_suggestions` query; MCP resources
   (`@server:proto://res`) via `mcp_status`/resources listing (spike S11). Insert the path
   as text (the engine expands `@path`).
-- [ ] **B5 [M1] History keys.** Up/down at first/last visual line navigates history (per
+- [x] **B5 [M1] History keys.** Up/down at first/last visual line navigates history (per
   project); a draft is restored when returning to the bottom.
-- [ ] **B6 [M1] Image paste and paste chips wired** (`chat:imagePaste`) with a notice on
+- [x] **B6 [M1] Image paste and paste chips wired** (`chat:imagePaste`) with a notice on
   failure.
-- [ ] **B7 [M2] ctrl+r history search (context `HistorySearch`).** Inline search with match
+- [x] **B7 [M2] ctrl+r history search (context `HistorySearch`).** Inline search with match
   highlight; ctrl+r next; ctrl+s cycles scope (session → project → all); enter executes;
   esc/tab accepts into the editor.
-- [ ] **B8 [M2] Other editor commands.**
+- [x] **B8 [M2] Other editor commands.**
   - ctrl+s stash: save and restore text, cursor, chips and mode in `~/.mantle/state`.
   - ctrl+g external editor (`charmbracelet/x/editor` + `tea.ExecProcess`; honour
     `externalEditorContext`).
   - ctrl+l clear input; double-esc clear with undo; `?` help panel (lists the active
     bindings from the keymap).
-- [ ] **B9 [M2] Emoji and highlighting.** `:emoji:` shortcode completion popup and
+- [x] **B9 [M2] Emoji and highlighting.** `:emoji:` shortcode completion popup and
   replacement (`goldmark-emoji` definitions; `emojiCompletionEnabled`); ultrathink rainbow
   highlight; ultracode keyword with meta+w toggle.
-- [ ] **B10 [M2] Prompt suggestions.** Render `prompt_suggestion` as ghost text when
+- [x] **B10 [M2] Prompt suggestions.** Render `prompt_suggestion` as ghost text when
   `promptSuggestionEnabled` (initialize `promptSuggestions:true`, set by plan 02).
-- [ ] **B11 [M2] Vim mode wired.** `editorMode`, the `/vim` toggle command (plan 08 owns the
+- [x] **B11 [M2] Vim mode wired.** `editorMode`, the `/vim` toggle command (plan 08 owns the
   panel; you own the behaviour), mode indicator below the prompt (respect
   `hideVimModeIndicator`), `/` opens history search in NORMAL mode.
-- [ ] **B12 [M3] Spellcheck.** Underline misspellings via aspell, hunspell or ispell
+- [x] **B12 [M3] Spellcheck.** Underline misspellings via aspell, hunspell or ispell
   (`spellcheck{enabled, checker, color}`).
 
 ## Design notes
@@ -246,3 +246,39 @@ submit pipeline and the menus.
 - `pkg/ext` and `pkg/proto` are additive-only; requests go in `docs/plans/requests/`.
 - Commit only your own files with prefix `[04]`; `make test-04`; no imports of other
   `features/*` packages.
+
+## Status (session 04)
+
+All Part A and Part B tasks are in, on branch `worktree-04-input` (merged with
+`integration-1`). `make test-04` covers the editor, vim, history, the feature (exttest
+rig that runs the stages like the host) and end-to-end runs on the real host in the vt
+emulator.
+
+**Facts verified on the 2.1.288 binary (research only, nothing copied):**
+- `history.jsonl` lines are `{display, pastedContents, timestamp, project, sessionId}`;
+  chip ids are one counter per session shared by pastes and images; images are not
+  stored; pastes over 1024 characters are stored as `contentHash`, which is the first 16
+  hex digits of SHA-256 and names `paste-cache/<hash>.txt`; `+N lines` is the newline
+  count; short pastes collapse from 3 newlines on.
+- `inline_pastes` is the list of pasted texts still in `message.content` (mantle expands
+  chips in place and reports them there); `pasted_content` is for pastes taken out.
+- Headless has no `!` path: the stdin `bash_command` frame runs a shell but does not add
+  the output to the conversation. mantle runs `!` commands itself and sends
+  `<bash-input>` / `<bash-stdout>` / `<bash-stderr>` blocks (`client_composed`,
+  `shouldQuery` = `respondToBashCommands`), as the interactive UI records them.
+- Headless `file_suggestions` returns file paths only, and no control request lists
+  MCP resources.
+
+**Gaps and follow-ups:**
+- AC-14 `@server:resource`: blocked by the protocol (no resource listing headlessly).
+  Revisit if a control request appears; otherwise a known gap.
+- AC-15 live-session `@` suggestions and ED-35 git-history example prompt (both M3): not
+  done.
+- AC-20: `!` commands never block the prompt in mantle, so there is nothing to
+  background.
+- Spike S3 (does headless write `history.jsonl`?) is still open; mantle appends by
+  default (`input.writeHistory`). Duplicates would be harmless: consecutive duplicates
+  collapse on read.
+- `/vim` is plan 08's (it writes `editorMode`); the editor follows the setting.
+- Depends on: plan 06 registering `mantle:rewind` (double esc on an empty prompt), plan
+  05 rendering `ext.QueuedPromptsMsg`, chrome's `mantle:footerSelect` (present).
