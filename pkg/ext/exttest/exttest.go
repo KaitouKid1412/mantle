@@ -218,6 +218,27 @@ func (s *Settings) ClaudeScope(scope string) map[string]any { return s.Scopes[sc
 // ClaudeSources returns s.Sources.
 func (s *Settings) ClaudeSources() []ext.SettingsSource { return s.Sources }
 
+var _ ext.ClaudeSettingsWriter = (*Settings)(nil)
+
+// SetClaude records the write in Scopes and ClaudeM (no precedence rules) and returns
+// a SettingsMsg.
+func (s *Settings) SetClaude(scope, key string, value any) tea.Cmd {
+	if s.Scopes == nil {
+		s.Scopes = map[string]map[string]any{}
+	}
+	if s.Scopes[scope] == nil {
+		s.Scopes[scope] = map[string]any{}
+	}
+	if value == nil {
+		delete(s.Scopes[scope], key)
+		delete(s.ClaudeM, key)
+	} else {
+		s.Scopes[scope][key] = value
+		s.ClaudeM[key] = value
+	}
+	return ext.Msg(ext.SettingsMsg{Changed: []string{key}})
+}
+
 // NewSettings returns settings with the given merged Claude Code values.
 func NewSettings(claude map[string]any) *Settings {
 	if claude == nil {

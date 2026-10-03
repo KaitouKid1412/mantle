@@ -1,0 +1,43 @@
+── width 40 ──
+[1;4mHeading one[m
+
+[1mHeading two[m
+
+[1;3mHeading three[m
+
+[3mHeading four[m
+
+Body text under the headings, long
+enough to wrap at the narrow widths we
+test.
+── width 60 ──
+[1;4mHeading one[m
+
+[1mHeading two[m
+
+[1;3mHeading three[m
+
+[3mHeading four[m
+
+Body text under the headings, long enough to wrap at the
+narrow widths we test.
+── width 100 ──
+[1;4mHeading one[m
+
+[1mHeading two[m
+
+[1;3mHeading three[m
+
+[3mHeading four[m
+
+Body text under the headings, long enough to wrap at the narrow widths we test.
+── width 160 ──
+[1;4mHeading one[m
+
+[1mHeading two[m
+
+[1;3mHeading three[m
+
+[3mHeading four[m
+
+Body text under the headings, long enough to wrap at the narrow widths we test.

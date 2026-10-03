@@ -44,6 +44,8 @@ type Options struct {
 	// the startup gates when a feature subscribes to ext.SpawnGateMsg).
 	Spawn     SpawnFunc
 	MainSpawn *ext.SpawnOpts
+	// Stop stops an engine and forgets it (ext.EngineStopMsg). It runs in a Cmd.
+	Stop func(engineID string) error
 	// NoBackgroundQuery skips asking the terminal for its background colour (tests).
 	NoBackgroundQuery bool
 }
@@ -393,6 +395,9 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg = out
 	}
 
+	if cmd, ok := r.configUpdate(msg); ok {
+		return r, tea.Batch(append(cmds, cmd)...)
+	}
 	if cmd, ok := r.themeUpdate(msg); ok {
 		return r, tea.Batch(append(cmds, cmd)...)
 	}
@@ -422,6 +427,17 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, e.Restart(m.Opts))
 		} else if r.opts.Spawn != nil {
 			cmds = append(cmds, r.spawnCmd(m.EngineID, m.Opts))
+		}
+		cmds = append(cmds, r.broadcast(msg))
+	case ext.EngineStopMsg:
+		if stop := r.opts.Stop; stop != nil {
+			id := m.EngineID
+			cmds = append(cmds, func() tea.Msg {
+				if err := stop(id); err != nil {
+					return spawnFailedMsg{engineID: id, err: err}
+				}
+				return nil
+			})
 		}
 		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineDetachMsg:

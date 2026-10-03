@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AllowClipboardAccess</key>
+	<true/>
+	<key>Default Bookmark Guid</key>
+	<string>00000000-0000-0000-0000-000000000001</string>
+	<key>NoSyncWindowRestoresWorkspaceAtLaunch</key>
+	<false/>
+	<key>PrefsCustomFolder</key>
+	<string>~/iterm-prefs</string>
+</dict>
+</plist>

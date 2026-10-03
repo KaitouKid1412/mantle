@@ -1,0 +1,7 @@
+[
+  {
+    "key": "Shift+Enter",
+    "command": "workbench.action.terminal.acceptSelectedSuggestion",
+    "when": "terminalFocus && terminalSuggestWidgetVisible"
+  }
+]
