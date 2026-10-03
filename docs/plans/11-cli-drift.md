@@ -192,8 +192,21 @@
       plus the initial prompt (submitted as the first user message once gates pass), plus
       gate inputs (bypass flags → plan 05).
   - End-to-end tests with fakeclaude assert the exact engine argv.
-- [ ] **B2 [M2] Interactive-only flag decisions.** Implement and document each in this
-  file's checklist:
+- [x] **B2 [M2] Interactive-only flag decisions.** Done; each is a table row tested in
+  `TestInteractiveOnlyDecisions` / `TestStartupWorktreeNamedOnce`:
+  - `-w`: forwarded. Spike (zero-cost, temp repo): headless claude creates
+    `.claude/worktrees/<name>` on branch `worktree-<name>` (locked) and reports it as
+    `init.cwd`; plan 02's tracker copies that into `SessionInfo.Cwd`. An unnamed `-w` gets a
+    new random name on every start, so mantle names it once at startup
+    (`brisk-comet-3f9a`) and engine restarts reuse it. Gap: headless claude never offers
+    to remove the worktree on exit (interactive claude does); it stays until
+    `git worktree remove`.
+  - `--tmux`, `--bg`, `--remote-control`/`--rc`, `--teleport`, `--cloud`/`--remote`,
+    `--environment`, `--desktop`, deep links, `--init-only`: exec `claude` (H).
+  - `--from-pr`: exec `claude` (H) for now. Plan 06's index already stores PR links, so a
+    native version is `-r "#<n>"` plus a PR-only picker filter, once plan 06 has one.
+
+  The original list:
   - `-w/--worktree [name]`: forward to the engine, which creates the worktree and runs
     there; mantle follows `init.cwd`. Spike it with fakeapi.
   - `--tmux`: exec `claude` (tmux and iTerm2 panes are interactive).

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,6 +55,10 @@ type Startup struct {
 	Verbose           bool  // --verbose
 	Safe              bool  // mantle --safe reached mantle-ui: skip user mods
 	PromptSuggestions *bool // --prompt-suggestions, for initialize.promptSuggestions
+	// Worktree is the -w worktree name ("" without -w). The engine creates
+	// .claude/worktrees/<name> on branch worktree-<name> and runs there (init.cwd).
+	// Headless claude never offers to remove it on exit.
+	Worktree string
 	// Warnings are one-line notices to show at startup; Unknown lists the flags
 	// forwarded without being recognised (log them).
 	Warnings []string
@@ -117,6 +122,15 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 			o.Settings = occ.Value()
 		case f != nil && f.Long == "--add-dir":
 			o.AddDirs = append(o.AddDirs, occ.Values...)
+		case f != nil && f.Long == "--worktree" && len(occ.Values) == 0:
+			// claude names an unnamed worktree at random on every start, so an engine
+			// restart (resume, session switch) would make another one. Name it once;
+			// claude reuses a worktree that already has the name.
+			s.Worktree = newWorktreeName()
+			o.ExtraArgs = append(o.ExtraArgs, occ.Name, s.Worktree)
+		case f != nil && f.Long == "--worktree":
+			s.Worktree = occ.Value()
+			o.ExtraArgs = append(o.ExtraArgs, occ.Tokens...)
 		default:
 			o.ExtraArgs = append(o.ExtraArgs, occ.Tokens...)
 		}
@@ -298,6 +312,22 @@ func unionJSON(a, b []any) []any {
 		}
 	}
 	return out
+}
+
+// Words for worktree names: mantle's own short lists.
+var (
+	worktreeAdjectives = []string{"amber", "brisk", "calm", "deft", "eager", "fond", "gentle", "hardy",
+		"keen", "lucid", "mellow", "nimble", "plucky", "quiet", "rapid", "steady", "tidy", "vivid", "witty", "zesty"}
+	worktreeNouns = []string{"badger", "comet", "delta", "ember", "falcon", "garnet", "harbor", "island",
+		"juniper", "kestrel", "lagoon", "meadow", "nebula", "orchard", "pebble", "quarry", "river", "summit", "tundra", "willow"}
+)
+
+// newWorktreeName returns a readable name such as "brisk-comet-3f9a".
+var newWorktreeName = func() string {
+	var b [4]byte
+	_, _ = rand.Read(b[:])
+	return fmt.Sprintf("%s-%s-%x", worktreeAdjectives[int(b[0])%len(worktreeAdjectives)],
+		worktreeNouns[int(b[1])%len(worktreeNouns)], b[2:])
 }
 
 var (

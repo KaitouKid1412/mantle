@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -159,6 +160,30 @@ func TestStartupSessions(t *testing.T) {
 				t.Errorf("warnings %q, want %q", s.Warnings, c.warn)
 			}
 		})
+	}
+}
+
+// An unnamed -w gets a name once, so engine restarts reuse the same worktree (claude
+// picks a new random one on every start; verified on 2.1.288).
+func TestStartupWorktreeNamedOnce(t *testing.T) {
+	old := newWorktreeName
+	newWorktreeName = func() string { return "brisk-comet-3f9a" }
+	t.Cleanup(func() { newWorktreeName = old })
+
+	s := startup(t, "-w", "--verbose")
+	if s.Worktree != "brisk-comet-3f9a" || !slices.Equal(s.Spawn.ExtraArgs, []string{"-w", "brisk-comet-3f9a", "--verbose"}) {
+		t.Errorf("unnamed: %q %q", s.Worktree, s.Spawn.ExtraArgs)
+	}
+	s = startup(t, "--worktree=feat", "hi")
+	if s.Worktree != "feat" || !slices.Equal(s.Spawn.ExtraArgs, []string{"--worktree=feat"}) || s.Prompt != "hi" {
+		t.Errorf("named: %q %q", s.Worktree, s.Spawn.ExtraArgs)
+	}
+	s = startup(t, "-cw")
+	if !slices.Equal(s.Spawn.ExtraArgs, []string{"-w", "brisk-comet-3f9a"}) {
+		t.Errorf("cluster: %q", s.Spawn.ExtraArgs)
+	}
+	if real := old(); !regexp.MustCompile(`^[a-z]+-[a-z]+-[0-9a-f]{4}$`).MatchString(real) {
+		t.Errorf("generated name %q", real)
 	}
 }
 
