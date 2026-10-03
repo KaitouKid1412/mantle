@@ -276,9 +276,9 @@ emulator.
   done.
 - AC-20: `!` commands never block the prompt in mantle, so there is nothing to
   background.
-- Spike S3 (does headless write `history.jsonl`?) is still open; mantle appends by
-  default (`input.writeHistory`). Duplicates would be harmless: consecutive duplicates
-  collapse on read.
+- Spike S3, checked with the real 2.1.288 engine against fakeapi: headless claude writes
+  neither `history.jsonl` nor `paste-cache` (only the session JSONL), so mantle appends
+  both itself (`input.writeHistory`, default on).
 - `/vim` is plan 08's (it writes `editorMode`); the editor follows the setting.
 - Depends on: plan 06 registering `mantle:rewind` (double esc on an empty prompt), plan
   05 rendering `ext.QueuedPromptsMsg`, chrome's `mantle:footerSelect` (present).
