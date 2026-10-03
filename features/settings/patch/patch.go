@@ -8,6 +8,7 @@
 package patch
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -254,9 +255,35 @@ func Get(doc map[string]any, path ...string) (any, bool) {
 	return cur, true
 }
 
-// Equal compares two JSON-compatible values, treating all numeric types as float64.
+// Equal compares two JSON-compatible values, treating all numeric types (including
+// json.Number) as float64.
 func Equal(a, b any) bool {
-	return reflect.DeepEqual(normalize(a), normalize(b))
+	return reflect.DeepEqual(canon(a), canon(b))
+}
+
+// canon is normalize plus json.Number → float64, for comparison only (documents keep
+// json.Number so numbers are written back exactly as read).
+func canon(v any) any {
+	switch t := v.(type) {
+	case json.Number:
+		if f, err := t.Float64(); err == nil {
+			return f
+		}
+		return string(t)
+	case []any:
+		out := make([]any, len(t))
+		for i, e := range t {
+			out[i] = canon(e)
+		}
+		return out
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, e := range t {
+			out[k] = canon(e)
+		}
+		return out
+	}
+	return normalize(v)
 }
 
 // normalize converts Go values into the shapes encoding/json produces when decoding

@@ -119,6 +119,18 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+func TestActionDescription(t *testing.T) {
+	if ActionDescription("chat:modelPicker") != "Choose the model" {
+		t.Error("known action")
+	}
+	if got := ActionDescription("scroll:halfPageDown"); got != "Half page down" {
+		t.Errorf("humanize %q", got)
+	}
+	if got := Humanize("plain"); got != "Plain" {
+		t.Errorf("no prefix %q", got)
+	}
+}
+
 func TestKeyGroups(t *testing.T) {
 	bs := []Binding{
 		{Context: "Chat", Keys: "enter", Action: "chat:submit", Description: "Send"},

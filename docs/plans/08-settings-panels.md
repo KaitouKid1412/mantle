@@ -145,7 +145,7 @@ and `claude` is seamless.
   bindings by context from the keymap table. Pure function over plain lists.
 
 ## Part B: after `contracts-v1` and `proto-v1`
-- [ ] **B1 [M1] `/model` picker** (also `chat:modelPicker`, meta+p).
+- [x] **B1 [M1] `/model` picker** (also `chat:modelPicker`, meta+p).
   - Opens with the current model highlighted. Left/right change effort for the highlighted
     model; Enter applies via `set_model` (+ `apply_flag_settings {effortLevel}`).
   - Persists `model` (and per-model effort) to user settings unless `s` was pressed.
@@ -153,7 +153,7 @@ and `claude` is seamless.
     same way.
   - **Mid-session switch warning:** if the session has a large cached context, warn that
     switching models re-reads it (Claude Code's cache-warm confirmation).
-- [ ] **B2 [M1] `/help`.** Native help dialog from A7: commands (native registry plus
+- [x] **B2 [M1] `/help`.** Native help dialog from A7: commands (native registry plus
   `initialize.commands` plus `commands_changed`) and shortcuts, searchable. (`?` on an empty
   prompt is plan 04's shortcut panel; it may reuse your component by ID.)
 - [ ] **B3 [M2] `/effort`, `/fast` and thinking.**
