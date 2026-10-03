@@ -269,23 +269,23 @@ func (r *Root) compFeature(id string) string {
 	return ""
 }
 
-// pickFocus focuses the first Focusable in the input slot, else the first anywhere.
+// pickFocus keeps a valid focus, else focuses the first Focusable in the input slot.
+// Components elsewhere (footer, panes) take focus only through Ctx.Focus; with no
+// input component nothing is focused and keys reach only keymap actions.
 func (r *Root) pickFocus() {
-	if c := r.byID[r.focus]; c != nil {
+	if c := r.byID[r.focus]; c != nil && !r.host.Disabled(c.feature) {
 		if _, ok := c.m.comp.(ext.Focusable); ok {
 			return
 		}
 	}
 	r.focus = ""
-	for _, pass := range []bool{true, false} {
-		for _, c := range r.comps {
-			if pass && c.m.slot != ext.SlotInput {
-				continue
-			}
-			if _, ok := c.m.comp.(ext.Focusable); ok && r.modeOK(c) {
-				r.focus = c.m.comp.ID()
-				return
-			}
+	for _, c := range r.comps {
+		if c.m.slot != ext.SlotInput {
+			continue
+		}
+		if _, ok := c.m.comp.(ext.Focusable); ok && r.modeOK(c) {
+			r.focus = c.m.comp.ID()
+			return
 		}
 	}
 }

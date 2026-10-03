@@ -1,11 +1,15 @@
 package app
 
 import (
+	"math"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/google/uuid"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/ui"
 )
 
@@ -36,6 +40,7 @@ func CoreFeatures() []ext.Feature {
 				Description: "Redraw the screen",
 				Run:         func(c ext.Ctx) (bool, tea.Cmd) { return true, c.Reprint() },
 			})
+			r.AddPromptStage("core.send", CoreSendPriority, coreSend)
 			return nil
 		},
 	}, {
@@ -69,7 +74,26 @@ func confirmExit(c ext.Ctx, key string) tea.Cmd {
 	return r.addNotice(ext.Notice{Key: "core.exit", Text: "Press " + key + " again to exit", Level: ext.NoticeInfo, Timeout: ExitConfirmWindow, Source: "core"})
 }
 
-// noticesComp reads notices from the root through the ctx.
+// CoreSendPriority is the core send stage's priority: after every feature stage.
+const CoreSendPriority = math.MaxInt32
+
+// coreSend is the fallback last prompt stage: if no feature consumed the draft (the
+// input feature's own send stage normally does), send its text to the main engine as
+// is. It keeps prompts working with -tags no_input and for drafts submitted before
+// the input feature exists.
+func coreSend(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
+	text := strings.TrimSpace(d.Text)
+	if text == "" || d.Mode == "bash" {
+		return ext.Continue, nil
+	}
+	e := c.Engine(ext.MainEngine)
+	if e == nil {
+		return ext.Reject, c.Notify(ext.Notice{Key: "core.send", Text: "claude is not running yet", Level: ext.NoticeWarning, Source: "core"})
+	}
+	return ext.Consumed, e.Send(ext.Prompt{Blocks: []proto.ContentBlock{proto.Text(d.Text)}, Priority: d.Priority, UUID: uuid.NewString()})
+}
+
+// rootOf returns the root behind a host ctx (nil for other ctx implementations).
 func rootOf(c ext.Ctx) *Root {
 	if uc, ok := c.(*uiCtx); ok {
 		return uc.r
