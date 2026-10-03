@@ -80,12 +80,13 @@ func DefaultKeyMap() KeyMap {
 }
 
 // ClearActionKeys removes the keys that Claude Code routes through keymap
-// actions (chat:undo, chat:newline via ctrl+j, history:previous/next), for
-// hosts that bind those actions to editor operations themselves. Shift+enter
-// and alt+enter stay: they are hardcoded newline keys in Claude Code.
+// actions (chat:undo, chat:newline via ctrl+j), for hosts that bind those
+// actions to editor operations themselves. Shift+enter and alt+enter stay:
+// they are hardcoded newline keys in Claude Code. Up and down stay too: the
+// history actions decline while the cursor can still move, and the key then
+// reaches HandleKey.
 func (k *KeyMap) ClearActionKeys() {
 	k.Undo = nil
-	k.LineUp, k.LineDown = nil, nil
 	k.Newline = Binding{"shift+enter", "alt+enter"}
 }
 
