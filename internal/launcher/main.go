@@ -167,7 +167,7 @@ func (c *Commands) Rollback(args []string) int {
 
 	cur := store.CurrentID()
 	if id == "" {
-		id, err = rollbackTarget(store, cur)
+		id, err = RollbackTarget(store, cur)
 		if err != nil {
 			return c.errf("%v", err)
 		}
@@ -195,7 +195,9 @@ func (c *Commands) Rollback(args []string) int {
 	return 0
 }
 
-func rollbackTarget(store Store, cur string) (string, error) {
+// RollbackTarget picks the build `rollback` flips to from cur: last-good if
+// it differs, else the newest runnable build older than cur.
+func RollbackTarget(store Store, cur string) (string, error) {
 	if lg := store.LastGoodID(); lg != "" && lg != cur {
 		return lg, nil
 	}
