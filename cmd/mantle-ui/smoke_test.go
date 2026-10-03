@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -87,6 +88,34 @@ func TestSmokeBoot(t *testing.T) {
 	p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
 
 	p.WaitFor(func(s string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "pong from the fake engine") }, 20*time.Second)
+
+	// Spike S16: the engine runs in its own process group (terminal signals such as
+	// ctrl+c inside $EDITOR or ctrl+z reach only mantle-ui's group), recorded for the
+	// launcher in $MANTLE_HOME/run.
+	var mantleHome string
+	for _, kv := range cmd.Env {
+		if v, ok := strings.CutPrefix(kv, "MANTLE_HOME="); ok {
+			mantleHome = v
+		}
+	}
+	recs, _ := filepath.Glob(filepath.Join(mantleHome, "run", "*.json"))
+	if len(recs) != 1 {
+		t.Fatalf("run records: %v", recs)
+	}
+	var rec struct {
+		PID   int `json:"pid"`
+		PGID  int `json:"pgid"`
+		UIPID int `json:"ui_pid"`
+	}
+	raw, _ := os.ReadFile(recs[0])
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatal(err)
+	}
+	uiPID := cmd.Process.Pid
+	uiPGID, _ := syscall.Getpgid(uiPID)
+	if rec.UIPID != uiPID || rec.PGID == 0 || rec.PGID == uiPGID {
+		t.Fatalf("engine pgid %d, ui pid %d pgid %d, record %+v", rec.PGID, uiPID, uiPGID, rec)
+	}
 
 	// Quit: ctrl+c twice (the core action asks for confirmation).
 	p.Send("ctrl+c")

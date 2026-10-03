@@ -77,10 +77,10 @@ Two jobs:
 
 ## Part A: start immediately (goal: `contracts-v1`)
 
-- [ ] **A1 `pkg/ext` v1.** Types and interfaces exactly as in the sketch below (`pkg/ext/*.go`),
+- [x] **A1 `pkg/ext` v1.** Types and interfaces exactly as in the sketch below (`pkg/ext/*.go`),
   with doc comments. Keep implementations out of `pkg/ext`, except `Register`, `Subscribe`
   and small helpers.
-- [ ] **A2 `pkg/theme`.**
+- [x] **A2 `pkg/theme`.**
   - Token names: semantic names, not palette names. Include text, dim/inactive, subtle,
     primary/claude accent, success, error, warning, permission, planMode, autoAccept,
     bashBorder, promptBorder, diffAdded, diffRemoved, diffAddedWord, diffRemovedWord,
@@ -88,9 +88,9 @@ Two jobs:
     syntax-highlight token classes.
   - A `Theme` struct (name, isDark, token → `color.Color`, style helpers).
   - Placeholder built-in themes. Write our own palettes; don't copy Claude Code's.
-- [ ] **A3 Transcript model in `pkg/ext`.** `Item`, `ContentKey`, `ItemState`, `ViewMode`,
+- [x] **A3 Transcript model in `pkg/ext`.** `Item`, `ContentKey`, `ItemState`, `ViewMode`,
   `RenderCtx`, `Block`, `Renderer`, `Transcript`, plus the naming convention below.
-- [ ] **A4 Keymap ID table in `pkg/ext/keys.go`.**
+- [x] **A4 Keymap ID table in `pkg/ext/keys.go`.**
   - Context constants and action ID constants, using Claude Code's IDs verbatim (`chat:submit`,
     `chat:cancel`, `chat:newline`, `chat:cycleMode`, `chat:modelPicker`, `chat:fastMode`,
     `chat:thinkingToggle`, `chat:externalEditor`, `chat:stash`, `chat:imagePaste`,
@@ -103,7 +103,7 @@ Two jobs:
     `messageSelector:*` families).
   - mantle-only actions use `mantle:*`.
   - Default chords live in a table here, so plans 03–07 register behaviour, not keys.
-- [ ] **A5 Testkit API (`internal/testkit`).**
+- [x] **A5 Testkit API (`internal/testkit`).**
   - `Harness`: start a `tea.Program` on an `x/vt` emulator (`WithInput`,
     `WithOutput(emu)`, `WithWindowSize`). Helpers: `Send(keys…)`, `Paste(s)`,
     `Resize(w,h)`, `Screen() string`, `Scrollback() []string`, `WaitFor(pred, timeout)`.
@@ -111,18 +111,18 @@ Two jobs:
   - `RunStory(t, story, widths)`.
   - Commit the API with an example test, even if internals are rough. Others depend on the
     signatures.
-- [ ] **A6 `internal/archtest`.** A `go list -deps -json ./...` based test enforcing:
+- [x] **A6 `internal/archtest`.** A `go list -deps -json ./...` based test enforcing:
   - `features/X` must not import `features/Y` (X ≠ Y);
   - `mods/...` imports only `pkg/...`, the stdlib and allowed third-party modules;
   - `pkg/...` never imports `internal/...` or `features/...`.
-- [ ] **A7 Freeze and tag.** `go build ./... && go vet ./...` must pass. Commit with `[01]`,
+- [x] **A7 Freeze and tag.** `go build ./... && go vet ./...` must pass. Commit with `[01]`,
   run `git tag contracts-v1`, and add a line under "Milestones" in
   `docs/plans/00-overview.md` (small edit). After this, every `pkg/ext`/`pkg/theme` change
   is additive-only.
 
 ## Part B: continue immediately after A7
 
-- [ ] **B1 [M1] Host (`internal/app/host.go`).**
+- [x] **B1 [M1] Host (`internal/app/host.go`).**
   - Collect `ext.Feature` descriptors; topologically sort by `Order`, then `After`
     (core < 1000 ≤ mods); run `Setup`.
   - Resolve Replace/Wrap/Remove/Alias **after** every Setup has run. Conflicts produce a
@@ -130,14 +130,14 @@ Two jobs:
   - `safeCall` wraps every component, renderer, command and Cmd in `recover`. A panicking
     feature is disabled, a notice is shown, and the ID goes into
     `~/.mantle/state/disabled.json`.
-- [ ] **B2 [M1] Root `tea.Model` (`internal/app/root.go`).**
+- [x] **B2 [M1] Root `tea.Model` (`internal/app/root.go`).**
   - Routing order: interceptors (priority), then the dialog stack (top), then the focused
     component, then keymap actions, then typed subscribers.
   - Slot render cache, invalidated by `Ctx.Invalidate`, resize, theme revision or settings
     revision.
   - Merge View fields: window title, progress bar, cursor from the focused component,
     keyboard enhancements.
-- [ ] **B3 [M1] Inline layout and committer primitives (`internal/app/layout.go`, `commit.go`).**
+- [x] **B3 [M1] Inline layout and committer primitives (`internal/app/layout.go`, `commit.go`).**
   - Vertical stack of slots with a height budget (live area ≤ H−1 rows; ask each slot for
     `MaxHeight`).
   - `Print(blocks…)`: pre-wrapped, chunked to ≤ H − liveHeight − 1 lines per
@@ -145,16 +145,16 @@ Two jobs:
   - `Reprint()`: `ESC[2J ESC[3J ESC[H`, then reprint the whole store in chunks.
   - The commit *policy* (what is finished) belongs to plan 03. You provide the primitives
     and the watermark plumbing.
-- [ ] **B4 [M1] Dialog stack (`internal/app/dialogs.go`).** Placement policy:
+- [x] **B4 [M1] Dialog stack (`internal/app/dialogs.go`).** Placement policy:
   `PlaceInline` replaces the input slot (like Claude Code permission prompts),
   `PlaceCentered` is a layer, `PlaceAltScreen` is a sub-view. `CloseDialog` and the result
   are delivered as messages.
-- [ ] **B5 [M1] Keymap engine (`internal/keymap`).**
+- [x] **B5 [M1] Keymap engine (`internal/keymap`).**
   - Parse both `~/.claude/keybindings.json` (Claude Code actions only) and
     `~/.mantle/keybindings.json` (`mantle:*`).
   - Context stack, chords with timeout, `null` unbind, reserved-key validation.
   - fsnotify hot reload; conflict report into `catalog`.
-- [ ] **B6 [M1] Config (`internal/config`).**
+- [x] **B6 [M1] Config (`internal/config`).**
   - Read all scopes with precedence, including managed paths
     (`/Library/Application Support/ClaudeCode/managed-settings.json` and the
     `managed-settings.d/`); read-only access to `~/.claude.json`; read `~/.mantle/settings.json`.
@@ -169,25 +169,25 @@ Two jobs:
     respectGitignore, fileSuggestion, emojiCompletionEnabled, promptSuggestionEnabled,
     respondToBashCommands, autoScrollEnabled, axScreenReader, footerLinksRegexes,
     companyAnnouncements, todoFeatureEnabled.
-- [ ] **B7 [M1] Theme engine (`internal/app/theme.go` + `pkg/theme`).**
+- [x] **B7 [M1] Theme engine (`internal/app/theme.go` + `pkg/theme`).**
   - Built-ins: dark, light, dark-daltonized, light-daltonized, dark-ansi, light-ansi.
   - Custom themes from `~/.claude/themes/*.json` (token overrides), hot reload.
   - `auto` via `tea.BackgroundColorMsg.IsDark()`; colour-profile downgrade.
-- [ ] **B8 [M1] `pkg/ui` base widgets.** Select/list with `sahilm/fuzzy` filter, tabs, a
+- [x] **B8 [M1] `pkg/ui` base widgets.** Select/list with `sahilm/fuzzy` filter, tabs, a
   dialog frame matching Claude Code's look, a single-line text field, scroll pane, table,
   key-hint bar, spinner primitive. Each widget implements `ext.Focusable`, has stories, and
   uses `Select`/`Tabs`/`Confirmation` contexts.
-- [ ] **B9 [M1] `cmd/mantle-ui` subcommands.** `story <id> --width N`, `catalog --json`
+- [x] **B9 [M1] `cmd/mantle-ui` subcommands.** `story <id> --width N`, `catalog --json`
   (every registered ID with kind, feature, file, parity tags), `selftest` (registry resolves;
   every story renders at 60/100/160 without panic and within width). Call `cli.Parse` (owned
   by plan 11) at a fixed call site.
-- [ ] **B10 [M1] Notices and Clock.** Notice/toast API (`Ctx.Notify`, levels, timeout, key
+- [x] **B10 [M1] Notices and Clock.** Notice/toast API (`Ctx.Notify`, levels, timeout, key
   dedupe); injectable Clock (tests use `testing/synctest`).
-- [ ] **B11 [M1] Spike S15.** Println chunking at 80×24, 120×40, 200×60 with live heights
+- [x] **B11 [M1] Spike S15.** Println chunking at 80×24, 120×40, 200×60 with live heights
   3–20. Flicker on commit-and-remove; resize reflow; tmux; shift+enter and ctrl+enter
   detection in iTerm2, Ghostty, Terminal.app, kitty, WezTerm, VS Code. Write up in
   "Facts verified" in this file.
-- [ ] **B12 [M1] Spike S16 (with plan 10).** UI plus claude in a separate process group:
+- [x] **B12 [M1] Spike S16 (with plan 10).** UI plus claude in a separate process group:
   ctrl+z and `fg`, `tea.ExecProcess($EDITOR)` with ctrl+c inside the editor, crash restore
   of termios.
 - [ ] **B13 [M2] API steward duties.** Review `docs/plans/requests/*-01-*.md`, add additive
@@ -556,3 +556,51 @@ The sketch imports `pkg/proto`, which plan 02 writes. To avoid blocking:
 - After `contracts-v1`, `pkg/ext` and `pkg/theme` are **additive-only**.
 - Commit only your own files, named explicitly, with prefix `[01]`. Run scoped tests
   (`make test-01`). No cross-feature imports.
+
+## Facts verified (Bubble Tea v2.0.10, x/vt emulator, macOS; 2026-10-03)
+
+Spike S15 (inline printing):
+- **Chunked Print leaves no ghost lines** at 80×24, 120×40 and 200×60 with live areas of
+  3, 8, 14 and 20 rows; scrollback equals exactly what was printed, in order
+  (`internal/app/print_vt_test.go`). Chunks are ≤ H − liveHeight − 1 rows, sized from the
+  tallest frame of the last 250 ms, one chunk per event-loop round trip.
+- **insertAbove erases the last column.** Bubble Tea writes `EL` after each printed line;
+  a line that fills the terminal width loses its last cell (cursor in pending-wrap
+  state). Print therefore hard-wraps at `W − 1` (`app.PrintWidth`). Renderers should
+  commit items at that width.
+- **Commit-and-remove** (items leave the live area and are printed in the same Update)
+  keeps every item exactly once, in order, with no ghost input line
+  (`internal/app/s15_vt_test.go`).
+- **Resize reflow**: narrowing and widening keeps the live frame intact at the bottom,
+  and later prints still land in order.
+- **Shrinking inline frames leave stale rows (upstream bug).** When the frame gets
+  shorter, Bubble Tea writes `\r ESC[J` plus the frame at the cursor's current row
+  without moving up to the old frame's top, so the old upper rows stay on screen. The
+  host holds the old height for about 4 frames with blank rows on top, then shrinks, so
+  what stays behind is blank. `TestUpstreamInlineShrinkBug` fails once upstream fixes
+  it; then drop `holdHeight`.
+- **Raw `tea.Raw` output is buffered until the next frame tick**, while `tea.Println`
+  writes immediately. So Reprint (`ESC[2J ESC[3J ESC[H`) delivers `ScreenClearedMsg`
+  only after a few frame intervals.
+- **Key decoding** (`TestModifiedEnterDecoding`): `ESC[13;2u` → shift+enter,
+  `ESC[13;5u` → ctrl+enter, xterm modifyOtherKeys `ESC[27;2;13~` → shift+enter,
+  `ESC CR` → alt+enter, LF → ctrl+j. Uppercase letters arrive as `shift+<letter>`.
+- **Per-terminal matrix (iTerm2, Ghostty, Terminal.app, kitty, WezTerm, VS Code, tmux):**
+  still needs a person at each terminal; run `mantle-ui keyprobe` there and record which
+  of shift+enter / ctrl+enter arrive (and whether keyboard enhancements are reported).
+
+Spike S16 (process groups):
+- The engine runs in its own process group (`Setpgid`, plan 02), recorded in
+  `$MANTLE_HOME/run/<pid>.json` with the UI's pid (`TestSmokeBoot`).
+- **ctrl+z / fg under a real shell** (`TestSuspendResumeUnderShell`, bash on a pty):
+  ctrl+z suspends mantle-ui and the shell gets the terminal back ("Stopped"); `fg`
+  resumes and the live area redraws. The engine stays alive and is not left stopped.
+- Under a test harness that makes mantle-ui its own session leader, SIGTSTP is
+  discarded (orphaned process group). Real shells don't do that, which is why the test
+  runs a shell.
+- **`tea.ExecProcess($EDITOR)` with ctrl+c**: during exec Bubble Tea restores the
+  terminal and sets `ignoreSignals`, so the SIGINT from ctrl+c in the editor neither
+  quits mantle nor reaches the engine (separate process group). An end-to-end test needs
+  plan 04's ctrl+g editor action.
+- Crash restore of termios and killing the engine group are the launcher's job (plan
+  10, `internal/launcher`: `TestCrashKillsEngineGroup`, `termios*.go`).
