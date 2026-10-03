@@ -77,7 +77,9 @@ func TestCommitAndRemove(t *testing.T) {
 				hs.SendMsg(commitMsg{n: 5}) // leave 2 live, commit the rest later
 			}
 			hs.SendMsg(commitMsg{n: 1000})
-			hs.WaitFor(func(string) bool { return countPrefix(hs.All(), "P item") == len(want) && countPrefix(hs.ScreenLines(), "P item") <= sz[1] }, 5*time.Second)
+			hs.WaitFor(func(string) bool {
+				return countPrefix(hs.All(), "P item") == len(want) && countPrefix(hs.ScreenLines(), "P item") <= sz[1]
+			}, 5*time.Second)
 			hs.Settle(80*time.Millisecond, 2*time.Second)
 			var got []string
 			for _, l := range hs.All() {
