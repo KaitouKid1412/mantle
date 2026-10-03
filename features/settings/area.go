@@ -24,8 +24,11 @@ type area struct {
 	write func(env patch.Env, p patch.Patch) (string, error)
 
 	engine engineState
-	// sessionEffort is the effort applied this session with apply_flag_settings.
-	sessionEffort model.Effort
+	// Session overrides applied with apply_flag_settings (nil/"" = none).
+	sessionEffort    model.Effort
+	sessionUltracode *bool
+	sessionFast      *bool
+	sessionThinking  *bool
 }
 
 // engineState caches what the main engine reported, for panels that open before a
@@ -79,6 +82,19 @@ func (a *area) subscribe(r ext.Registrar) {
 		}
 		return nil
 	})
+	// A new engine process starts without the old session's flag settings.
+	ext.Subscribe(r, "settings.engine-attach", func(c ext.Ctx, m ext.EngineAttachMsg) tea.Cmd {
+		if isMain(m.EngineID) {
+			a.resetSession()
+		}
+		return nil
+	})
+}
+
+func (a *area) resetSession() {
+	a.sessionEffort = ""
+	a.sessionUltracode, a.sessionFast, a.sessionThinking = nil, nil, nil
+	a.engine.sys = nil
 }
 
 func isMain(id string) bool { return id == "" || id == ext.MainEngine }
