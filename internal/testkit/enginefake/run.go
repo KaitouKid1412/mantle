@@ -269,13 +269,18 @@ func (r *runner) applyRules(line []byte) bool {
 	case "keep_alive":
 		return true
 	case "control_request":
-		if req, _ := m["request"].(map[string]any); req["subtype"] == "end_session" {
-			id, _ := m["request_id"].(string)
+		req, _ := m["request"].(map[string]any)
+		id, _ := m["request_id"].(string)
+		switch req["subtype"] {
+		case "end_session":
 			r.write(controlResponse(id, nil, ""))
 			select {
 			case r.ended <- 0:
 			default:
 			}
+			return true
+		case "get_binary_version":
+			r.write(controlResponse(id, json.RawMessage(`{"version":"`+Version+`","buildTime":"2026-10-02T00:00:00Z"}`), ""))
 			return true
 		}
 	}

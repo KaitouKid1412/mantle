@@ -36,7 +36,8 @@ import (
 // "on" rules are active for the whole run, wherever they appear. A stdin message that
 // matches a rule is answered (respond/respond_error, then optional emit) and is not
 // offered to "expect". Built-in rules, which a script's own rules override: keep_alive
-// is ignored, and end_session is answered and ends the run with exit code 0.
+// is ignored, get_binary_version answers Version, and end_session is answered and
+// ends the run with exit code 0.
 //
 // When the steps run out the fake keeps answering rules until stdin closes, then
 // exits 0, like the real engine.
