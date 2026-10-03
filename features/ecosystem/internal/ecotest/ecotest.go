@@ -337,3 +337,10 @@ func Calls(t *testing.T, argvLog string) [][]string {
 	}
 	return out
 }
+
+// Open runs the dialog's Init and drives the resulting messages, like the host
+// does after OpenDialog.
+func Open(t *testing.T, ctx ext.Ctx, d ext.Dialog) []tea.Msg {
+	t.Helper()
+	return Drive(t, ctx, d, d.Init(ctx))
+}

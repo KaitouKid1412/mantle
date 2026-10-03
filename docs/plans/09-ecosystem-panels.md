@@ -172,7 +172,7 @@ Also provide:
 - [ ] **B8 [M2] `/login` and `/logout`.** `claude auth login [--claudeai|--console|--sso]`
   (pick the method in a small dialog) or `claude auth logout` via ExecProcess, then restart
   the engine and show the new `initialize.account`.
-- [ ] **B9 [M2] `/upgrade`, `/feedback` (`/bug`), `/import`, `/install-github-app`.**
+- [x] **B9 [M2] `/upgrade`, `/feedback` (`/bug`), `/import`, `/install-github-app`.**
   - `/upgrade` (subscription) is H.
   - `/feedback` and `/bug` are H (consent and upload happen in Claude Code).
   - `/import`: dry-run preview from `claude import --dry-run`, confirm, then run with
@@ -180,7 +180,7 @@ Also provide:
   - `/install-github-app` is H.
   - Engine binary updates: `claude update` via ExecProcess, then trigger plan 02's
     conformance probe.
-- [ ] **B10 [M2] H commands for cloud and product features.** Register each as a command
+- [x] **B10 [M2] H commands for cloud and product features.** Register each as a command
   that calls plan 06's generic hand-off action (by ext ID).
   - **Spike first:** does `claude --resume <sid> "/<cmd>"` run the command at startup in
     interactive mode? If yes, pass it through; if not, hand off and show a one-line hint to

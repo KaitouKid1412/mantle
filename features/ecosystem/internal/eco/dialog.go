@@ -30,6 +30,12 @@ type View interface {
 	Hints(ctx ext.Ctx) string
 }
 
+// Initer is an optional View interface: the root view's Init runs when the
+// dialog opens (start loading data there).
+type Initer interface {
+	Init(ctx ext.Ctx, d *Dialog) tea.Cmd
+}
+
 // Titler is an optional View interface that replaces the dialog subtitle.
 type Titler interface {
 	Subtitle() string
@@ -53,13 +59,20 @@ func NewDialog(id, title string, root View) *Dialog {
 }
 
 func (d *Dialog) ID() string               { return d.id }
-func (d *Dialog) Init(ext.Ctx) tea.Cmd     { return nil }
 func (d *Dialog) Placement() ext.Placement { return ext.PlaceInline }
 func (d *Dialog) KeyContext() string       { return d.KeyContexts()[0] }
 func (d *Dialog) Top() View                { return d.views[len(d.views)-1] }
 func (d *Dialog) Depth() int               { return len(d.views) }
 func (d *Dialog) Closed() bool             { return d.closed }
 func (d *Dialog) Root() View               { return d.views[0] }
+
+// Init runs the root view's Init, if it has one.
+func (d *Dialog) Init(ctx ext.Ctx) tea.Cmd {
+	if v, ok := d.views[0].(Initer); ok {
+		return v.Init(ctx, d)
+	}
+	return nil
+}
 
 // HandlePaste gives pasted text to a view that takes it (form fields).
 func (d *Dialog) HandlePaste(ctx ext.Ctx, p tea.PasteMsg) (bool, tea.Cmd) {
