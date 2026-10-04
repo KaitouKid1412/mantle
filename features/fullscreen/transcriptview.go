@@ -148,7 +148,7 @@ func (v *transcriptView) maybeTick(ctx ext.Ctx) tea.Cmd {
 		return nil
 	}
 	for _, it := range v.items {
-		if it.State == ext.Running || it.State == ext.Streaming {
+		if it != nil && (it.State == ext.Running || it.State == ext.Streaming) {
 			v.ticking = true
 			v.tickGen++
 			gen := v.tickGen

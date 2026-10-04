@@ -35,6 +35,14 @@ func newRenderer() *renderer {
 	return &renderer{cache: map[string]cacheEntry{}, expanded: map[string]bool{}}
 }
 
+// linesSource is the transcript store's view of itself at a width: one block per
+// visible item in the current view mode (brief, engine view mode, focus summaries,
+// grouped MCP runs), with ids (plan 03, request 12-03). Synthetic blocks have ids that
+// aren't items ("summary:…", "group:…").
+type linesSource interface {
+	Lines(c ext.Ctx, w int) ([]string, []ext.Block)
+}
+
 // childrenSource is the transcript store's child lookup (plan 03's store has it; any
 // other Transcript gets children grouped by ParentID).
 type childrenSource interface {
@@ -60,6 +68,9 @@ func (r *renderer) blocks(ctx ext.Ctx, w int) (out []Block, collapsible []bool, 
 	tr := ctx.Transcript()
 	if tr == nil {
 		return nil, nil, nil
+	}
+	if ls, ok := tr.(linesSource); ok {
+		return r.fromStore(ctx, tr, ls, w)
 	}
 	all := tr.Items()
 	var kids map[string][]*ext.Item
@@ -118,6 +129,49 @@ func (r *renderer) blocks(ctx ext.Ctx, w int) (out []Block, collapsible []bool, 
 	for id := range r.cache { // forget items that left the store (/clear, rewind)
 		if !seen[id] {
 			delete(r.cache, id)
+			delete(r.expanded, id)
+		}
+	}
+	return out, collapsible, items
+}
+
+// fromStore uses the store's own view-mode rendering, so fullscreen shows exactly what
+// inline shows. Items the user expanded are rendered again with Expanded set.
+func (r *renderer) fromStore(ctx ext.Ctx, tr ext.Transcript, ls linesSource, w int) (out []Block, collapsible []bool, items []*ext.Item) {
+	ids, blocks := ls.Lines(ctx, w)
+	seen := make(map[string]bool, len(ids))
+	for i, id := range ids {
+		if i >= len(blocks) {
+			break
+		}
+		b := blocks[i]
+		it := tr.Get(id) // nil for synthetic blocks
+		if r.expanded[id] && it != nil {
+			var children []*ext.Item
+			if cs, ok := tr.(childrenSource); ok {
+				children = cs.Children(id)
+			}
+			b = ctx.Renderer(it.Key)(ext.RenderCtx{Width: w, Mode: viewMode(ctx), Theme: ctx.Theme(),
+				Expanded: true, Now: ctx.Clock().Now(), Children: children}, it)
+			b.Collapsible = true
+		}
+		if len(b.Lines) == 0 {
+			continue
+		}
+		seen[id] = true
+		lines := append(make([]string, 0, len(b.Lines)+1), "")
+		for _, l := range b.Lines {
+			if ansi.StringWidth(l) > w {
+				l = ansi.Truncate(l, w, "")
+			}
+			lines = append(lines, l)
+		}
+		out = append(out, Block{ID: id, Lines: lines})
+		collapsible = append(collapsible, b.Collapsible)
+		items = append(items, it)
+	}
+	for id := range r.expanded {
+		if !seen[id] {
 			delete(r.expanded, id)
 		}
 	}

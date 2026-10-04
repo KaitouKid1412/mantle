@@ -1,6 +1,8 @@
 # 12 → 03: streaming-text cache in the fullscreen layout
 
-**Status:** open (2026-10-04).
+**Status:** resolved 2026-10-04 in plan 03 commit 18ce53f: finished text items drop their
+streaming state in any layout, and the store has `Lines(c, w) ([]string, []ext.Block)`,
+which the fullscreen viewport uses when present.
 
 In the fullscreen layout the transcript store is drawn by plan 12's viewport
 (`features/fullscreen`), which calls the resolved renderers through `Ctx.Renderer` and

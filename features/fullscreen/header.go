@@ -62,7 +62,7 @@ func (h *stickyHeader) prompt() (string, bool) {
 		return "", false
 	}
 	for i := b; i >= 0; i-- {
-		if tv.items[i].Key != ext.KeyUserPrompt {
+		if tv.items[i] == nil || tv.items[i].Key != ext.KeyUserPrompt {
 			continue
 		}
 		if tv.vp.BlockStart(i)+1 >= top { // the prompt line itself is still visible
