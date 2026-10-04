@@ -20,6 +20,8 @@ import (
 //	script: scripts/plain-qa.json   # fakeapi script, relative to the scenario file
 //	args: --model sonnet            # extra command-line arguments for the target
 //	files: fixtures/app             # copied into the working directory before start
+//	env: CLAUDE_CODE_ENABLE_TODO_TOOLS=1   # extra environment (repeatable)
+//	settings: {"statusLine": {...}}  # written to the isolated CLAUDE_CONFIG_DIR/settings.json
 //	---
 //	ready                       # wait until the target shows its prompt
 //	type What is 2+2?           # literal text ("…" quotes allow \n, \t escapes)
@@ -32,15 +34,21 @@ import (
 //	checkpoint answered         # capture screen and scrollback
 //	resize 120x40
 //	sleep 300ms
+//	restart -c                  # quit and start the target again with these arguments
+//
+// fakeapi scripts may use {{work}}, {{config}} and {{home}}; the runner replaces them
+// with the run's directories (tools need absolute paths).
 type Scenario struct {
-	Name   string
-	Width  int
-	Height int
-	Script string   // fakeapi script path (absolute after Load)
-	Args   []string // extra target arguments
-	Files  string   // fixture directory copied into the workspace (absolute after Load)
-	Steps  []Step
-	Path   string // the .scn file
+	Name     string
+	Width    int
+	Height   int
+	Script   string   // fakeapi script path (absolute after Load)
+	Args     []string // extra target arguments
+	Files    string   // fixture directory copied into the workspace (absolute after Load)
+	Env      []string // extra KEY=VALUE environment
+	Settings string   // JSON written to CLAUDE_CONFIG_DIR/settings.json
+	Steps    []Step
+	Path     string // the .scn file
 }
 
 // StepKind names a step.
@@ -57,6 +65,7 @@ const (
 	StepCheckpoint StepKind = "checkpoint"
 	StepResize     StepKind = "resize"
 	StepSleep      StepKind = "sleep"
+	StepRestart    StepKind = "restart"
 )
 
 // Step is one scenario step.
@@ -68,6 +77,7 @@ type Step struct {
 	Width   int           // resize
 	Height  int           // resize
 	Dur     time.Duration // sleep
+	Args    []string      // restart
 	Line    int           // line in the file, for errors
 }
 
@@ -186,6 +196,13 @@ func (sc *Scenario) setHeader(key, val string) error {
 		sc.Args = strings.Fields(val)
 	case "files":
 		sc.Files = val
+	case "env":
+		if !strings.Contains(val, "=") {
+			return fmt.Errorf("env wants KEY=VALUE")
+		}
+		sc.Env = append(sc.Env, val)
+	case "settings":
+		sc.Settings = val
 	default:
 		return fmt.Errorf("unknown header %q", key)
 	}
@@ -253,6 +270,8 @@ func parseStep(line string) (Step, error) {
 		st.Width, st.Height, err = parseSize(rest)
 	case StepSleep:
 		st.Dur, err = time.ParseDuration(rest)
+	case StepRestart:
+		st.Args = strings.Fields(rest)
 	default:
 		err = fmt.Errorf("unknown step %q", verb)
 	}
