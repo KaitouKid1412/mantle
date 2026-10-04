@@ -351,6 +351,8 @@ type Promotion struct {
 	Rebased bool
 	// Commits are the request's new commits.
 	Commits []string
+	// Squashed is true when an edit was folded into the mod's commits.
+	Squashed bool
 }
 
 // ErrRevetFailed is returned when the post-rebase checks fail.
@@ -377,10 +379,27 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 	if r.Kind == RequestEdit && r.Target != "" {
 		modID = r.Target
 	}
+	// An edit's commits become fixups of the mod's commits of the same kind,
+	// so the mod stays one unit after squashing (below).
+	fixupOf := map[string]string{}
+	if r.Kind == RequestEdit && w.Branch != "" {
+		if mods, err := w.Mods(); err == nil {
+			for _, m := range mods {
+				if m.ID != modID {
+					continue
+				}
+				for _, c := range m.Commits {
+					if k := c.Trailers.Get(TrailerKind); k != KindRevert && fixupOf[k] == "" {
+						fixupOf[k] = c.Subject
+					}
+				}
+			}
+		}
+	}
 	if clean, err := wt.IsClean(); err != nil {
 		return nil, err
 	} else if !clean {
-		if p.Commits, err = wt.CommitMod(ModCommit{ID: modID, Request: r.Request}); err != nil {
+		if p.Commits, err = wt.CommitModFixups(ModCommit{ID: modID, Request: r.Request}, fixupOf); err != nil {
 			return nil, err
 		}
 	}
@@ -401,10 +420,14 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 		if err != nil {
 			return nil, err
 		}
-		if r.Kind == RequestUpdate {
-			// The update replaces the branch with the mods re-applied on the
-			// new upstream, if nothing was promoted meanwhile.
-			if head != r.UpdateFrom {
+		if r.Kind == RequestEdit && head == r.Base && len(fixupOf) > 0 && len(p.Commits) > 0 {
+			p.Squashed = w.squash(wt)
+		}
+		if r.Kind == RequestUpdate || p.Squashed {
+			// The branch is replaced: by the mods re-applied on the new
+			// upstream, or by the history with the edit squashed in. Only if
+			// nothing was promoted meanwhile.
+			if r.Kind == RequestUpdate && head != r.UpdateFrom {
 				return nil, fmt.Errorf("%s moved while the update ran; run /mantle update again", w.Branch)
 			}
 			newHead, err := wt.HeadSHA()
@@ -436,7 +459,7 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 			}
 			summary = rerun.Summary(w.Layout.Build(r.ID))
 		}
-		if r.Kind != RequestUpdate {
+		if r.Kind != RequestUpdate && !p.Squashed {
 			if err := src.MergeFastForward(r.Branch); err != nil {
 				return nil, err
 			}
@@ -493,6 +516,31 @@ func stageResolved(wt Git) error {
 		return fmt.Errorf("conflict markers are left: %s", strings.Join(markers, "; "))
 	}
 	return nil
+}
+
+// squash folds an edit's fixup commits into the mod's commits. History from
+// the upstream on is rewritten, but the tree must stay the same; if the
+// squash conflicts or changes the tree, the worktree is put back and the
+// edit stays as separate commits with the same Mantle-Mod id.
+func (w *Workspace) squash(wt Git) bool {
+	before, err := wt.HeadSHA()
+	if err != nil {
+		return false
+	}
+	tree := func() string { t, _ := wt.run("rev-parse", "HEAD^{tree}"); return t }
+	treeBefore := tree()
+	base, err := wt.MergeBase(w.Upstream, "HEAD")
+	if err != nil {
+		return false
+	}
+	if err := wt.Autosquash(base); err != nil {
+		return false
+	}
+	if tree() != treeBefore {
+		wt.run("reset", "--hard", "--quiet", before)
+		return false
+	}
+	return true
 }
 
 func (w *Workspace) removeWorktree(r *Request) {

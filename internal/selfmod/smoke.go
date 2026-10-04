@@ -48,8 +48,19 @@ type SmokeConfig struct {
 }
 
 // smokeEngineScript answers initialize with plan 02's default reply (INIT),
-// then replies "smoke reply" to the first prompt (enginefake format).
+// then replies "smoke reply" to the first prompt (enginefake format). The
+// rules answer the control requests mantle sends around startup, in any
+// order relative to the prompt (as plan 01's smoke test does); they are
+// explicit, not a catch-all, so end_session still reaches the fake's
+// built-in handler.
 const smokeEngineScript = `# mantle pipeline smoke boot
+{"on": {"type": "control_request", "request": {"subtype": "file_suggestions"}}, "respond": {"suggestions": []}}
+{"on": {"type": "control_request", "request": {"subtype": "get_context_usage"}}, "respond": {"categories": [], "totalTokens": 0, "maxTokens": 200000, "percentage": 0}}
+{"on": {"type": "control_request", "request": {"subtype": "mcp_status"}}, "respond": {"mcpServers": []}}
+{"on": {"type": "control_request", "request": {"subtype": "list_models"}}, "respond": {"models": []}}
+{"on": {"type": "control_request", "request": {"subtype": "get_settings"}}, "respond": {}}
+{"on": {"type": "control_request", "request": {"subtype": "get_usage"}}, "respond": {}}
+{"on": {"type": "control_request", "request": {"subtype": "get_hooks_listing"}}, "respond": {}}
 {"on": {"type": "control_request", "request": {"subtype": "initialize"}}, "respond": INIT}
 {"expect": {"type": "user"}, "timeout": 30000}
 {"emit": {"type": "system", "subtype": "init", "session_id": "s-smoke", "uuid": "i1", "cwd": "/tmp", "tools": [], "mcp_servers": [], "model": "claude-test", "permissionMode": "default", "slash_commands": [], "apiKeySource": "none", "claude_code_version": "2.1.288", "output_style": "default"}}
