@@ -153,6 +153,9 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 	}()
 
 	for _, st := range sc.Steps {
+		if st.Only != "" && st.Only != tg.Name() {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			res.Err, res.FailedLine = fmt.Errorf("scenario timeout: %w", err), st.Line
 			break

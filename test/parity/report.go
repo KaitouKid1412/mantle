@@ -302,6 +302,19 @@ func (r *Report) Summary(diffs []CheckpointDiff) string {
 		b.WriteString("\n## Run errors\n\n" + strings.Join(errs, "\n") + "\n")
 	}
 
+	var only []string
+	for _, run := range r.Runs {
+		for _, st := range run.Scenario.Steps {
+			if st.Only != "" {
+				only = append(only, fmt.Sprintf("| %s | %d | %s | `%s` |", run.Scenario.Name, st.Line, st.Only, st.Src))
+			}
+		}
+	}
+	if len(only) > 0 {
+		b.WriteString("\n## Target-specific steps\n\nSteps only one target needs: each is a difference in the flow itself.\n\n" +
+			"| Scenario | Line | Target | Step |\n|---|---|---|---|\n" + strings.Join(only, "\n") + "\n")
+	}
+
 	if r.Normalizer != nil {
 		b.WriteString("\n## Normalization rules\n\n| Rule | What it does |\n|---|---|\n")
 		for _, d := range r.Normalizer.Describe() {

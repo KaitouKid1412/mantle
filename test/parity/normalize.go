@@ -51,6 +51,8 @@ var DefaultRules = []Rule{
 		`^(\s*)([`+spinnerGlyphs+`])\s+\p{Lu}[\p{L}'-]*(ed|t)\s+for\b`, "${1}${2} <verb> for"),
 	rule("tmp-path", "Temporary paths (/var/folders, /private/var, /tmp) become <tmp>.",
 		`(?:/private)?/(?:var/folders|tmp|private/tmp)/[^\s│|)'"]*`, "<tmp>"),
+	rule("loopback", "Loopback addresses with a port (the fakeapi server, 127.0.0.1:53211) become <loopback>.",
+		`\b(?:127\.0\.0\.1|localhost|\[::1\]):\d+\b`, "<loopback>"),
 	rule("uuid", "UUIDs (session, message and request ids) become <uuid>.",
 		`\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b`, "<uuid>"),
 	rule("tool-id", "Tool-use ids (toolu_…) become <toolu>.",
