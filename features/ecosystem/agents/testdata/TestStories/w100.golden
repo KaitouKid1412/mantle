@@ -1,0 +1,16 @@
+[1;38;2;224;149;110mAgents[m
+
+  [1;38;2;230;227;222mProject[m
+  [38;2;147;180;251m❯ [m[38;2;224;149;110m●[m [38;2;147;180;251mcode-reviewer   [m  [38;2;139;139;147msonnet · Reviews diffs for bugs and style[m
+
+  [1;38;2;230;227;222mUser[m
+    [38;2;224;149;110m●[m [38;2;230;227;222mnotes           [m  [38;2;139;139;147mKeeps my notes tidy[m
+
+  [1;38;2;230;227;222mPlugins[m
+    [38;2;224;149;110m●[m [38;2;230;227;222mdemo:reviewer   [m  [38;2;139;139;147mReviews with the demo plugin[m
+
+  [1;38;2;230;227;222mBuilt-in[m
+    [38;2;224;149;110m●[m [38;2;230;227;222mExplore         [m  [38;2;139;139;147mRead-only search agent[m
+    [38;2;224;149;110m●[m [38;2;230;227;222mgeneral-purpose [m  [38;2;139;139;147mResearches and runs multi-step tasks[m
+
+  [38;2;139;139;147menter details · n new · e edit · x delete · esc close[m

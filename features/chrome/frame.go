@@ -18,8 +18,9 @@ const EditorID = "input.editor"
 // editor component, so it delegates everything else to it, keeps its ID and moves its
 // cursor down one row.
 type promptFrame struct {
-	next ext.Component
-	s    sessionState
+	next  ext.Component
+	s     sessionState
+	color string // /color choice ("" = default)
 }
 
 // wrapFrame is the Wrap function registered for EditorID.
@@ -32,6 +33,11 @@ func (f *promptFrame) ID() string { return f.next.ID() }
 func (f *promptFrame) Init(ctx ext.Ctx) tea.Cmd { return f.next.Init(ctx) }
 
 func (f *promptFrame) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
+	if m, ok := msg.(promptColorMsg); ok {
+		f.color = m.Color
+		ctx.Invalidate(f.ID())
+		return nil
+	}
 	before := f.s
 	if f.s.observe(msg) && f.frameChanged(before) {
 		ctx.Invalidate(f.ID())
@@ -55,7 +61,7 @@ func (f *promptFrame) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	if r.Text == "" || a.Width <= 0 {
 		return r
 	}
-	tok := frameToken(f.s.EditorMode, f.s.Mode)
+	tok := frameToken(f.s.EditorMode, f.s.Mode, f.color)
 	t := ctx.Theme()
 	top := frameRule(t, tok, a.Width, f.s.Title) // custom names only (-n, /rename)
 	bottom := frameRule(t, tok, a.Width, "")
@@ -68,13 +74,17 @@ func (f *promptFrame) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	return r
 }
 
-// frameToken picks the frame colour: bash input wins, then plan mode.
-func frameToken(editorMode, permMode string) theme.Token {
+// frameToken picks the frame colour: bash input wins, then plan mode, then the
+// session's /color.
+func frameToken(editorMode, permMode, color string) theme.Token {
 	switch {
 	case editorMode == "bash":
 		return theme.BashBorder
 	case permMode == ModePlan:
 		return theme.PlanMode
+	}
+	if tok, ok := colorToken(color); ok {
+		return tok
 	}
 	return theme.PromptBorder
 }

@@ -2,10 +2,13 @@ package selfmod
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -15,6 +18,7 @@ import (
 	"github.com/creack/pty"
 
 	"github.com/KaitouKid1412/mantle/internal/launcher"
+	"github.com/KaitouKid1412/mantle/internal/testkit/enginefake"
 )
 
 // SmokeConfig configures step 9, the pty smoke boot: start the candidate
@@ -35,6 +39,72 @@ type SmokeConfig struct {
 	Script []SmokeAction
 	// ExitCode is the expected exit code (0).
 	ExitCode int
+	// FakeEngine, if set, is a package built from the candidate (for example
+	// "./cmd/fakeclaude") and used as the engine through MANTLE_CLAUDE_BIN.
+	FakeEngine string
+	// FakeScript is the fake engine's script, written to the build folder and
+	// passed as FAKECLAUDE_SCRIPT.
+	FakeScript string
+}
+
+// smokeEngineScript answers initialize with plan 02's default reply (INIT),
+// then replies "smoke reply" to the first prompt (enginefake format).
+const smokeEngineScript = `# mantle pipeline smoke boot
+{"on": {"type": "control_request", "request": {"subtype": "initialize"}}, "respond": INIT}
+{"expect": {"type": "user"}, "timeout": 30000}
+{"emit": {"type": "system", "subtype": "init", "session_id": "s-smoke", "uuid": "i1", "cwd": "/tmp", "tools": [], "mcp_servers": [], "model": "claude-test", "permissionMode": "default", "slash_commands": [], "apiKeySource": "none", "claude_code_version": "2.1.288", "output_style": "default"}}
+{"emit": {"type": "assistant", "session_id": "s-smoke", "uuid": "a1", "parent_tool_use_id": null, "message": {"id": "msg_smoke", "type": "message", "role": "assistant", "model": "claude-test", "content": [{"type": "text", "text": "smoke reply"}], "stop_reason": "end_turn"}}}
+{"emit": {"type": "result", "subtype": "success", "session_id": "s-smoke", "uuid": "r1", "is_error": false, "result": "smoke reply", "num_turns": 1, "duration_ms": 1, "duration_api_ms": 1, "total_cost_usd": 0, "usage": {"input_tokens": 1, "output_tokens": 1}}}
+`
+
+// smokeHome prepares an isolated HOME for the smoke boot, with Claude Code's
+// config in it and the project already trusted, so the startup gates pass
+// without a dialog and nothing of the user's state is read or written.
+func smokeHome(home, project string) ([]string, error) {
+	if real, err := filepath.EvalSymlinks(project); err == nil {
+		project = real
+	}
+	claudeDir := filepath.Join(home, ".claude")
+	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
+		return nil, err
+	}
+	trust, _ := json.Marshal(map[string]any{
+		"hasCompletedOnboarding": true,
+		"projects":               map[string]any{project: map[string]any{"hasTrustDialogAccepted": true}},
+	})
+	for _, p := range []string{filepath.Join(claudeDir, ".claude.json"), filepath.Join(home, ".claude.json")} {
+		if err := os.WriteFile(p, trust, 0o600); err != nil {
+			return nil, err
+		}
+	}
+	return []string{
+		"HOME=" + home,
+		"CLAUDE_CONFIG_DIR=" + claudeDir,
+		launcher.EnvHome + "=" + filepath.Join(home, ".mantle"),
+		"MANTLE_DRIFT_CHECK=off",
+	}, nil
+}
+
+// DefaultSmokeConfig is the M1 smoke boot: against the candidate's own
+// fakeclaude, wait for the first frame, type a prompt, see the scripted
+// reply, open /help, quit with ctrl+c twice, expect exit 0.
+func DefaultSmokeConfig() SmokeConfig {
+	return SmokeConfig{
+		FakeEngine: "./cmd/fakeclaude",
+		FakeScript: strings.Replace(smokeEngineScript, "INIT", string(enginefake.DefaultInitializeResponse), 1),
+		Script: []SmokeAction{
+			Expect(`\S`),
+			Send("hello\r"),
+			Expect(`smoke reply`),
+			Send("/help\r"),
+			Expect(`(?i)help|commands`),
+			Send("\x1b"), // close the help view
+			Sleep(200 * time.Millisecond),
+			Send("\x03"),
+			Sleep(100 * time.Millisecond),
+			Send("\x03"),
+		},
+	}
 }
 
 // SmokeAction is one scripted interaction. Exactly one field is set.
@@ -73,7 +143,24 @@ func (sc *stepCtx) smoke(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	env := sc.env(append(sc.safetyEnv(), append([]string{"TERM=xterm-256color", "COLORTERM=truecolor"}, cfg.Env...)...))
+	extra := append(sc.safetyEnv(), "TERM=xterm-256color", "COLORTERM=truecolor")
+	if cfg.FakeEngine != "" {
+		fake := filepath.Join(sc.r.OutDir, "fakeclaude")
+		if out, err := sc.exec(ctx, sc.r.Dir, sc.env(nil), sc.p.cfg.Go, "build", "-o", fake, cfg.FakeEngine); err != nil {
+			return &stepFailure{summary: "cannot build the fake engine " + cfg.FakeEngine, lines: extractErrors(out)}
+		}
+		script := filepath.Join(sc.r.LogDir, "smoke-engine.jsonl")
+		if err := os.WriteFile(script, []byte(cfg.FakeScript), 0o644); err != nil {
+			return err
+		}
+		extra = append(extra, launcher.EnvClaudeBin+"="+fake, "FAKECLAUDE_SCRIPT="+script)
+		home, err := smokeHome(filepath.Join(sc.r.LogDir, "smoke-home"), sc.r.Dir)
+		if err != nil {
+			return err
+		}
+		extra = append(extra, home...)
+	}
+	env := sc.env(append(extra, cfg.Env...))
 	if err := RunSmoke(ctx, bin, sc.r.Dir, env, cfg, sc.log); err != nil {
 		var se *SmokeError
 		if errors.As(err, &se) {

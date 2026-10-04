@@ -28,6 +28,9 @@ func TestReadMetaPlain(t *testing.T) {
 		!m.LastActive.Equal(time.Date(2026, 9, 1, 10, 1, 2, 0, time.UTC)) {
 		t.Fatalf("created=%v last=%v", m.Created, m.LastActive)
 	}
+	if m.ContextTokens != 230 { // the last response: 200 in + 30 out
+		t.Fatalf("context tokens = %d", m.ContextTokens)
+	}
 	if m.Cost == nil || m.Cost.CostUSD != 0.0123 || m.Cost.Tokens() != 410 {
 		t.Fatalf("cost = %+v", m.Cost)
 	}

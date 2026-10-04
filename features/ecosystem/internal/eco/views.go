@@ -61,7 +61,7 @@ func (v *TextView) Render(ctx ext.Ctx, th *theme.Theme, width, height int) []str
 			all = append(all, l)
 			continue
 		}
-		all = append(all, strings.Split(ansi.Hardwrap(ansi.Wordwrap(l, width, ""), width, true), "\n")...)
+		all = append(all, wrapLine(l, width)...)
 	}
 	if height <= 0 || len(all) <= height {
 		v.offset = 0
@@ -82,6 +82,17 @@ func (v *TextView) Hints(ctx ext.Ctx) string {
 		return v.HintFn(ctx)
 	}
 	return Hint("↑↓", "scroll", "esc", "back")
+}
+
+// wrapLine wraps at word boundaries, except that a line ending in one long
+// token (a path or URL) is cut in place so "File: /very/long/path" stays on
+// its label's line.
+func wrapLine(l string, width int) []string {
+	words := strings.Fields(ansi.Strip(l))
+	if n := len(words); n > 0 && ansi.StringWidth(words[n-1]) > width/2 {
+		return strings.Split(ansi.Hardwrap(l, width, false), "\n")
+	}
+	return strings.Split(ansi.Hardwrap(ansi.Wordwrap(l, width, ""), width, true), "\n")
 }
 
 // ---- MenuView ----
@@ -265,8 +276,8 @@ type FormView struct {
 
 func (f *FormView) Subtitle() string { return f.Sub }
 
-// Contexts: none, so letters reach the field instead of Select's j/k.
-func (f *FormView) Contexts() []string { return []string{ext.ContextSettings} }
+// Contexts: PaneField binds no letters or escape, so typing reaches the field.
+func (f *FormView) Contexts() []string { return []string{ext.ContextPaneField} }
 
 func (f *FormView) Action(ctx ext.Ctx, d *Dialog, a ext.ActionID) (bool, tea.Cmd) {
 	// Only navigation actions that don't collide with typing.

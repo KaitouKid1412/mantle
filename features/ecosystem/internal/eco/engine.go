@@ -14,11 +14,11 @@ import (
 // background tasks. The ecosystem root feature registers it.
 const RestartDialogID = "dialog.ecosystem.restart"
 
-// HandoffCommand is the hidden command plan 06 registers for the generic
-// hand-off to interactive Claude Code: its args are the slash command to run
-// there (empty to just open the session). See
-// docs/plans/requests/09-06-handoff-command.md.
-const HandoffCommand = "handoff"
+// HandoffDialogID is plan 06's generic hand-off (B5): it stops the engine, runs
+// interactive `claude --resume <sid> [args...]` with the terminal, then resumes
+// the engine and reprints new history. Its args are a []string of extra claude
+// arguments.
+const HandoffDialogID = "dialog.handoff"
 
 // RestartArgs are the RestartDialogID arguments.
 type RestartArgs struct {
@@ -79,24 +79,15 @@ func NewRestartDialog(ctx ext.Ctx, args any) (*Dialog, error) {
 	return NewDialog(RestartDialogID, "Restart Claude", c), nil
 }
 
-// Handoff opens interactive Claude Code on this session to run cmdline (e.g.
-// "/remote-control"), through plan 06's hidden handoff command, which stops the
-// engine first and resumes it afterwards. Without it, a notice explains how to
-// do it by hand.
+// Handoff opens interactive Claude Code on this session through plan 06's
+// hand-off dialog. A non-empty cmdline (e.g. "/remote-control") is passed as
+// the initial input, so Claude Code runs that command at startup.
 func Handoff(ctx ext.Ctx, cmdline string) tea.Cmd {
-	if c, ok := ctx.Command(HandoffCommand); ok && c.Run != nil {
-		return c.Run(ctx, cmdline)
-	}
-	sid := ctx.Session().SessionID
-	how := "claude"
-	if sid != "" {
-		how += " --resume " + sid
-	}
-	text := fmt.Sprintf("Opening Claude Code from mantle isn't available yet. Run `%s`", how)
+	var args []string
 	if cmdline = strings.TrimSpace(cmdline); cmdline != "" {
-		text += " and type " + cmdline
+		args = []string{cmdline}
 	}
-	return ctx.Notify(ext.Notice{Key: "ecosystem.handoff", Level: ext.NoticeWarning, Text: text + "."})
+	return ctx.OpenDialog(HandoffDialogID, args)
 }
 
 // Busy sets a "working" status on the dialog.

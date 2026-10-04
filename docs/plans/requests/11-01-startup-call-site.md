@@ -1,5 +1,8 @@
 # Request 11 → 01: the command-line call site in cmd/mantle-ui
 
+**Status:** resolved 2026-10-03: wired in `cmd/mantle-ui/main.go` as below, with plan 06's
+sessions index as the resolver and the config store built from `st.FlagSettings()`.
+
 Plan 11's B1 is ready on branch `worktree-mantle-11` (`internal/cli`, `features/cli`).
 `cmd/mantle-ui/main.go` (plan 01, B9) needs this at its one call site, after matching
 mantle-ui's own words (`story`, `catalog`, `selftest`), which would otherwise be a prompt:
