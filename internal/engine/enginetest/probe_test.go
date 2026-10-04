@@ -3,6 +3,7 @@ package enginetest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -150,6 +151,19 @@ func TestCheckEngine(t *testing.T) {
 	}
 	if st, _ := engine.LoadEngineState(state); st.Pinned != "" {
 		t.Error("unpin")
+	}
+
+	// Below the minimum version: not OK, no probe, last good offered.
+	t.Setenv("FAKECLAUDE_VERSION", "2.1.200")
+	old, err := engine.CheckEngine(context.Background(), engine.CheckOptions{StatePath: state, Binary: bin})
+	if err != nil || old.OK || !old.TooOld || old.Probed || old.LastGood != "2.1.288" {
+		t.Errorf("too old: %+v %v", old, err)
+	}
+
+	// No claude anywhere: a clear error.
+	t.Setenv("PATH", t.TempDir())
+	if _, err := engine.ResolveBinary(filepath.Join(t.TempDir(), "none.json")); !errors.Is(err, engine.ErrNoEngine) {
+		t.Errorf("missing engine: %v", err)
 	}
 
 	// $MANTLE_CLAUDE_BIN is an explicit override: version only, no probe, no record.

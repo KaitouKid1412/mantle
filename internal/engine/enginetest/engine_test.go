@@ -324,6 +324,18 @@ func TestPendingRequestsFromInitialize(t *testing.T) {
 	}
 }
 
+func TestUpdateEnv(t *testing.T) {
+	script := enginefake.New(enginefake.InitializeRule(nil),
+		enginefake.Expect(json.RawMessage(`{"type":"update_environment_variables","variables":{"FOO":"1"}}`)),
+		enginefake.Emit(`{"type":"result","subtype":"success","result":"ok"}`))
+	m, _, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	if err := e.UpdateEnv(map[string]string{"FOO": "1"}); err != nil {
+		t.Fatal(err)
+	}
+	rec.WaitFor(t, isResult)
+}
+
 func TestHandleStartStopAndCommands(t *testing.T) {
 	script := enginefake.New(enginefake.InitializeRule(nil),
 		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))

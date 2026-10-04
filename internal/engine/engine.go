@@ -129,6 +129,20 @@ func (e *Engine) SendPrompt(p ext.Prompt) error {
 	return r.tr.Send(line)
 }
 
+// UpdateEnv changes environment variables of the running engine
+// (update_environment_variables; there is no reply).
+func (e *Engine) UpdateEnv(vars map[string]string) error {
+	r := e.current()
+	if r == nil {
+		return ErrNotRunning
+	}
+	line, err := proto.UpdateEnvironmentVariables{Variables: vars}.MarshalLine()
+	if err != nil {
+		return err
+	}
+	return r.tr.Send(line)
+}
+
 // Interrupt stops the running turn (interrupt control request).
 func (e *Engine) Interrupt(cancelQueued bool) tea.Cmd {
 	return e.Control(proto.SubInterrupt, proto.InterruptRequest{CancelQueued: cancelQueued})

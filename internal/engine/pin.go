@@ -14,6 +14,13 @@ import (
 	"time"
 )
 
+// MinEngineVersion is the oldest claude mantle supports (its protocol baseline).
+const MinEngineVersion = "2.1.288"
+
+// ErrNoEngine is returned when no claude binary can be found.
+var ErrNoEngine = errors.New("engine: claude not found on PATH; install Claude Code " + MinEngineVersion +
+	" or newer, or set MANTLE_CLAUDE_BIN")
+
 // EngineState is ~/.mantle/state/engines.json: conformance results per claude
 // version, and the pinned binary (if the user pinned one).
 type EngineState struct {
@@ -122,7 +129,11 @@ func ResolveBinary(statePath string) (string, error) {
 			}
 		}
 	}
-	return exec.LookPath("claude")
+	p, err := exec.LookPath("claude")
+	if err != nil {
+		return "", ErrNoEngine
+	}
+	return p, nil
 }
 
 // Pin makes mantle run binary (version) until Unpin.
@@ -156,6 +167,8 @@ type EngineCheck struct {
 	// LastGood is the newest version that passed before, with a runnable binary, to
 	// offer for pinning when OK is false.
 	LastGood, LastGoodBinary string
+	// TooOld is true when Version is below MinEngineVersion (OK is false; no probe).
+	TooOld bool
 	// Override is true when $MANTLE_CLAUDE_BIN chose the binary: an explicit choice
 	// (development, tests with fakeclaude) that is accepted without a probe.
 	Override bool
@@ -202,6 +215,13 @@ func CheckEngine(ctx context.Context, o CheckOptions) (EngineCheck, error) {
 	c.Version = cliVersionRe.FindString(string(out))
 	if c.Version == "" {
 		return c, fmt.Errorf("%s --version: no version in %q", bin, out)
+	}
+	if !versionAtLeast(c.Version, MinEngineVersion) {
+		c.TooOld = true
+		if s, err := LoadEngineState(o.StatePath); err == nil {
+			c.LastGood, c.LastGoodBinary = s.LastGood(c.Version)
+		}
+		return c, nil
 	}
 	if c.Override {
 		c.OK = true // explicit override: version only, no probe, nothing recorded
