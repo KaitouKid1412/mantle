@@ -16,6 +16,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/internal/launcher"
 	sm "github.com/KaitouKid1412/mantle/internal/selfmod"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -577,7 +578,7 @@ func TestRunFileAndHealthyMarker(t *testing.T) {
 	}
 	f.run(ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "sess-1"}}))
 	rf, _ = launcher.ReadRunFile(f.l.RunFile(4242))
-	if rf.SessionID != "sess-1" || !slices.Equal(rf.HandoffArgs, []string{"--model", "opus", "--resume", "sess-1"}) {
+	if rf.SessionID != "sess-1" || !slices.Equal(rf.HandoffArgs, []string{"--model=opus", "--resume=sess-1"}) {
 		t.Errorf("run file after session = %+v", rf)
 	}
 	f.run(ext.Msg(ext.FirstFrameMsg{}))
@@ -629,23 +630,43 @@ func TestNoRunFileWithoutLauncher(t *testing.T) {
 }
 
 func TestHandoffArgs(t *testing.T) {
+	cli.ClearCurrent()
+	s := func(id string) ext.SessionInfo { return ext.SessionInfo{SessionID: id} }
 	cases := []struct {
 		argv []string
+		live ext.SessionInfo
 		want []string
 	}{
-		{[]string{"fix the bug"}, []string{"--resume", "s"}},
-		{[]string{"--model", "opus", "-c", "hello"}, []string{"--model", "opus", "--resume", "s"}},
-		{[]string{"-w", "feature", "--permission-mode", "plan"}, []string{"--worktree", "feature", "--permission-mode", "plan", "--resume", "s"}},
-		{[]string{"--ax-screen-reader", "hi"}, []string{"--ax-screen-reader", "--resume", "s"}},
-		{[]string{"-n", "my session", "--resume", "old"}, []string{"--name", "my session", "--resume", "s"}},
+		{[]string{"fix the bug"}, s("s"), []string{"--resume=s"}},
+		{[]string{"--model", "opus", "-c", "hello"}, s("s"), []string{"--model=opus", "--resume=s"}},
+		{[]string{"--permission-mode", "plan"}, ext.SessionInfo{SessionID: "s", Model: "sonnet", PermissionMode: "acceptEdits"},
+			[]string{"--model=sonnet", "--permission-mode=acceptEdits", "--resume=s"}},
+		{[]string{"--ax-screen-reader", "hi"}, s("s"), []string{"--ax-screen-reader", "--resume=s"}},
+		{[]string{"-n", "my session", "--resume", "old"}, ext.SessionInfo{SessionID: "s", Title: "renamed"}, []string{"--name=renamed", "--resume=s"}},
 	}
 	for _, c := range cases {
-		if got := handoffArgs(c.argv, "s"); !slices.Equal(got, c.want) {
+		if got := handoffArgs(c.argv, t.TempDir(), c.live); !slices.Equal(got, c.want) {
 			t.Errorf("handoffArgs(%q) = %q, want %q", c.argv, got, c.want)
 		}
 	}
-	if handoffArgs([]string{"x"}, "") != nil {
+	// -w keeps the worktree (by name) so the session resumes where it lives.
+	got := handoffArgs([]string{"-w", "feature", "hi"}, t.TempDir(), s("s"))
+	if !slices.ContainsFunc(got, func(a string) bool { return strings.Contains(a, "feature") }) || got[len(got)-1] != "--resume=s" {
+		t.Errorf("-w: %q", got)
+	}
+	if handoffArgs([]string{"x"}, t.TempDir(), ext.SessionInfo{}) != nil {
 		t.Error("handoff without a session")
+	}
+	// mantle-ui's recorded startup wins over argv.
+	p, _ := cli.Parse([]string{"--model", "haiku"})
+	st, err := p.Startup(t.TempDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli.SetCurrent(st)
+	defer cli.ClearCurrent()
+	if got := handoffArgs([]string{"--model", "ignored"}, t.TempDir(), s("s")); !slices.Equal(got, []string{"--model=haiku", "--resume=s"}) {
+		t.Errorf("with cli.Current: %q", got)
 	}
 }
 
@@ -838,7 +859,7 @@ func TestInstantRestart(t *testing.T) {
 	}
 	v, _ := (launcher.Store{L: f.l}).Current()
 	if len(eng.argv) == 0 || eng.argv[0] != v.Binary() || eng.argv[len(eng.argv)-1] != AttachEngineFDsFlag+"="+eng.path ||
-		!slices.Contains(eng.argv, "--resume") || !slices.Equal(x.argv, eng.argv) || x.path != v.Binary() {
+		!slices.Contains(eng.argv, "--resume=sess-9") || !slices.Equal(x.argv, eng.argv) || x.path != v.Binary() {
 		t.Errorf("argv = %q / %q", eng.argv, x.argv)
 	}
 	if !slices.Contains(x.env, launcher.EnvBuildID+"="+cur) {

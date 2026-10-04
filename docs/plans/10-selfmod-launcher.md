@@ -278,8 +278,8 @@ Build the part of mantle that makes it mantle:
 - Mods are linked into mantle-ui by `mods/link_<id>.go` (package `mods`) plus
   `features/all/all_mods.go`; archtest lets the root `mods` package import `mods/*`.
 - Restart now refuses while a turn runs (`session_state_changed`), while non-ambient
-  background tasks exist (`background_tasks_changed`) or while a build runs. Handoff args
-  come from `cli.Parse` until plan 11's `Startup.RestartArgs` is integrated.
+  background tasks exist (`background_tasks_changed`) or while a build runs. Relaunch args
+  are plan 11's `Startup.RestartArgs` with the live session name, model and mode.
 - Config proposals: mantle scope via `Settings.SetMantle`, Claude scope via
   `ext.ClaudeSettingsWriter` (user scope), falling back to a merge-write with backup.
 - Edit: the edit's commits become `fixup!` commits and are autosquashed into the mod's

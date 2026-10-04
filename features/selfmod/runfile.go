@@ -2,7 +2,6 @@ package selfmod
 
 import (
 	"os"
-	"slices"
 	"strconv"
 	"time"
 
@@ -57,60 +56,49 @@ func (c *controller) onStart(ctx ext.Ctx) tea.Cmd {
 	return ctx.Clock().Tick(HealthyAfter, func(time.Time) tea.Msg { return healthyTickMsg{} })
 }
 
-// handoffArgs are the arguments a relaunch (exit 75, rollback) uses: the
-// original flags that reach the engine and the UI flags, without the initial
-// prompt or session selection, plus --resume <session>. -w stays, with the
-// worktree name chosen at startup, so the session resumes in its worktree.
-// On a parse error it returns nil and the launcher falls back to
-// --resume <session>.
-//
-// TODO(10): use cli.Startup.RestartArgs (plan 11) once it is integrated.
-func handoffArgs(argv []string, sessionID string) []string {
-	if sessionID == "" {
+// handoffArgs are the arguments a relaunch (exit 75, rollback, in-place
+// restart) uses: plan 11's Startup.RestartArgs, which keeps the forwarded
+// flags, -w with the worktree name given at startup and the UI flags, takes
+// the live session name, model and permission mode, and adds --resume. The
+// initial prompt and session selection are never repeated. The startup comes
+// from cmd/mantle-ui (cli.Current); without it, it is rebuilt from argv. On
+// an error it returns nil and the launcher falls back to --resume <session>.
+func handoffArgs(argv []string, cwd string, live ext.SessionInfo) []string {
+	if live.SessionID == "" {
 		return nil
 	}
-	p, err := cli.Parse(argv)
-	if err != nil {
-		return nil
-	}
-	args := slices.Clone(p.EngineArgs)
-	st, haveStartup := cli.Current()
-	for _, o := range p.Flags {
-		if o.Name != "-w" && o.Name != "--worktree" {
-			continue
+	st, ok := cli.Current()
+	if !ok {
+		p, err := cli.Parse(argv)
+		if err != nil {
+			return nil
 		}
-		name := o.Value()
-		if haveStartup && st.Worktree != "" {
-			name = st.Worktree
-		}
-		for i := 0; i+len(o.Tokens) <= len(args); i++ {
-			if slices.Equal(args[i:i+len(o.Tokens)], o.Tokens) {
-				repl := []string{"--worktree"}
-				if name != "" {
-					repl = append(repl, name)
-				}
-				args = slices.Replace(args, i, i+len(o.Tokens), repl...)
-				break
-			}
+		if st, err = p.Startup(cwd, nil); err != nil {
+			return nil
 		}
 	}
-	if p.Mantle.Name != "" {
-		args = append(args, "--name", p.Mantle.Name)
+	return st.RestartArgs(cli.RestartOpts{
+		SessionID:      live.SessionID,
+		Name:           live.Title,
+		Model:          live.Model,
+		PermissionMode: live.PermissionMode,
+	})
+}
+
+// relaunchArgs are handoffArgs for this session as it is now.
+func (c *controller) relaunchArgs() []string {
+	live := c.mainInfo
+	if live.SessionID == "" {
+		live.SessionID = c.run.rf.SessionID
 	}
-	if p.Mantle.ScreenReader {
-		args = append(args, "--ax-screen-reader")
-	}
-	if ps := p.Mantle.PromptSuggestions; ps != nil {
-		args = append(args, "--prompt-suggestions="+strconv.FormatBool(*ps))
-	}
-	return append(args, "--resume", sessionID)
+	return handoffArgs(c.env.args, c.env.cwd, live)
 }
 
 func (c *controller) writeRunFile(ctx ext.Ctx) {
 	if !c.run.enabled {
 		return
 	}
-	c.run.rf.HandoffArgs = handoffArgs(c.env.args, c.run.rf.SessionID)
+	c.run.rf.HandoffArgs = c.relaunchArgs()
 	if err := launcher.WriteRunFile(c.run.path, c.run.rf); err != nil {
 		ctx.Log().Warn("selfmod: run file", "err", err)
 	}
@@ -123,8 +111,13 @@ func (c *controller) onSession(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd {
 		}
 		return nil
 	}
-	if c.run.enabled && m.Info.SessionID != "" && m.Info.SessionID != c.run.rf.SessionID {
-		c.run.rf.SessionID = m.Info.SessionID
+	changed := m.Info.SessionID != "" && m.Info.SessionID != c.run.rf.SessionID ||
+		m.Info.Model != c.mainInfo.Model || m.Info.PermissionMode != c.mainInfo.PermissionMode || m.Info.Title != c.mainInfo.Title
+	c.mainInfo = m.Info
+	if c.run.enabled && changed {
+		if m.Info.SessionID != "" {
+			c.run.rf.SessionID = m.Info.SessionID
+		}
 		c.writeRunFile(ctx)
 	}
 	return nil

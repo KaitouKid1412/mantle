@@ -70,7 +70,7 @@ func (c *controller) prepareHandoff(ctx ext.Ctx, he fileHandoff) (x *execCmd, ha
 		return nil, false, err
 	}
 	path := c.handoffFile()
-	args := append(handoffArgs(c.env.args, c.run.rf.SessionID), AttachEngineFDsFlag+"="+path)
+	args := append(c.relaunchArgs(), AttachEngineFDsFlag+"="+path)
 	argv := append([]string{v.Binary()}, args...)
 	if err := he.HandoffToFile(path, argv); err != nil {
 		return nil, false, fmt.Errorf("engine hand-off: %w", err)

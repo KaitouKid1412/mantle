@@ -143,6 +143,7 @@ type controller struct {
 
 	ticking  bool
 	sawState bool
+	mainInfo ext.SessionInfo // the main engine's latest session info
 }
 
 func newController(e *env) *controller {
