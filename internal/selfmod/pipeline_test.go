@@ -353,14 +353,14 @@ func TestStepTimeoutKillsProcessGroup(t *testing.T) {
 	f := newPipeFixture(t)
 	f.change(map[string]string{"mods/a/a.go": "package a\n"})
 	f.stub("vet.sleep", "30")
-	f.cfg.Timeouts[StepVet] = 300 * time.Millisecond
+	f.cfg.Timeouts[StepVet] = 2 * time.Second // room for the stub shell to start on a loaded machine
 	start := time.Now()
 	rep := f.run(StepVet)
 	if d := time.Since(start); d > 10*time.Second {
 		t.Errorf("timeout took %s", d)
 	}
 	r := mustResult(t, rep, StepVet)
-	if r.OK || !r.TimedOut || r.Summary != "timed out after 300ms" {
+	if r.OK || !r.TimedOut || r.Summary != "timed out after 2s" {
 		t.Errorf("vet = %+v", r)
 	}
 	// The stub runs in its own process group (pid = pgid); its sleep child

@@ -59,8 +59,8 @@ func TestExtendingExamplesCompile(t *testing.T) {
 		}
 		replace[target] = file
 	}
-	if n < 3 {
-		t.Fatalf("found %d complete examples in EXTENDING.md; expected the link file and two mods", n)
+	if n < 4 {
+		t.Fatalf("found %d complete examples in EXTENDING.md; expected the link file and three mods", n)
 	}
 	overlay, _ := json.Marshal(map[string]any{"Replace": replace})
 	overlayFile := filepath.Join(tmp, "overlay.json")

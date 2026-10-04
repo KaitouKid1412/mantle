@@ -218,29 +218,68 @@ func sample() *ext.Item {
 }
 ```
 
-### A sidebar component (fullscreen)
+### A sidebar pane (fullscreen)
+
+In the fullscreen layout (`tui: "fullscreen"`) the host draws two extra slots beside
+the transcript: `ext.SlotSidebarL` and `ext.SlotSidebarR`. A pane is an ordinary
+component registered for `ext.Fullscreen` only, so inline mode never shows it. The host
+gives it the full height between the header and the prompt, and delivers mouse events
+under it as `ext.MouseEvent` (coordinates relative to the pane). This example, written
+with plan 12, is tested in the real host's fullscreen layout
+(`features/fullscreen/sidebar_example_test.go`).
 
 ```go
-func setup(r ext.Registrar) error {
-	r.AddComponent(ext.SlotSidebarR, &sessionPanel{}, ext.SlotOpts{
-		Weight: 10,
-		Modes:  []ext.LayoutMode{ext.Fullscreen},
+package notespane
+
+import (
+	"fmt"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/theme"
+)
+
+func init() {
+	ext.Register(ext.Feature{
+		ID: "mod.notes-pane", Order: ext.ModOrder,
+		Setup: func(r ext.Registrar) error {
+			r.AddComponent(ext.SlotSidebarL, &pane{},
+				ext.SlotOpts{Modes: []ext.LayoutMode{ext.Fullscreen}})
+			return nil
+		},
 	})
+}
+
+type pane struct{ clicks int }
+
+func (p *pane) ID() string           { return "mod.notes-pane.pane" }
+func (p *pane) Init(ext.Ctx) tea.Cmd { return nil }
+
+func (p *pane) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
+	if m, ok := msg.(ext.MouseEvent); ok {
+		if _, click := m.Msg.(tea.MouseClickMsg); click {
+			p.clicks++
+			ctx.Invalidate(p.ID())
+		}
+	}
 	return nil
 }
 
-type sessionPanel struct{}
-
-func (*sessionPanel) ID() string                       { return "mod.session-panel.panel" }
-func (*sessionPanel) Init(ext.Ctx) tea.Cmd             { return nil }
-func (*sessionPanel) Update(ext.Ctx, tea.Msg) tea.Cmd { return nil }
-func (*sessionPanel) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
-	s := ctx.Session()
-	return ext.Rendered{Text: "model " + s.Model + "\n" + s.Cwd}
+func (p *pane) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
+	t := ctx.Theme()
+	return ext.Rendered{Text: t.Paint(theme.Accent, "Notes") + "\n" +
+		t.Paint(theme.Inactive, fmt.Sprintf("clicked %d times", p.clicks))}
 }
 ```
 
-Subscribe to `ext.SessionChangedMsg` and call `ctx.Invalidate` to refresh it.
+- Width: the host decides. Draw within `Area.Width` and at most `Area.MaxHeight` lines.
+- Wheel events also arrive as `scroll:*` actions for the transcript; a pane that
+  scrolls should handle `ext.MouseEvent` wheel messages itself and ignore the actions.
+- Test a pane like any component: a Story, plus `app.NewHost` and `testkit.New` with
+  `app.Options{Layout: ext.Fullscreen}` for an end-to-end check.
+- To show live data (the session's model, say), subscribe to `ext.SessionChangedMsg`
+  and call `ctx.Invalidate(p.ID())`.
 
 ## 9. After you build
 
