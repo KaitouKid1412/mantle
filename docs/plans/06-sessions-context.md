@@ -238,6 +238,11 @@ Everything about conversations as objects:
   `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
   (no documented shapes; mantle has its own path for each).
 - Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
+- PARITY rows without a box above, also done: SE-04 (full output of large tool results
+  on resume, read only from the session's `tool-results` dir), SE-14 (picker grouped by
+  date; project shown in all-projects mode), SE-18 (mantle titles its own sessions after
+  the first turn with `generate_session_title`), SE-21 (`/subtask` hands off). Not done:
+  CU-10 cost warnings (M3; Claude Code gates them on the account's org role).
 - Verified (plan 09's pty spike, Claude Code 2.1.289): an interactive `claude "/status"`
   runs the slash command at startup, so `dialog.handoff`'s `claude --resume <sid> /cmd`
   opens the panel directly.

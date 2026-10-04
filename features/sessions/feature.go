@@ -22,9 +22,16 @@ func init() {
 	ext.Register(ext.Feature{
 		ID:    FeatureID,
 		Order: 300,
+		// SE-01..05 and SE-43 come through internal/sessions. Not covered here: CU-08
+		// (/autocompact, plain engine passthrough), CU-09 (statusLine context, plan 07) and
+		// CU-10 (cost warnings, M3).
 		Parity: []string{
-			"SE-06", "SE-07", "SE-08", "SE-09", "SE-10", "SE-11", "SE-12", "SE-13", "SE-14",
-			"SE-15", "SE-16", "SE-40", "SE-41", "SE-43",
+			"SE-01", "SE-02", "SE-03", "SE-04", "SE-05", "SE-06", "SE-07", "SE-08", "SE-09",
+			"SE-10", "SE-11", "SE-12", "SE-13", "SE-14", "SE-15", "SE-16", "SE-17", "SE-18",
+			"SE-19", "SE-20", "SE-21", "SE-22", "SE-23", "SE-24", "SE-25", "SE-26", "SE-27",
+			"SE-28", "SE-29", "SE-30", "SE-31", "SE-32", "SE-33", "SE-34", "SE-35", "SE-36",
+			"SE-37", "SE-38", "SE-39", "SE-40", "SE-41", "SE-42", "SE-43",
+			"CU-01", "CU-02", "CU-03", "CU-04", "CU-05", "CU-06", "CU-07", "CU-11",
 		},
 		Setup: func(r ext.Registrar) error {
 			return newFeature(sessions.DefaultLayout(), sessions.DefaultCachePath()).setup(r)
@@ -40,10 +47,12 @@ type feature struct {
 
 	engines map[string]*engineState
 	titles  map[string]string // session id -> title to show for it
-	cleared []string          // sessions left behind by /clear, oldest first
-	ho      *handoff          // the hand-off in progress, if any
-	goal    *goal             // the main session's active /goal
-	away    awayState
+	// titleAsked marks sessions mantle already asked the engine to title.
+	titleAsked map[string]bool
+	cleared    []string // sessions left behind by /clear, oldest first
+	ho         *handoff // the hand-off in progress, if any
+	goal       *goal    // the main session's active /goal
+	away       awayState
 	// branching is a /branch waiting for its fork's session id.
 	branching *branching
 	seq       int // for IDs of items this feature adds
@@ -85,10 +94,11 @@ type engineState struct {
 
 func newFeature(l sessions.Layout, cachePath string) *feature {
 	return &feature{
-		layout:  l,
-		index:   sessions.NewIndex(l, cachePath),
-		engines: map[string]*engineState{},
-		titles:  map[string]string{},
+		layout:     l,
+		index:      sessions.NewIndex(l, cachePath),
+		engines:    map[string]*engineState{},
+		titles:     map[string]string{},
+		titleAsked: map[string]bool{},
 		startupSpawn: func() (ext.SpawnOpts, bool) {
 			st, ok := cli.Current()
 			return st.Spawn, ok
@@ -171,7 +181,11 @@ func (f *feature) onSessionEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 		if st.state != proto.StateRequiresAction {
 			st.state = proto.StateIdle
 		}
-		return f.onIdle(ctx, m.EngineID)
+		var title tea.Cmd
+		if m.EngineID == ext.MainEngine {
+			title = f.autoTitle(ctx)
+		}
+		return tea.Batch(f.onIdle(ctx, m.EngineID), title)
 	case *proto.ConversationReset:
 		return f.onConversationReset(ctx, m.EngineID, e)
 	case *proto.SessionTitleChanged:
