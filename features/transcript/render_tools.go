@@ -156,7 +156,7 @@ func (f *Feature) renderBashTool(rc ext.RenderCtx, it *ext.Item) ext.Block {
 			lines = append(lines, result(rc, st.dim, clean(out.ReturnCodeInterp))...)
 		}
 		if len(lines) == 0 {
-			lines = result(rc, st.dim, "(no output)")
+			lines = result(rc, st.dim, "Done")
 		}
 		return fixFirst(lines), hid1 || hid2
 	})
@@ -723,7 +723,15 @@ func todoLine(rc ext.RenderCtx, t todo) string {
 	return "☐ " + text
 }
 
+// Task and todo tools have no transcript row in the normal view: the task
+// list above the prompt (plan 07) shows them. The ctrl+o viewer and verbose
+// view still list them.
+func taskRowHidden(rc ext.RenderCtx) bool { return !verbose(rc) }
+
 func (f *Feature) renderTodos(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	if taskRowHidden(rc) {
+		return ext.Block{}
+	}
 	var in struct {
 		Todos []todo `json:"todos"`
 	}
@@ -744,6 +752,9 @@ func (f *Feature) renderTodos(rc ext.RenderCtx, it *ext.Item) ext.Block {
 }
 
 func (f *Feature) renderTaskTool(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	if taskRowHidden(rc) {
+		return ext.Block{}
+	}
 	tu := toolUse(it)
 	var in struct {
 		todo
