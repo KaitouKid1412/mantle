@@ -85,16 +85,17 @@ func record(args []string) int {
 			return 2
 		}
 		s.Client = true
+		// The script's own reader keeps reading (and recording) engine output after
+		// the steps end; eof tells us when the engine closed stdout.
+		eof := &eofReader{r: fromEngine, done: make(chan struct{})}
 		dctx, cancel := context.WithTimeout(ctx, *timeout)
-		_, derr := s.Run(dctx, fromEngine, toEngine, os.Stderr)
+		_, derr := s.Run(dctx, eof, toEngine, os.Stderr)
 		cancel()
 		if derr != nil {
 			code = 3
 		}
 		_ = stdin.Close()
-		// Keep recording what the engine prints until it exits.
-		done := make(chan struct{})
-		go func() { _, _ = io.Copy(io.Discard, fromEngine); close(done) }()
+		done := eof.done
 		select {
 		case <-done:
 		case <-time.After(10 * time.Second):
@@ -124,6 +125,21 @@ func record(args []string) int {
 		}
 	}
 	return code
+}
+
+// eofReader closes done once its reader returns an error (EOF or closed pipe).
+type eofReader struct {
+	r    io.Reader
+	done chan struct{}
+	once sync.Once
+}
+
+func (e *eofReader) Read(p []byte) (int, error) {
+	n, err := e.r.Read(p)
+	if err != nil {
+		e.once.Do(func() { close(e.done) })
+	}
+	return n, err
 }
 
 // tapWriter records each complete line written through it.

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sync"
 
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -25,16 +26,18 @@ type Transport struct {
 	r io.Reader
 	w io.WriteCloser
 
-	mu      sync.Mutex
-	queue   [][]byte
-	wake    chan struct{} // capacity 1: "queue changed"
-	closing bool          // CloseInput called: flush, then close w
-	closed  bool          // writer finished
-	werr    error
+	mu       sync.Mutex
+	queue    [][]byte
+	wake     chan struct{} // capacity 1: "queue changed"
+	closing  bool          // CloseInput called: flush, then close w
+	detached bool          // Detach called: flush, then stop without closing w
+	closed   bool          // writer finished
+	werr     error
 
 	readDone  chan struct{}
 	writeDone chan struct{}
 	rerr      error
+	leftover  []byte
 
 	// Tap, if set before Start, sees every line read (stdout) and written (stdin),
 	// without the trailing newline. Used by the fixture recorder and debug logs.
@@ -77,6 +80,11 @@ func (t *Transport) readLoop(onEvent func(proto.Event), onError func(error)) {
 	var acc []byte
 	for {
 		line, err := readLine(br, &acc)
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			// Stopped for a hand-off: keep the partial line for the next owner.
+			t.leftover = append(bytes.Clone(line), readAll(br)...)
+			return
+		}
 		if len(line) > 0 {
 			if t.Tap != nil {
 				t.Tap(FromEngine, line)
@@ -98,6 +106,25 @@ func (t *Transport) readLoop(onEvent func(proto.Event), onError func(error)) {
 			return
 		}
 	}
+}
+
+// readAll returns what br has buffered, without reading more.
+func readAll(br *bufio.Reader) []byte {
+	b, _ := br.Peek(br.Buffered())
+	return bytes.Clone(b)
+}
+
+// Leftover returns stdout bytes read but not yet processed when the reader stopped
+// at a read deadline (see Engine.PrepareHandoff). Valid after ReadDone.
+func (t *Transport) Leftover() []byte { return t.leftover }
+
+// Detach flushes queued lines, then stops the writer without closing stdin, so the
+// pipe can be handed to another process. WriteDone is closed afterwards.
+func (t *Transport) Detach() {
+	t.mu.Lock()
+	t.detached = true
+	t.mu.Unlock()
+	t.signal()
 }
 
 // readLine returns the next line without its newline. It reuses *acc for lines
@@ -140,7 +167,7 @@ func readLine(br *bufio.Reader, acc *[]byte) ([]byte, error) {
 // Send queues one line (without newline) for stdin. It never blocks.
 func (t *Transport) Send(line []byte) error {
 	t.mu.Lock()
-	if t.closing || t.closed {
+	if t.closing || t.closed || t.detached {
 		t.mu.Unlock()
 		return ErrClosed
 	}
@@ -172,6 +199,7 @@ func (t *Transport) writeLoop() {
 		q := t.queue
 		t.queue = nil
 		closing := t.closing
+		detached := t.detached
 		t.mu.Unlock()
 
 		for _, b := range q {
@@ -182,6 +210,9 @@ func (t *Transport) writeLoop() {
 				t.finishWrite(err)
 				return
 			}
+		}
+		if len(q) == 0 && detached {
+			return
 		}
 		if len(q) == 0 && closing {
 			t.finishWrite(nil)
