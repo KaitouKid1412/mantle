@@ -60,23 +60,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "mantle:", err)
 		return 1
 	}
-	resolver := cli.ResolverFuncs{
-		ContinueFunc: func(cwd string) (string, error) {
-			m, err := ix.Continue(cwd)
-			return m.ID, err
-		},
-		ResolveFunc: func(cwd, arg string) (string, string, error) {
-			r, err := ix.Resolve(cwd, arg)
-			if err != nil {
-				return "", "", err
-			}
-			if r.Session != nil {
-				return r.Session.ID, "", nil
-			}
-			return "", r.Query, nil
-		},
-	}
-	st, err := p.Startup(cwd, resolver)
+	st, err := p.Startup(cwd, cli.IndexResolver{Index: ix}) // plan 06's index, saved on exit
 	if err != nil {
 		fmt.Fprintln(stderr, "mantle:", err)
 		return 1
