@@ -291,10 +291,10 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
   - On failure, notify and offer to pin the last passing binary
     (`~/.local/share/claude/versions/<v>`).
   - Guards against `--bare` becoming the headless default.
-- [ ] **B10 [M2] `scripts/sdk-diff`.** Fetch `@anthropic-ai/claude-agent-sdk@0.3.<patch>`
+- [x] **B10 [M2] `scripts/sdk-diff`.** Fetch `@anthropic-ai/claude-agent-sdk@0.3.<patch>`
   for CLI `2.1.<patch>` into a cache (never commit the .d.ts) and diff the message unions
   and control subtypes against a table in `pkg/proto`.
-- [ ] **B11 [M1] Fixtures for every flow,** recorded through fakeapi where possible:
+- [x] **B11 [M1] Fixtures for every flow,** recorded through fakeapi where possible:
   - plain answer; tool use allow / deny / always; AskUserQuestion; ExitPlanMode;
   - interrupt during text and during a tool; queued message with priority;
   - `/compact`; `/clear`; resume; subagent; background task; elicitation;

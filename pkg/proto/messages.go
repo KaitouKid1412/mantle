@@ -27,6 +27,7 @@ type Assistant struct {
 	ThinkingDurationMS int64           `json:"thinking_duration_ms,omitempty"`
 	IsAPIErrorMessage  bool            `json:"is_api_error_message,omitempty"`
 	TaskDescription    string          `json:"task_description,omitempty"` // subagent messages
+	ToolUseMeta        json.RawMessage `json:"tool_use_meta,omitempty"`    // MCP tool calls
 	WireToolInputs     json.RawMessage `json:"wire_tool_inputs,omitempty"`
 }
 

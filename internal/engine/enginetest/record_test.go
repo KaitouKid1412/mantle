@@ -10,9 +10,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -301,6 +305,38 @@ var flows = []flow{
 		textTurn("", "Answer after a retry."),
 	}}, drive: func(t *testing.T, d *driver) { d.prompt(t, "hi") }},
 
+	{name: "elicitation", opts: func(o *ext.SpawnOpts) {
+		cfg, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"elicit": map[string]any{"command": elicitServer()}}})
+		o.ExtraArgs = append(o.ExtraArgs, "--mcp-config", string(cfg))
+	}, script: &fakeapi.Script{Turns: []fakeapi.Turn{
+		{Reply: []fakeapi.Block{{Type: "tool_use", Name: "mcp__elicit__ask_name", Input: json.RawMessage(`{}`)}}},
+		afterTool("mcp__elicit__ask_name", "Nice to meet you, Ada."),
+	}}, drive: func(t *testing.T, d *driver) {
+		waitMCP(t, d.e, "elicit")
+		m := d.r.Rec.Len()
+		u := d.send(t, "ask my name", "")
+		for {
+			got := d.r.Rec.WaitAfter(t, m, func(msg tea.Msg) bool {
+				switch v := msg.(type) {
+				case ext.PermissionMsg:
+					return true
+				case ext.ControlRequestMsg:
+					return v.Subtype == proto.SubElicitation
+				}
+				return false
+			})
+			m = indexOf(d.r.Rec.Msgs(), got) + 1
+			if pm, ok := got.(ext.PermissionMsg); ok {
+				pm.Reply(pm.Req.Allow(nil))()
+				continue
+			}
+			cr := got.(ext.ControlRequestMsg)
+			cr.Reply(proto.ElicitationResult{Action: "accept", Content: json.RawMessage(`{"name":"Ada"}`)}, nil)()
+			break
+		}
+		d.result(t, u)
+	}},
+
 	{name: "api-error", script: &fakeapi.Script{Turns: []fakeapi.Turn{
 		{Error: &fakeapi.APIError{Status: 400, Type: "invalid_request_error", Message: "prompt is too long"}},
 	}}, drive: func(t *testing.T, d *driver) { d.prompt(t, "hi") }},
@@ -366,6 +402,57 @@ func TestRecordFixtures(t *testing.T) {
 			}
 		})
 	}
+}
+
+var (
+	elicitOnce sync.Once
+	elicitBin  string
+)
+
+// elicitServer builds testdata/elicitmcp once and returns its path.
+func elicitServer() string {
+	elicitOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "elicitmcp")
+		if err != nil {
+			panic(err)
+		}
+		bin := filepath.Join(dir, "elicitmcp")
+		_, file, _, _ := runtime.Caller(0)
+		cmd := exec.Command("go", "build", "-o", bin, "./testdata/elicitmcp")
+		cmd.Dir = filepath.Dir(file)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			panic(fmt.Sprintf("build elicitmcp: %v\n%s", err, out))
+		}
+		elicitBin = bin
+	})
+	return elicitBin
+}
+
+// waitMCP waits until MCP server name is connected.
+func waitMCP(t *testing.T, e *engine.Engine, name string) {
+	t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		var st proto.MCPStatusResponse
+		if resp, err := e.Request(context.Background(), proto.MCPStatusRequest{}); err == nil && json.Unmarshal(resp, &st) == nil {
+			for _, s := range st.MCPServers {
+				if s.Name == name && s.Status == "connected" {
+					return
+				}
+			}
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	t.Fatalf("MCP server %s never connected", name)
+}
+
+func indexOf(msgs []tea.Msg, m tea.Msg) int {
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if reflect.DeepEqual(msgs[i], m) {
+			return i
+		}
+	}
+	return len(msgs) - 1
 }
 
 // writeRateLimitEvent derives rate-limit-event.{jsonl,ndjson}: the engine emits
