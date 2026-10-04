@@ -1,6 +1,8 @@
 # 09 → 01: Claude Code settings writer, MCP status message
 
-**Status:** open (2026-10-03). Both additive.
+**Status:** resolved 2026-10-03 in `contracts-v1.3`: `ext.ClaudeSettingsWriter`
+(`SetClaude(scope, key, value)`, implemented by the host's settings via `internal/config`)
+and `ext.MCPStatusMsg` as proposed.
 
 ## 1. Writing a Claude Code settings key
 

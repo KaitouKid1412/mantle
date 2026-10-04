@@ -2,6 +2,11 @@
 
 From plan 08 (settings panels), for plan 01 (API steward). All additive.
 
+**Status:** resolved 2026-10-03: `ext.ThemePreviewMsg` (applied by the host) and
+`ext.ScopedSettings` in `contracts-v1.2`; the writer was lifted into `internal/config`
+(`config.Writer`) with every property below, plus `ext.ClaudeSettingsWriter` in
+`contracts-v1.3`.
+
 ## 1. Theme preview message (needed by /theme, B6)
 
 The /theme picker previews the highlighted theme live and restores the original on
