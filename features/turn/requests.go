@@ -1,5 +1,3 @@
-//go:build turnwip
-
 package turn
 
 import (
@@ -112,6 +110,7 @@ func (st *state) permContext(c ext.Ctx, r *request) dialogs.PermissionContext {
 		Engine: engineLabel(r.engineID),
 		Cwd:    st.session(c, r.engineID).Cwd,
 	}
+	pc.Diff, pc.Markdown = renderHooks(c)
 	if r.perm != nil {
 		pc.Agent = st.agentLabel(r.perm.Req.AgentID)
 		avail := st.availability(c, r.engineID)
@@ -142,7 +141,7 @@ func (st *state) buildVM(c ext.Ctx, r *request) error {
 		r.vm = vm
 	case DialogPlanApproval:
 		avail := st.availability(c, r.engineID)
-		r.vm = dialogs.NewPlanApproval(tr, dialogs.PlanContext{PermissionContext: pc, AutoAvailable: avail.Auto, BypassAvailable: avail.Bypass})
+		r.vm = dialogs.NewPlanApproval(tr, dialogs.PlanContext{PermissionContext: pc, AutoAvailable: avail.Auto, BypassAvailable: avail.Bypass, RenderPlan: pc.Markdown})
 	default:
 		r.vm = dialogs.NewPermission(tr, pc)
 	}

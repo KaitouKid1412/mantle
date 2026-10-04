@@ -47,6 +47,8 @@ type Known struct {
 	Contexts    []string // plan 01's contexts (ext.Contexts)
 	Parity      ParityIndex
 	Baseline    Snapshot
+	// Catalog is mantle-ui's registry (native commands, renderers); nil when unavailable.
+	Catalog *Catalog
 }
 
 // Summary counts one list's findings.
@@ -93,6 +95,10 @@ func Compare(s Snapshot, k Known) Report {
 				fs = compareNames(l, k.Contexts, "plan 01's contexts (pkg/ext)")
 			case KindSetting:
 				fs = compareSettings(l, k)
+			case KindSlash:
+				fs = compareSlash(l, k)
+			case KindTool:
+				fs = compareTools(l, k)
 			default:
 				fs = compareBaseline(l, k.Baseline)
 			}
@@ -303,6 +309,73 @@ func compareSettings(l List, k Known) []Finding {
 		}
 	}
 	return fs
+}
+
+// baselineNames returns the names of a baseline list.
+func baselineNames(b Snapshot, kind string) map[string]bool {
+	names := map[string]bool{}
+	if l := b.List(kind); l != nil {
+		for _, it := range l.Items {
+			names[it.Name] = true
+		}
+	}
+	return names
+}
+
+// goneSince reports baseline items the list no longer has.
+func goneSince(l List, b Snapshot) []Finding {
+	have := map[string]bool{}
+	for _, it := range l.Items {
+		have[it.Name] = true
+	}
+	var fs []Finding
+	for name := range baselineNames(b, l.Kind) {
+		if !have[name] {
+			fs = append(fs, Finding{Kind: l.Kind, Name: name, Status: StatusGone})
+		}
+	}
+	return fs
+}
+
+// compareSlash checks the engine's commands against mantle's routing: native commands
+// (catalog), PARITY.md's slash command index (E/N/H decisions) and the baseline. An
+// unknown command still works: mantle sends it to the engine as typed.
+func compareSlash(l List, k Known) []Finding {
+	base := baselineNames(k.Baseline, l.Kind)
+	var fs []Finding
+	for _, it := range l.Items {
+		names := []string{it.Name}
+		if a := it.Attrs["aliases"]; a != "" {
+			names = append(names, strings.Split(a, ",")...)
+		}
+		known := base[it.Name]
+		for _, n := range names {
+			known = known || k.Parity.Slash[n] || (k.Catalog != nil && k.Catalog.Commands[n])
+		}
+		if !known {
+			fs = append(fs, Finding{Kind: l.Kind, Name: it.Name, Status: StatusUnclassified,
+				Detail: "new command; route it (native, engine passthrough or hand-off). It is sent to the engine meanwhile"})
+		}
+	}
+	return append(fs, goneSince(l, k.Baseline)...)
+}
+
+// compareTools checks the engine's tools against plan 03's renderers. A tool without
+// its own renderer is shown with the generic one.
+func compareTools(l List, k Known) []Finding {
+	base := baselineNames(k.Baseline, l.Kind)
+	var fs []Finding
+	for _, it := range l.Items {
+		if base[it.Name] || (k.Catalog != nil && k.Catalog.HasToolRenderer(it.Name)) {
+			continue
+		}
+		detail := "new tool without its own renderer (plan 03); shown with the generic one meanwhile"
+		if k.Catalog == nil {
+			detail = "new tool; check plan 03 has a renderer for it (mantle-ui catalog unavailable)"
+		}
+		fs = append(fs, Finding{Kind: l.Kind, Name: it.Name, Status: StatusUnclassified, Detail: detail})
+	}
+	return append(fs, goneSince(l, k.Baseline)...)
 }
 
 // compareBaseline reports items added or dropped since the accepted baseline.

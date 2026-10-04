@@ -33,6 +33,7 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	switch {
 	case r.Interrupted():
 		lines = append(lines, result(rc, st.err, "Interrupted by user")...)
+	case r.IsError && f.store.ErrorShown(r.UUID):
 	case r.IsError:
 		msg := strings.TrimSpace(r.Result)
 		if len(r.Errors) > 0 {
@@ -52,7 +53,7 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 		lines = append(lines, truncLines(render.WrapWith(st.dim.Render(clean(text)), render.WrapOptions{Width: rc.Width, First: st.err.Render(glyphDot) + " ", Rest: dotIndent}), rc.Width)...)
 	}
-	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() {
+	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() && !r.IsError {
 		line := glyphThought + " " + pickVerb(r.UUID+it.ID) + " for " + formatDuration(msToDuration(r.DurationMS))
 		if t := f.clockTime(it.End); t != "" {
 			line += " · done " + t
@@ -69,17 +70,21 @@ func (f *Feature) clockTime(t time.Time) string {
 	if t.IsZero() || (!f.cfg.showTimestamps && f.cfg.timeFormat == "") {
 		return ""
 	}
-	if f.cfg.timeZone != "" {
-		if loc, err := time.LoadLocation(f.cfg.timeZone); err == nil {
-			t = t.In(loc)
-		}
-	} else {
-		t = t.Local()
-	}
+	t = f.zoned(t)
 	if f.cfg.timeFormat == "24h" {
 		return t.Format("15:04")
 	}
 	return t.Format("3:04 PM")
+}
+
+// zoned converts a time to the timeZone setting (local time by default).
+func (f *Feature) zoned(t time.Time) time.Time {
+	if f.cfg.timeZone != "" {
+		if loc, err := time.LoadLocation(f.cfg.timeZone); err == nil {
+			return t.In(loc)
+		}
+	}
+	return t.Local()
 }
 
 var errorText = map[string]string{
@@ -374,3 +379,38 @@ func (f *Feature) renderNotification(rc ext.RenderCtx, it *ext.Item) ext.Block {
 func msToDuration(ms int64) time.Duration { return time.Duration(ms) * time.Millisecond }
 
 func secondsToDuration(s float64) time.Duration { return time.Duration(s * float64(time.Second)) }
+
+func (f *Feature) renderMemoryRecall(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	st := stylesFor(rc)
+	m, _ := it.Data.(*proto.MemoryRecall)
+	if m == nil {
+		return ext.Block{}
+	}
+	var mems []json.RawMessage
+	_ = json.Unmarshal(m.Memories, &mems)
+	if len(mems) == 0 {
+		return ext.Block{}
+	}
+	lines := render.WrapWith(st.dim.Render("Recalled "+plural(len(mems), "memory", "memories")),
+		render.WrapOptions{Width: rc.Width, First: render.Fg(st.p, "remember").Render(glyphDot) + " ", Rest: dotIndent})
+	if !verbose(rc) {
+		return ext.Block{Lines: lines, Collapsible: true}
+	}
+	for i, raw := range mems {
+		var mem struct {
+			Name, Path, Title, Content string
+		}
+		label := ""
+		if json.Unmarshal(raw, &mem) == nil {
+			label = firstNonEmpty(mem.Title, mem.Name, mem.Path, mem.Content)
+		} else {
+			_ = json.Unmarshal(raw, &label)
+		}
+		first := resultHang
+		if i == 0 {
+			first = resultIndent
+		}
+		lines = append(lines, truncLines(render.WrapWith(st.dim.Render(oneLine(label)), render.WrapOptions{Width: rc.Width, First: first, Rest: resultHang}), rc.Width)[0])
+	}
+	return ext.Block{Lines: lines}
+}

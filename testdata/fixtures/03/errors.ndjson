@@ -1,0 +1,19 @@
+{"type":"system","subtype":"init","uuid":"i0","cwd":"/work/app","tools":["Bash","Edit"],"mcp_servers":[],"model":"model-a","permissionMode":"default","slash_commands":[],"claude_code_version":"2.1.288","output_style":"default"}
+{"type":"user","uuid":"u1","isReplay":true,"message":{"role":"user","content":"<command-message>context</command-message>\n<command-name>/context</command-name>\n<command-args></command-args>"}}
+{"type":"assistant","uuid":"lc1","local_command_run":{"command":"context","args":""},"message":{"id":"lm1","model":"<synthetic>","content":[{"type":"text","text":"Context: 12.4k / 200k tokens (6%)\n  System prompt  3.1k\n  Messages       9.3k"}]}}
+{"type":"result","subtype":"success","uuid":"res0","duration_ms":40,"is_error":false,"num_turns":0,"result":"Context: 12.4k","local_command":"context","total_cost_usd":0}
+{"type":"user","uuid":"u2","isReplay":true,"message":{"role":"user","content":"Clean the build folder and fix the typo in README."}}
+{"type":"system","subtype":"api_retry","uuid":"ar1","attempt":1,"max_retries":10,"retry_delay_ms":1500,"error_status":529}
+{"type":"system","subtype":"hook_started","uuid":"h1","hook_id":"hk1","hook_name":"PreToolUse:Bash","hook_event":"PreToolUse"}
+{"type":"assistant","uuid":"a1","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"rm -rf build"}}]}}
+{"type":"system","subtype":"hook_response","uuid":"h2","hook_id":"hk1","hook_name":"PreToolUse:Bash","hook_event":"PreToolUse","stderr":"Blocked: rm -rf is not allowed here","exit_code":2,"outcome":"error"}
+{"type":"user","uuid":"r1","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"<tool_use_error>Hook PreToolUse:Bash blocked this command</tool_use_error>","is_error":true}]}}
+{"type":"system","subtype":"permission_denied","uuid":"pd1","tool_name":"Bash","tool_use_id":"t2","decision_reason_type":"classifier","message":"Deleting files outside the project is not allowed in auto mode"}
+{"type":"assistant","uuid":"a2","message":{"id":"m1","content":[{"type":"tool_use","id":"t3","name":"Edit","input":{"file_path":"/work/app/README.md","old_string":"teh build","new_string":"the build"}}]}}
+{"type":"user","uuid":"r3","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t3","content":"The user doesn't want to proceed with this tool use. The tool use was rejected.","is_error":true}]}}
+{"type":"rate_limit_event","uuid":"rl1","rate_limit_info":{"status":"allowed_warning","utilization":0.91}}
+{"type":"system","subtype":"model_refusal_fallback","uuid":"mr1","original_model":"model-a","fallback_model":"model-b","retracted_message_uuids":[],"content":""}
+{"type":"assistant","uuid":"a3","message":{"id":"m2","content":[{"type":"text","text":"I was asked not to edit the README, so I'll stop here. The build folder"}]},"aborted":true}
+{"type":"result","subtype":"error_during_execution","uuid":"res1","duration_ms":12000,"duration_api_ms":4000,"is_error":true,"num_turns":3,"terminal_reason":"aborted_streaming","total_cost_usd":0.01,"permission_denials":[{"tool_name":"Edit","tool_use_id":"t3","tool_input":{"file_path":"/work/app/README.md"}}]}
+{"type":"assistant","uuid":"a4","error":"overloaded","message":{"id":"m3","model":"<synthetic>","content":[{"type":"text","text":"API Error: 529 Overloaded"}]}}
+{"type":"result","subtype":"success","uuid":"res2","duration_ms":3000,"is_error":true,"num_turns":1,"result":"API Error: 529 Overloaded","total_cost_usd":0}

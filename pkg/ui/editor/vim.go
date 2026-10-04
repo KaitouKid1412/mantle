@@ -87,7 +87,11 @@ func (v *vimState) handle(e *Editor, msg tea.KeyPressMsg) (bool, tea.Cmd) {
 	if res.Pending {
 		v.seq++
 		seq, d := v.seq, v.m.RemapTimeout
-		cmds = append(cmds, tea.Tick(d, func(time.Time) tea.Msg { return VimTimeoutMsg{ed: e, seq: seq} }))
+		tick := e.Tick
+		if tick == nil {
+			tick = tea.Tick
+		}
+		cmds = append(cmds, tick(d, func(time.Time) tea.Msg { return VimTimeoutMsg{ed: e, seq: seq} }))
 	}
 	if res.Event != vim.EventNone {
 		ev := res.Event

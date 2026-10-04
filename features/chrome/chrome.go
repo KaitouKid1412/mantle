@@ -24,9 +24,14 @@ func init() {
 	})
 	ext.Register(ext.Feature{
 		ID: "chrome.promptFrame", Order: order,
-		Parity: []string{"CH-01", "CH-03", "CH-04"},
+		Parity: []string{"CH-01", "CH-02", "CH-03", "CH-04"},
 		Setup: func(r ext.Registrar) error {
 			r.Wrap(EditorID, func(next ext.Component) ext.Component { return wrapFrame(next) })
+			r.AddCommand(ext.Command{
+				Name: "color", ArgHint: "<color|default>", Source: ext.SourceBuiltin,
+				Description: "Set the prompt bar colour for this session",
+				Run:         colorCommand, Complete: colorCompletions,
+			})
 			addStories(r, frameStories())
 			return nil
 		},
@@ -111,11 +116,7 @@ func init() {
 			tc := newTerminal(terminal.OS())
 			r.AddComponent(ext.SlotStatus, tc, ext.SlotOpts{Weight: 1000})
 			r.AddInterceptor("chrome.activity", -1000, tc.intercept)
-			r.AddAction(ext.Action{
-				ID: ext.ActAppRedraw, Context: ext.ContextGlobal,
-				Description: "Redraw the screen",
-				Run:         func(ctx ext.Ctx) (bool, tea.Cmd) { return true, ctx.Reprint() },
-			})
+			// app:redraw is the host's (core); chrome adds the clear-screen action.
 			r.AddAction(ext.Action{
 				ID: ext.ActChatClearScreen, Context: ext.ContextChat,
 				Description: "Clear the screen",

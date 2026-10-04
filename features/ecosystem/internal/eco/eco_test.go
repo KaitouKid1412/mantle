@@ -223,18 +223,12 @@ func TestHandoffAndRestart(t *testing.T) {
 	eng := ecotest.NewEngine()
 	ctx := ecotest.NewCtx(eng, "/work")
 
-	eco.Handoff(ctx, "/teleport")
-	if len(ctx.Notices) != 1 || !strings.Contains(ctx.Notices[0].Text, "claude --resume 11111111") ||
-		!strings.Contains(ctx.Notices[0].Text, "/teleport") {
-		t.Errorf("fallback notice = %+v", ctx.Notices)
+	eco.Handoff(ctx, " /teleport ")
+	eco.Handoff(ctx, "")
+	if len(ctx.Opened) != 2 || ctx.Opened[0] != eco.HandoffDialogID {
+		t.Errorf("handoff opens plan 06's dialog: %v", ctx.Opened)
 	}
-	var ran string
-	ctx.CommandList = append(ctx.CommandList, ext.Command{Name: eco.HandoffCommand, Hidden: true,
-		Run: func(c ext.Ctx, args string) tea.Cmd { ran = args; return nil }})
-	eco.Handoff(ctx, "/teleport")
-	if ran != "/teleport" {
-		t.Errorf("handoff command got %q", ran)
-	}
+	ctx.Opened = nil
 
 	exttest.Exec(eco.RestartEngine(ctx, "to load the new login"))
 	if len(eng.Restarts) != 1 || eng.Restarts[0].Resume != ctx.SessionValue.SessionID || eng.Restarts[0].Cwd != "/work" {

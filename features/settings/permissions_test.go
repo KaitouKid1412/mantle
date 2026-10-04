@@ -121,7 +121,7 @@ func TestPermissionsDenyDirsAndSession(t *testing.T) {
 
 func TestPermissionsAutoMode(t *testing.T) {
 	g := permRig(t)
-	g.a.autoModeDefaults = func(context.Context) (AutoModeRules, error) {
+	g.a.autoModeDefaults = func(context.Context, string) (AutoModeRules, error) {
 		return AutoModeRules{SoftDeny: []string{"Deleting files outside the project"}}, nil
 	}
 	g.command("permissions", "")

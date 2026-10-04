@@ -16,13 +16,14 @@ type config struct {
 	timeFormat       string // timeFormat: "12h" | "24h" | ""
 	timeZone         string // timeZone (IANA name)
 
-	verbs     []string // spinner verbs after spinnerVerbs is applied
-	tips      bool     // spinnerTipsEnabled (default on)
-	tipList   []string // spinnerTipsOverride.tips
-	tipsFile  string   // spinnerTipsOverride.tipsFile
-	noMotion  bool     // prefersReducedMotion
-	noLinks   bool     // hyperlinks off (screen reader, dumb terminals)
-	flatShort bool     // screen-reader flat output
+	verbs       []string // spinner verbs after spinnerVerbs is applied
+	tips        bool     // spinnerTipsEnabled (default on)
+	tipList     []string // spinnerTipsOverride.tips
+	tipsFile    string   // spinnerTipsOverride.tipsFile
+	noMotion    bool     // prefersReducedMotion
+	noLinks     bool     // hyperlinks off (screen reader, dumb terminals)
+	defaultView string   // defaultView: "chat" | "transcript"
+	flatShort   bool     // screen-reader flat output
 }
 
 func defaultConfig() config {
@@ -63,6 +64,7 @@ func loadConfig(s ext.Settings) config {
 	c.timeZone = ext.ClaudeString(s, "timeZone", "")
 	c.tips = ext.ClaudeBool(s, "spinnerTipsEnabled", true)
 	c.noMotion = ext.ClaudeBool(s, "prefersReducedMotion", false)
+	c.defaultView = ext.ClaudeString(s, "defaultView", "")
 	if v, ok := s.Claude("maxProseWidth"); ok {
 		if n, ok := v.(float64); ok && n > 0 {
 			c.maxProse = int(n)
