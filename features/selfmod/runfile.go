@@ -195,6 +195,9 @@ func (c *controller) restart(ctx ext.Ctx) tea.Cmd {
 		return c.notify(ctx, ext.NoticeWarning, "restart",
 			"Not restarting now: "+reason+". The new build starts the next time you run mantle.")
 	}
+	if cmd, ok := c.instantRestart(ctx); ok {
+		return cmd
+	}
 	c.writeRunFile(ctx)
 	return ext.Msg(ext.ExitMsg{Code: ext.ExitRestart, Reason: "/mantle restart"})
 }

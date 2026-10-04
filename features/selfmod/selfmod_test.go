@@ -274,7 +274,7 @@ func TestRegistration(t *testing.T) {
 	for _, s := range reg.Settings {
 		keys = append(keys, s.Key)
 	}
-	if !slices.Equal(keys, []string{SettingConfirm, SettingMaxBudget, SettingModel, SettingSource}) {
+	if !slices.Equal(keys, []string{SettingConfirm, SettingMaxBudget, SettingModel, SettingSource, SettingInstantRestart}) {
 		t.Errorf("settings = %v", keys)
 	}
 	if len(reg.Stories) < 8 {
@@ -786,4 +786,86 @@ func TestToolSummary(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 	_ = strconv.Itoa
+}
+
+// handoffEngine is a fake main engine that supports the fd hand-off.
+type handoffEngine struct {
+	fakeEngine
+	path string
+	argv []string
+	err  error
+}
+
+func (h *handoffEngine) HandoffToFile(path string, argv []string) error {
+	h.path, h.argv = path, argv
+	if h.err != nil {
+		return h.err
+	}
+	return os.WriteFile(path, []byte(`{"engines":[]}`), 0o600)
+}
+
+func TestInstantRestart(t *testing.T) {
+	f := newFlow(t)
+	cur := (launcher.Store{L: f.l}).CurrentID()
+	f.env2[launcher.EnvLauncherPID] = "777"
+	f.env2[launcher.EnvBuildID] = "older-build"
+	for _, s := range f.reg.Starts {
+		f.run(s.Value.(func(ext.Ctx) tea.Cmd)(f.ctx))
+	}
+	f.run(ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "sess-9"}}))
+	var execPath string
+	f.env.exec = func(path string, argv, env []string) error {
+		execPath = path
+		return fmt.Errorf("exec refused in test")
+	}
+
+	// Off by default: plain exit 75.
+	eng := &handoffEngine{}
+	f.ctx.Engines[ext.MainEngine] = eng
+	f.command("restart")
+	if len(f.exits) != 1 || f.exits[0].Code != ext.ExitRestart || eng.path != "" {
+		t.Fatalf("exits %v, handoff path %q", f.exits, eng.path)
+	}
+
+	// On: the engine hands off into the file and the current build is exec'd.
+	f.ctx.SettingsV.MantleM[SettingInstantRestart] = true
+	x, handedOff, err := f.ctl.prepareHandoff(f.ctx, eng)
+	if err != nil || !handedOff {
+		t.Fatalf("prepareHandoff: %v %v", handedOff, err)
+	}
+	if !strings.HasSuffix(eng.path, "4242.handoff.json") || !fileExists(eng.path) {
+		t.Errorf("handoff file %q", eng.path)
+	}
+	v, _ := (launcher.Store{L: f.l}).Current()
+	if len(eng.argv) == 0 || eng.argv[0] != v.Binary() || eng.argv[len(eng.argv)-1] != AttachEngineFDsFlag+"="+eng.path ||
+		!slices.Contains(eng.argv, "--resume") || !slices.Equal(x.argv, eng.argv) || x.path != v.Binary() {
+		t.Errorf("argv = %q / %q", eng.argv, x.argv)
+	}
+	if !slices.Contains(x.env, launcher.EnvBuildID+"="+cur) {
+		t.Errorf("env lacks the new build id: %v", x.env)
+	}
+	rf, _ := launcher.ReadRunFile(f.l.RunFile(4242))
+	if rf.Version != cur {
+		t.Errorf("run file version %q, want %q (the launcher accounts probation to it)", rf.Version, cur)
+	}
+	if err := x.Run(); err == nil || execPath != v.Binary() {
+		t.Errorf("Run: %v, exec'd %q", err, execPath)
+	}
+	// When exec fails, the hand-off file goes and mantle restarts normally.
+	f.exits = nil
+	f.run(ext.Msg(handedOffMsg{err: fmt.Errorf("boom")}))
+	if len(f.exits) != 1 || f.exits[0].Code != ext.ExitRestart || fileExists(eng.path) {
+		t.Errorf("fallback: exits %v, file kept %v", f.exits, fileExists(eng.path))
+	}
+
+	// An engine that cannot hand off (busy) means a normal restart.
+	f.exits = nil
+	eng.err = fmt.Errorf("engine busy")
+	if _, ok := f.ctl.instantRestart(f.ctx); ok {
+		t.Error("instant restart with a busy engine")
+	}
+	f.command("restart")
+	if len(f.exits) != 1 || f.exits[0].Code != ext.ExitRestart {
+		t.Errorf("exits = %v", f.exits)
+	}
 }

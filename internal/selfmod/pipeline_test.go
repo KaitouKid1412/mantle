@@ -145,7 +145,9 @@ func TestPipelineAllPass(t *testing.T) {
 			t.Errorf("go calls missing %q:\n%s", want, calls)
 		}
 	}
-	if strings.Contains(strings.Split(calls, "\n")[0], "BASE=http") {
+	// vet does not get the safety env (the parent's environment may have its
+	// own MANTLE_HOME when this runs inside a pipeline, so compare paths).
+	if strings.Contains(strings.Split(calls, "\n")[0], "MANTLE_HOME="+filepath.Join(f.logDir, "home")) {
 		t.Errorf("vet should not get the test safety env: %s", calls)
 	}
 	var onDisk Report
@@ -353,28 +355,53 @@ func TestStepTimeoutKillsProcessGroup(t *testing.T) {
 	f := newPipeFixture(t)
 	f.change(map[string]string{"mods/a/a.go": "package a\n"})
 	f.stub("vet.sleep", "30")
-	f.cfg.Timeouts[StepVet] = 2 * time.Second // room for the stub shell to start on a loaded machine
+
+	// A step that overruns its timeout is reported as timed out.
+	f.cfg.Timeouts[StepVet] = 200 * time.Millisecond
 	start := time.Now()
 	rep := f.run(StepVet)
-	if d := time.Since(start); d > 10*time.Second {
+	if d := time.Since(start); d > 15*time.Second {
 		t.Errorf("timeout took %s", d)
 	}
-	r := mustResult(t, rep, StepVet)
-	if r.OK || !r.TimedOut || r.Summary != "timed out after 2s" {
+	if r := mustResult(t, rep, StepVet); r.OK || !r.TimedOut || r.Summary != "timed out after 200ms" {
 		t.Errorf("vet = %+v", r)
 	}
-	// The stub runs in its own process group (pid = pgid); its sleep child
-	// must be gone too.
-	data, err := os.ReadFile(filepath.Join(f.stubDir, "vet.pid"))
-	if err != nil {
-		t.Fatal(err)
+
+	// Ending a step kills its whole process group: the stub (pid = pgid) and
+	// its sleep child. Cancel only once the stub has written its pid, so a
+	// slow start on a loaded machine cannot race the check.
+	f.cfg.Timeouts[StepVet] = time.Minute
+	pidFile := filepath.Join(f.stubDir, "vet.pid")
+	os.Remove(pidFile)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		NewPipeline(f.cfg).Run(ctx, Run{BuildID: "b2", Dir: f.repo.Dir, Base: f.base, LogDir: f.logDir + "-2", Steps: []StepID{StepVet}})
+	}()
+	var pgid int
+	deadline := time.Now().Add(30 * time.Second)
+	for pgid == 0 {
+		if data, err := os.ReadFile(pidFile); err == nil {
+			pgid, _ = strconv.Atoi(strings.TrimSpace(string(data)))
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the stub never wrote its pid")
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-	pgid, _ := strconv.Atoi(strings.TrimSpace(string(data)))
-	deadline := time.Now().Add(3 * time.Second)
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("the pipeline did not return after cancel")
+	}
+	deadline = time.Now().Add(5 * time.Second)
 	for syscall.Kill(-pgid, 0) == nil {
 		if time.Now().After(deadline) {
 			syscall.Kill(-pgid, syscall.SIGKILL)
-			t.Fatalf("process group %d survived the timeout", pgid)
+			t.Fatalf("process group %d survived", pgid)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}

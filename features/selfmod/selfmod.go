@@ -81,6 +81,8 @@ type env struct {
 	claudeSettingsPath string
 	// stories renders story diffs between two mantle-ui binaries (preview).
 	stories func(ctx context.Context, before, after string) ([]StoryDiff, error)
+	// exec replaces the process (instant restart); nil means syscall.Exec.
+	exec func(path string, argv, env []string) error
 }
 
 func defaultEnv() *env {
@@ -157,6 +159,8 @@ func (c *controller) setup(r ext.Registrar) error {
 		Description: "Model for the /mantle builder (empty: the session's model)"})
 	r.AddSetting(ext.SettingSpec{Key: SettingSource, Type: "string", Default: "",
 		Description: "Repository /mantle builds from (empty: ~/.mantle/src; a path enables dev mode)"})
+	r.AddSetting(ext.SettingSpec{Key: SettingInstantRestart, Type: "bool", Default: false,
+		Description: "/mantle restart hands the running claude to the new build instead of restarting it (needs a build with engine hand-off)"})
 
 	r.AddCommand(ext.Command{
 		Name:        "mantle",
@@ -188,6 +192,7 @@ func (c *controller) setup(r ext.Registrar) error {
 	ext.Subscribe(r, "selfmod.print", c.onPrint)
 	ext.Subscribe(r, "selfmod.tick", c.onTick)
 	ext.Subscribe(r, "selfmod.healthytick", c.onHealthyTick)
+	ext.Subscribe(r, "selfmod.handedoff", c.onHandedOff)
 	r.OnStart("selfmod.runfile", c.onStart)
 	return nil
 }
