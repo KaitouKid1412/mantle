@@ -1,0 +1,45 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "One question first."
+        },
+        {
+          "type": "tool_use",
+          "name": "AskUserQuestion",
+          "input": {
+            "questions": [
+              {
+                "question": "Which greeting style do you prefer?",
+                "header": "Style",
+                "multiSelect": false,
+                "options": [
+                  {
+                    "label": "Friendly",
+                    "description": "Hi there"
+                  },
+                  {
+                    "label": "Formal",
+                    "description": "Good day"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Going with the friendly style."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

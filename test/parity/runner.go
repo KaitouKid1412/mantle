@@ -128,7 +128,11 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		}
 		return t, err
 	}
-	t, err := start1(sc.Args)
+	first := append([]string{}, sc.Args...)
+	if sc.Prompt != "" {
+		first = append(first, sc.Prompt)
+	}
+	t, err := start1(first)
 	if err != nil {
 		res.Err = err
 		return res
@@ -153,6 +157,9 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 	}()
 
 	for _, st := range sc.Steps {
+		if st.Only != "" && st.Only != tg.Name() {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			res.Err, res.FailedLine = fmt.Errorf("scenario timeout: %w", err), st.Line
 			break

@@ -1,0 +1,32 @@
+# Tool permission prompts: allow once, then deny (esc) and give feedback. Claude Code
+# ends the turn on esc; the last two script turns share a reply so the scenario also
+# completes when a target continues the turn after a denial.
+name: tool-approval
+size: 100x30
+args: --permission-mode default
+prompt: Create the marker file
+files: ../../../testdata/fixtures/12/app
+script: scripts/tool-approval.json
+parity: PD-01, PD-02, PD-08, PD-10, PD-13, TR-09, TR-27
+---
+ready
+wait_for 30s touch parity-marker.txt
+settle
+checkpoint permission-prompt
+keys enter
+wait_for 30s Created parity-marker.txt.
+settle
+checkpoint allowed
+type Clean up the scratch directory
+keys enter
+wait_for 30s rm -rf scratch-dir
+settle
+checkpoint second-prompt
+keys esc
+settle 5s
+checkpoint denied
+type Keep the scratch directory next time
+keys enter
+wait_for 30s Noted: keep the scratch directory.
+settle
+checkpoint feedback

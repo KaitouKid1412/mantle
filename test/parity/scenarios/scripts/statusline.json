@@ -1,0 +1,14 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Status line check."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

@@ -1,0 +1,22 @@
+# Allow always: option 2 on the first prompt, then the same command again. The
+# scenario ends on whatever the second call shows (a prompt or the result).
+name: tool-always
+size: 100x30
+args: --permission-mode default
+prompt: Create the marker file
+files: ../../../testdata/fixtures/12/app
+script: scripts/tool-always.json
+parity: PD-08, PD-02
+---
+ready
+wait_for 30s Do you want to proceed?
+settle
+keys 2
+wait_for 30s Created parity-marker.txt.
+settle
+checkpoint allowed-always
+type Do it again
+keys enter
+wait_for 30s touch parity-marker.txt again
+settle 5s
+checkpoint second-call
