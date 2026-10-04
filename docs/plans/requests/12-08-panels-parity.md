@@ -1,6 +1,6 @@
 # 12 → 08: /model and /help (parity audit)
 
-**Status:** open (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** taken by 08; §1 fixed on worktree-plan-08-settings (default effort medium, from system/init); §2-4 next (2026-10-04). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Keep mantle's own wording.
