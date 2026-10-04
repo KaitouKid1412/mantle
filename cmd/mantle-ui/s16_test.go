@@ -44,20 +44,20 @@ func TestSuspendResumeUnderShell(t *testing.T) {
 	cmd.Dir = project
 	cmd.Env = append(smokeEnv(t, fake, script, project), "PS1=SHELL$ ")
 	p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
-	p.WaitForText("SHELL$", 5*time.Second)
+	p.WaitForText("SHELL$", ptyWait)
 
 	p.Type(ui + " 'first turn'\r")
-	p.WaitFor(func(string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "reply 1") }, 20*time.Second)
+	p.WaitFor(func(string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "reply 1") }, ptyWait)
 
 	p.Send("ctrl+z")
 	p.WaitFor(func(string) bool {
 		all := strings.Join(p.All(), "\n")
 		return strings.Contains(all, "Stopped") && strings.HasSuffix(strings.TrimSpace(p.Screen()), "SHELL$")
-	}, 10*time.Second)
+	}, ptyWait)
 
 	p.Type("fg\r")
 	// The UI redraws its live area after SIGCONT.
-	p.WaitFor(func(s string) bool { return strings.Contains(s, "shift+tab") || strings.Contains(s, "for shortcuts") }, 10*time.Second)
+	p.WaitFor(func(s string) bool { return strings.Contains(s, "shift+tab") || strings.Contains(s, "for shortcuts") }, ptyWait)
 
 	// The engine (its own process group) was not stopped or killed with the UI.
 	var mantleHome string
@@ -84,9 +84,9 @@ func TestSuspendResumeUnderShell(t *testing.T) {
 	}
 
 	quitWithCtrlC(t, p)
-	p.WaitFor(func(s string) bool { return strings.HasSuffix(strings.TrimSpace(s), "SHELL$") }, 10*time.Second)
+	p.WaitFor(func(s string) bool { return strings.HasSuffix(strings.TrimSpace(s), "SHELL$") }, ptyWait)
 	p.Type("exit\r")
-	if code := p.ExitCode(5 * time.Second); code != 0 {
+	if code := p.ExitCode(ptyWait); code != 0 {
 		t.Logf("shell exit %d", code)
 	}
 }
@@ -115,19 +115,19 @@ func TestCtrlCInsideEditor(t *testing.T) {
 	cmd.Dir = project
 	cmd.Env = append(smokeEnv(t, fake, script, project), "PS1=SHELL$ ", "EDITOR="+editor, "VISUAL="+editor)
 	p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
-	p.WaitForText("SHELL$", 5*time.Second)
+	p.WaitForText("SHELL$", ptyWait)
 	p.Type(ui + "\r")
-	p.WaitFor(func(s string) bool { return strings.Contains(s, "for shortcuts") }, 20*time.Second)
+	p.WaitFor(func(s string) bool { return strings.Contains(s, "for shortcuts") }, ptyWait)
 	enginePID := engineRunPID(t, cmd.Env)
 
 	p.Send("ctrl+g")
-	p.WaitForText("EDITOR RUNNING", 10*time.Second)
+	p.WaitForText("EDITOR RUNNING", ptyWait)
 	p.Send("ctrl+c")
 
 	// mantle-ui comes back (the editor failed, so the prompt is unchanged).
 	p.WaitFor(func(s string) bool {
 		return strings.Contains(s, "for shortcuts") && !strings.Contains(s, "EDITOR RUNNING")
-	}, 10*time.Second)
+	}, ptyWait)
 	if strings.HasSuffix(strings.TrimSpace(p.Screen()), "SHELL$") {
 		t.Fatalf("mantle-ui exited on ctrl+c inside the editor:\n%s", p.Screen())
 	}
@@ -136,7 +136,7 @@ func TestCtrlCInsideEditor(t *testing.T) {
 	}
 
 	quitWithCtrlC(t, p)
-	p.WaitFor(func(s string) bool { return strings.HasSuffix(strings.TrimSpace(s), "SHELL$") }, 10*time.Second)
+	p.WaitFor(func(s string) bool { return strings.HasSuffix(strings.TrimSpace(s), "SHELL$") }, ptyWait)
 }
 
 // engineRunPID reads the main engine's pid from $MANTLE_HOME/run (written by plan 02's
@@ -149,7 +149,7 @@ func engineRunPID(t *testing.T, env []string) int {
 			mantleHome = v
 		}
 	}
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(ptyWait)
 	for time.Now().Before(deadline) {
 		recs, _ := filepath.Glob(filepath.Join(mantleHome, "run", "*.json"))
 		if len(recs) == 1 {

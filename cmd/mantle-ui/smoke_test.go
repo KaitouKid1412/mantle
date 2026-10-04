@@ -14,6 +14,11 @@ import (
 	"github.com/KaitouKid1412/mantle/internal/testkit/enginefake"
 )
 
+// ptyWait bounds every wait in the pty tests. It is generous on purpose: these tests
+// also run inside the /mantle pipeline's fully parallel `go test ./...`, where a boot
+// can take many seconds; a correct run finishes long before it.
+const ptyWait = 60 * time.Second
+
 // buildBinaries builds mantle-ui and fakeclaude into a temp dir.
 func buildBinaries(t *testing.T) (ui, fake string) {
 	t.Helper()
@@ -115,7 +120,7 @@ func TestSmokeBoot(t *testing.T) {
 	cmd.Env = smokeEnv(t, fake, script, project)
 	p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
 
-	p.WaitFor(func(s string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "pong from the fake engine") }, 20*time.Second)
+	p.WaitFor(func(s string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "pong from the fake engine") }, ptyWait)
 
 	// Spike S16: the engine runs in its own process group (terminal signals such as
 	// ctrl+c inside $EDITOR or ctrl+z reach only mantle-ui's group), recorded for the
@@ -146,7 +151,7 @@ func TestSmokeBoot(t *testing.T) {
 	}
 
 	quitWithCtrlC(t, p)
-	if code := p.ExitCode(10 * time.Second); code != 0 {
+	if code := p.ExitCode(ptyWait); code != 0 {
 		t.Fatalf("exit code %d\n%s", code, strings.Join(p.All(), "\n"))
 	}
 }
@@ -158,7 +163,7 @@ func quitWithCtrlC(t *testing.T, p *testkit.Process) {
 	t.Helper()
 	for range 5 {
 		p.Send("ctrl+c")
-		deadline := time.Now().Add(time.Second)
+		deadline := time.Now().Add(3 * time.Second)
 		for time.Now().Before(deadline) {
 			if strings.Contains(strings.ToLower(p.Screen()), "again to exit") {
 				p.Send("ctrl+c")
