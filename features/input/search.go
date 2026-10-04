@@ -163,7 +163,7 @@ func (s *state) viewSearchPreview(c ext.Ctx, a ext.Area) ext.Rendered {
 		l = highlightAll(t, ansi.Truncate(l, w, "…"), q.query)
 		rows = append(rows, l)
 	}
-	marker := t.Paint(theme.Inactive, "> ")
+	marker := t.Paint(theme.Inactive, "❯ ")
 	return ext.Rendered{Text: marker + strings.Join(rows, "\n"+strings.Repeat(" ", prefixWidth))}
 }
 

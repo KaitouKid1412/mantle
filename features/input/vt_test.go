@@ -29,7 +29,7 @@ func startHost(t *testing.T, w, h int) (*testkit.Harness, *fakeEngine, *state) {
 	hs := testkit.New(t, root, testkit.WithSize(w, h))
 	eng := &fakeEngine{}
 	hs.SendMsg(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: eng})
-	hs.WaitForText(`Try "`, vtWait)
+	hs.WaitForText("❯", vtWait)
 	return hs, eng, s
 }
 
@@ -52,7 +52,7 @@ func TestVTTypeAndSubmit(t *testing.T) {
 	hs.Send("shift+enter")
 	hs.Type("world")
 	hs.WaitForText("  world", vtWait)
-	if !strings.Contains(hs.Screen(), "> hello") {
+	if !strings.Contains(hs.Screen(), "❯ hello") {
 		t.Fatalf("prompt marker and first line:\n%s", hs.Screen())
 	}
 	hs.Send("enter")
@@ -64,7 +64,7 @@ func TestVTTypeAndSubmit(t *testing.T) {
 
 	// Up recalls it.
 	hs.Send("up")
-	hs.WaitForText("> hello", vtWait)
+	hs.WaitForText("❯ hello", vtWait)
 }
 
 func TestVTPasteChip(t *testing.T) {
@@ -94,7 +94,7 @@ func TestVTSlashMenu(t *testing.T) {
 	hs.WaitForText("Compact the conversation", vtWait)
 	hs.WaitForText("Show the session cost", vtWait)
 	hs.Send("down", "tab")
-	hs.WaitForText("> /compact", vtWait)
+	hs.WaitForText("❯ /compact", vtWait)
 	hs.Send("enter")
 	ps := waitPrompts(t, eng, 1)
 	if strings.TrimSpace(ps[0].Blocks[0].Text) != "/compact" {

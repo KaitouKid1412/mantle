@@ -377,6 +377,18 @@ func TestEscLadder(t *testing.T) {
 	}
 }
 
+func TestAltEscIsDoubleEsc(t *testing.T) {
+	r := newRig(t, nil)
+	r.keys("alt+esc")
+	if a := r.c.RanActions; len(a) == 0 || a[len(a)-1] != ActRewind {
+		t.Fatalf("alt+esc on an empty prompt opens rewind: %v", a)
+	}
+	r.keys("'text'", "alt+esc")
+	if !r.s.ed.Empty() {
+		t.Fatal("alt+esc clears a non-empty prompt")
+	}
+}
+
 func TestCtrlCAndCtrlD(t *testing.T) {
 	r := newRig(t, nil)
 	if r.action(ext.ActAppInterrupt) || r.action(ext.ActAppExit) {
