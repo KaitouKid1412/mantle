@@ -1,5 +1,5 @@
 {
-  "claude_version": "2.1.288",
+  "claude_version": "2.1.289",
   "lists": [
     {
       "kind": "flag",
@@ -1569,7 +1569,52 @@
     {
       "kind": "protocol",
       "source": "scripts/sdk-diff (plan 02)",
-      "error": "scripts/sdk-diff is not in this tree yet (plan 02)"
+      "items": [
+        {
+          "name": "control:end_session",
+          "scope": "proto-only"
+        },
+        {
+          "name": "control:generate_session_title",
+          "scope": "proto-only"
+        },
+        {
+          "name": "control:host_auth_token_refresh",
+          "scope": "proto-only"
+        },
+        {
+          "name": "control:oauth_token_refresh",
+          "scope": "proto-only"
+        },
+        {
+          "name": "control:set_mcp_permission_mode_override",
+          "scope": "proto-only"
+        },
+        {
+          "name": "system:api_error",
+          "scope": "proto-only"
+        },
+        {
+          "name": "system:away_summary",
+          "scope": "proto-only"
+        },
+        {
+          "name": "system:model_fallback",
+          "scope": "proto-only"
+        },
+        {
+          "name": "system:session_title_changed",
+          "scope": "proto-only"
+        },
+        {
+          "name": "system:turn_duration",
+          "scope": "proto-only"
+        },
+        {
+          "name": "type:command_lifecycle",
+          "scope": "proto-only"
+        }
+      ]
     },
     {
       "kind": "setting",
