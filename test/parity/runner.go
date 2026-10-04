@@ -2,6 +2,7 @@ package parity
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"math/rand/v2"
@@ -58,6 +59,9 @@ type RunOptions struct {
 	TempDir string
 	// Logf receives progress lines.
 	Logf func(format string, args ...any)
+	// RawDir, when set, receives each terminal's raw output as
+	// <scenario>.<target>.<n>.raw (n counts restarts), for debugging the emulator.
+	RawDir string
 }
 
 // Run executes sc against tg in a fresh isolated workspace and returns the captured
@@ -92,11 +96,13 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 			return res
 		}
 	}
-	if sc.Settings != "" {
-		if err := os.WriteFile(filepath.Join(ws.ConfigDir, "settings.json"), []byte(sc.Settings), 0o600); err != nil {
-			res.Err = err
-			return res
-		}
+	settings, err := scenarioSettings(sc.Settings)
+	if err == nil {
+		err = os.WriteFile(filepath.Join(ws.ConfigDir, "settings.json"), settings, 0o600)
+	}
+	if err != nil {
+		res.Err = err
+		return res
 	}
 	api := fakeapi.New(script)
 	srv := httptest.NewServer(api)
@@ -127,9 +133,21 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		res.Err = err
 		return res
 	}
+	runs := 0
+	saveRaw := func() {
+		if o.RawDir == "" {
+			return
+		}
+		name := fmt.Sprintf("%s.%s.%d.raw", sanitizeName(sc.Name), tg.Name(), runs)
+		if err := os.MkdirAll(o.RawDir, 0o755); err == nil {
+			_ = os.WriteFile(filepath.Join(o.RawDir, name), t.Output(), 0o644)
+		}
+		runs++
+	}
 	defer func() {
 		tg.Quit(t)
 		_ = t.Close()
+		saveRaw()
 		res.Requests = api.Consumed()
 		res.Unmatched = api.Unmatched()
 	}()
@@ -142,6 +160,7 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		if st.Kind == StepRestart {
 			tg.Quit(t)
 			_ = t.Close()
+			saveRaw()
 			if t, err = start1(append(append([]string{}, sc.Args...), st.Args...)); err != nil {
 				res.Err, res.FailedLine = fmt.Errorf("line %d (restart): %w", st.Line, err), st.Line
 				return res
@@ -303,4 +322,21 @@ func sanitizeName(s string) string {
 		}
 		return '-'
 	}, s)
+}
+
+// scenarioSettings is the settings.json a run starts with: the scenario's settings,
+// with "tui" pinned to the inline renderer unless the scenario chose one. Claude Code
+// 2.1.289 starts in fullscreen with a fresh config, and mantle starts inline, so an
+// unpinned comparison would set two different renderers against each other.
+func scenarioSettings(raw string) ([]byte, error) {
+	m := map[string]json.RawMessage{}
+	if strings.TrimSpace(raw) != "" {
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			return nil, fmt.Errorf("parity: settings: %w", err)
+		}
+	}
+	if _, ok := m["tui"]; !ok {
+		m["tui"] = json.RawMessage(`"default"`)
+	}
+	return json.MarshalIndent(m, "", "  ")
 }

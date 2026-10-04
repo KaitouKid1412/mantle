@@ -21,7 +21,9 @@ import (
 //	args: --model sonnet            # extra command-line arguments for the target
 //	files: fixtures/app             # copied into the working directory before start
 //	env: CLAUDE_CODE_ENABLE_TODO_TOOLS=1   # extra environment (repeatable)
-//	settings: {"statusLine": {...}}  # written to the isolated CLAUDE_CONFIG_DIR/settings.json
+//	settings: {"statusLine": {...}}  # written to the isolated CLAUDE_CONFIG_DIR/settings.json;
+//	                                 # "tui" defaults to "default" (the inline renderer)
+//	parity: TR-01, PD-03            # PARITY.md rows the scenario exercises
 //	---
 //	ready                       # wait until the target shows its prompt
 //	type What is 2+2?           # literal text ("…" quotes allow \n, \t escapes)
@@ -47,6 +49,7 @@ type Scenario struct {
 	Files    string   // fixture directory copied into the workspace (absolute after Load)
 	Env      []string // extra KEY=VALUE environment
 	Settings string   // JSON written to CLAUDE_CONFIG_DIR/settings.json
+	Parity   []string // PARITY.md row IDs this scenario covers
 	Steps    []Step
 	Path     string // the .scn file
 }
@@ -203,6 +206,10 @@ func (sc *Scenario) setHeader(key, val string) error {
 		sc.Env = append(sc.Env, val)
 	case "settings":
 		sc.Settings = val
+	case "parity":
+		for _, id := range strings.FieldsFunc(val, func(r rune) bool { return r == ',' || r == ' ' }) {
+			sc.Parity = append(sc.Parity, id)
+		}
 	default:
 		return fmt.Errorf("unknown header %q", key)
 	}

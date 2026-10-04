@@ -76,8 +76,27 @@ func TestParseNewHeaders(t *testing.T) {
 	if _, err := ParseScenario("env: NOEQUALS\n---\nready\n"); err == nil {
 		t.Error("env without =")
 	}
-	sc := mustParse(t, "env: A=1\nenv: B=2\n---\nrestart --resume x\n")
+	sc := mustParse(t, "env: A=1\nenv: B=2\nparity: TR-01, PD-03 SE-02\n---\nrestart --resume x\n")
+	if !slices.Equal(sc.Parity, []string{"TR-01", "PD-03", "SE-02"}) {
+		t.Errorf("parity = %q", sc.Parity)
+	}
 	if !slices.Equal(sc.Env, []string{"A=1", "B=2"}) || !slices.Equal(sc.Steps[0].Args, []string{"--resume", "x"}) {
 		t.Errorf("parsed = %+v", sc)
+	}
+}
+
+func TestScenarioSettingsPinRenderer(t *testing.T) {
+	for _, tt := range []struct{ in, want string }{
+		{"", `"tui": "default"`},
+		{`{"statusLine":{"type":"command"}}`, `"tui": "default"`},
+		{`{"tui":"fullscreen"}`, `"tui": "fullscreen"`},
+	} {
+		got, err := scenarioSettings(tt.in)
+		if err != nil || !strings.Contains(string(got), tt.want) {
+			t.Errorf("scenarioSettings(%q) = %s, %v", tt.in, got, err)
+		}
+	}
+	if _, err := scenarioSettings("{not json"); err == nil {
+		t.Error("bad JSON must fail")
 	}
 }
