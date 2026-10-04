@@ -78,4 +78,23 @@ func TestSidebarExample(t *testing.T) {
 	}
 	mouse(hs, tea.MouseClickMsg{X: 2, Y: 0, Button: tea.MouseLeft})
 	hs.WaitForText("clicked 1 times", 3*time.Second)
+
+	// The viewport learns its screen origin from mouse events; then ctrl+x left widens
+	// the sidebar that was clicked (pane:grow through ext.SidebarResizeMsg).
+	textPos := func() (col, row int) {
+		for y, l := range hs.ScreenLines() {
+			if i := strings.Index(l, "transcript text"); i >= 0 {
+				return i, y
+			}
+		}
+		return -1, -1
+	}
+	textCol := func() int { c, _ := textPos(); return c }
+	before, row := textPos()
+	mouse(hs, tea.MouseMotionMsg{X: before + 2, Y: row}) // over the transcript: origin known
+	mouse(hs, tea.MouseClickMsg{X: 2, Y: 1, Button: tea.MouseLeft})
+	hs.Send("ctrl+x", "left")
+	hs.WaitFor(func(string) bool { return textCol() == before+paneStep }, 3*time.Second)
+	hs.Send("ctrl+x", "right")
+	hs.WaitFor(func(string) bool { return textCol() == before }, 3*time.Second)
 }

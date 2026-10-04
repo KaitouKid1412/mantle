@@ -1,6 +1,6 @@
 # 12 → 06: `/diff` as a right sidebar in fullscreen
 
-**Status:** open (2026-10-04), for when plan 06's B11 `/diff` lands.
+**Status:** resolved 2026-10-04: plan 06 registers `sessions.diffPanel` in `SlotSidebarR` (fullscreen only), opened by /diff at ≥ 110 columns and on its own at ≥ 144 after a turn that edited files.
 
 Claude Code opens `/diff` as a side panel in fullscreen at ≥ 110 columns, opening on its
 own at ≥ 144. Placement is plan 12's job, the content plan 06's. Agreed shape, via ext

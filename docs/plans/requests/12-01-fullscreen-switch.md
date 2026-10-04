@@ -1,6 +1,6 @@
 # 12 → 01: turning the fullscreen layout on, live switching, mouse switch, sidebar widths
 
-**Status:** open (2026-10-04). Plan 12's fullscreen feature (B7–B9) renders through the
+**Status:** resolved 2026-10-04 in `contracts-v1.6` (layout from `tui` / env, `ext.LayoutRequestMsg` / `LayoutChangedMsg`, `Options.NoMouse`, `ext.SidebarResizeMsg`, wheel no longer delivered through OnMouse); empty sidebars stop narrowing the transcript in plan 01 commit 8b9a280. Plan 12's fullscreen feature (B7–B9) renders through the
 B14 hooks in `contracts-v1.4` (`fullscreenView`, OnMouse hit-testing, `ext.MouseEvent`).
 What's missing is on the host side.
 

@@ -11,7 +11,7 @@ const FeatureID = "fullscreen.renderer"
 func init() {
 	ext.Register(ext.Feature{
 		ID: FeatureID, Order: 750,
-		Parity: []string{"VW-15", "VW-16", "VW-17", "VW-18", "VW-19", "VW-20", "VW-21", "VW-23"},
+		Parity: []string{"VW-15", "VW-16", "VW-17", "VW-18", "VW-19", "VW-20", "VW-21", "VW-23", "VW-24"},
 		Setup: func(r ext.Registrar) error {
 			env := terminal.OS()
 			tv := newTranscriptView(env)
@@ -21,6 +21,13 @@ func init() {
 			for _, id := range scrollActions {
 				r.AddAction(ext.Action{ID: id, Context: ext.ContextScroll,
 					Description: "Fullscreen transcript: " + string(id), Run: tv.action(id)})
+			}
+			r.AddAction(ext.Action{ID: ext.ActPaneGrow, Context: ext.ContextPane,
+				Description: "Widen the sidebar", Run: tv.paneAction(paneStep)})
+			r.AddAction(ext.Action{ID: ext.ActPaneShrink, Context: ext.ContextPane,
+				Description: "Narrow the sidebar", Run: tv.paneAction(-paneStep)})
+			for _, b := range paneBindings {
+				r.AddBinding(b)
 			}
 			r.AddCommand(ext.Command{
 				Name: "scroll-speed", ArgHint: "[1-20]", Source: ext.SourceBuiltin,

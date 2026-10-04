@@ -63,6 +63,8 @@ type transcriptView struct {
 	virtual    bool
 	ready      bool // Scroll context activated
 
+	panes paneTracker
+
 	env terminal.Env
 }
 
@@ -99,9 +101,12 @@ func (v *transcriptView) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 		ctx.SetContextActive(ext.ContextScroll, true)
 		v.ready = true
 	}
+	v.panes.observe(msg, v.area.Width)
 	switch m := msg.(type) {
 	case ext.MouseEvent:
 		return v.mouse(ctx, m)
+	case ext.LayoutChangedMsg:
+		v.invalidate(ctx)
 	case tickMsg:
 		if m.gen != v.tickGen {
 			return nil
