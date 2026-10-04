@@ -125,6 +125,27 @@ func (m *Manager) StartCmd(id string, o ext.SpawnOpts) tea.Cmd {
 	}
 }
 
+// Spawn starts engine id, or restarts it with o when it already exists. It matches
+// app.Options.Spawn:
+//
+//	var p *tea.Program
+//	m := engine.NewManager(func(msg tea.Msg) { p.Send(msg) })
+//	root := app.New(app.Options{Spawn: m.Spawn, Stop: m.StopEngine, ...})
+//	p = tea.NewProgram(root)
+func (m *Manager) Spawn(id string, o ext.SpawnOpts) error {
+	if e := m.Engine(id); e != nil {
+		return e.RestartNow(context.Background(), o)
+	}
+	_, err := m.Start(id, o)
+	return err
+}
+
+// StopEngine stops engine id and forgets it; it matches app.Options.Stop.
+func (m *Manager) StopEngine(id string) error {
+	m.Remove(context.Background(), id)
+	return nil
+}
+
 // Handle runs the engine requests features send (ext.EngineStartMsg,
 // ext.EngineStopMsg) and returns nil for any other message. The host calls it from
 // Update: `if cmd := m.Handle(msg); cmd != nil { return cmd }`.

@@ -152,17 +152,19 @@ type PluginInfo struct {
 // CompactBoundary marks where the conversation was compacted.
 type CompactBoundary struct {
 	Envelope
-	CompactMetadata CompactMetadata `json:"compact_metadata"`
+	CompactMetadata   CompactMetadata `json:"compact_metadata"`
+	LogicalParentUUID string          `json:"logical_parent_uuid,omitempty"` // since proto-v1
 }
 
 // CompactMetadata describes a compaction.
 type CompactMetadata struct {
-	Trigger           string          `json:"trigger"` // manual | auto
-	PreTokens         int64           `json:"pre_tokens"`
-	PostTokens        int64           `json:"post_tokens,omitempty"`
-	DurationMS        int64           `json:"duration_ms,omitempty"`
-	PreservedSegment  json.RawMessage `json:"preserved_segment,omitempty"`
-	PreservedMessages json.RawMessage `json:"preserved_messages,omitempty"`
+	Trigger                 string          `json:"trigger"` // manual | auto
+	PreTokens               int64           `json:"pre_tokens"`
+	PostTokens              int64           `json:"post_tokens,omitempty"`
+	DurationMS              int64           `json:"duration_ms,omitempty"`
+	PreservedSegment        json.RawMessage `json:"preserved_segment,omitempty"`
+	PreservedMessages       json.RawMessage `json:"preserved_messages,omitempty"`
+	CumulativeDroppedTokens int64           `json:"cumulative_dropped_tokens,omitempty"` // since proto-v1
 }
 
 // Status reports compacting/requesting status and permission mode changes.
@@ -259,6 +261,7 @@ type TaskUpdated struct {
 type TaskNotification struct {
 	Envelope
 	TaskID     string     `json:"task_id"`
+	ToolUseID  string     `json:"tool_use_id,omitempty"`
 	Status     string     `json:"status"` // completed | failed | stopped
 	OutputFile string     `json:"output_file,omitempty"`
 	Summary    string     `json:"summary,omitempty"`
@@ -313,8 +316,9 @@ type Notification struct {
 // ThinkingTokens estimates thinking tokens so far.
 type ThinkingTokens struct {
 	Envelope
-	EstimatedTokens      int64 `json:"estimated_tokens"`
-	EstimatedTokensDelta int64 `json:"estimated_tokens_delta"`
+	EstimatedTokens      int64  `json:"estimated_tokens"`
+	EstimatedTokensDelta int64  `json:"estimated_tokens_delta"`
+	UserMessageUUID      string `json:"user_message_uuid,omitempty"`
 }
 
 // PermissionDenied reports a tool call denied without asking.
