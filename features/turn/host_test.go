@@ -25,6 +25,8 @@ func hostEnv(t *testing.T) string {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)
+	t.Setenv("MANTLE_HOME", "")
+	t.Setenv("MANTLE_CLAUDE_BIN", stubClaude(t, home, "2.1.288"))
 	t.Setenv("CLAUDE_CONFIG_DIR", "")
 	t.Setenv("ANTHROPIC_API_KEY", "")
 	t.Setenv("CLAUDE_CODE_SANDBOXED", "")
@@ -152,4 +154,15 @@ func TestHostPermissionPrompt(t *testing.T) {
 	if _, err := hn.Quit(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// stubClaude writes an executable that prints a claude version, for the engine version
+// gate (CheckEngine runs `$MANTLE_CLAUDE_BIN --version`).
+func stubClaude(t *testing.T, dir, version string) string {
+	t.Helper()
+	p := filepath.Join(dir, "claude-stub")
+	if err := os.WriteFile(p, []byte("#!/bin/sh\necho '"+version+" (Claude Code)'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return p
 }
