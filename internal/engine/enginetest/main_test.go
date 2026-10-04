@@ -69,17 +69,11 @@ func handoffStage1() int {
 		fmt.Println("stage1 result:", err)
 		return 1
 	}
-	st, err := e.PrepareHandoff(context.Background())
-	if err != nil {
+	if err := e.HandoffToFile(os.Getenv("MANTLE_HANDOFF_FILE"), os.Args); err != nil {
 		fmt.Println("stage1 handoff:", err)
 		return 1
 	}
-	path := os.Getenv("MANTLE_HANDOFF_FILE")
-	if err := engine.WriteHandoffFile(path, engine.HandoffFile{Engines: []engine.HandoffState{st}}); err != nil {
-		fmt.Println("stage1 write:", err)
-		return 1
-	}
-	fmt.Printf("stage1 pid=%d engine=%d\n", os.Getpid(), st.PID)
+	fmt.Printf("stage1 pid=%d\n", os.Getpid())
 	var env []string
 	for _, kv := range os.Environ() {
 		if !strings.HasPrefix(kv, "MANTLE_HANDOFF_STAGE=") {

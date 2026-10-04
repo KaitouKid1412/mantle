@@ -302,6 +302,21 @@ func (r *run) handedOff() bool {
 	return r.handed
 }
 
+// HandoffToFile is PrepareHandoff plus WriteHandoffFile for this one engine: the old
+// mantle-ui calls it right before exec'ing the new build with
+// --attach-engine-fds=path. It returns ErrBusy unless the engine is idle. If the
+// file can't be written the engine has already let go of its pipes, so the caller
+// must not keep using it (fall back to restarting).
+func (e *Engine) HandoffToFile(path string, argv []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	st, err := e.PrepareHandoff(ctx)
+	if err != nil {
+		return err
+	}
+	return WriteHandoffFile(path, HandoffFile{Engines: []HandoffState{st}, Argv: argv})
+}
+
 // HandoffFile is $MANTLE_HOME/run/<pid>.handoff.json.
 type HandoffFile struct {
 	Engines []HandoffState `json:"engines"`
