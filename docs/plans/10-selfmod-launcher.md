@@ -186,7 +186,7 @@ Build the part of mantle that makes it mantle:
 - Only the first install sets `last-good`; later builds earn it by passing probation.
 
 ## Part B: after `contracts-v1` and `proto-v1`
-- [ ] **B1 [M1] Builder engine.**
+- [x] **B1 [M1] Builder engine.**
   - Spawn through the engine API with `EngineID = "builder-<id>"` and cwd set to the
     worktree.
   - Flags:
@@ -211,7 +211,7 @@ Build the part of mantle that makes it mantle:
     4. Always add a Story and a test for what you build.
     5. Verify with `go test ./mods/<id>/...` and `./bin/mantle-ui story <id> --width 100`.
     6. Never commit, never run `go get` (ask instead), never touch protected paths.
-- [ ] **B2 [M1] `/mantle` commands** (`features/selfmod`):
+- [x] **B2 [M1] `/mantle` commands** (`features/selfmod`):
   - `/mantle <request>`: create a worktree from `user`, start the builder in the background,
     show a collapsible progress block (renderer key `mantle.build`: phase, last tool, cost),
     run the pipeline when the builder finishes, and loop failures back up to 3 rounds;
@@ -221,14 +221,14 @@ Build the part of mantle that makes it mantle:
   - `rollback`: flip `current` to the previous version, no rebuild;
   - `retry [<id>]`: rerun the builder on the kept worktree with the last failure text;
   - `status`: running builds, current version, probation state.
-- [ ] **B3 [M1] Promote.**
+- [x] **B3 [M1] Promote.**
   - Under `promote.lock`: commit (A6), rebase onto `user` (if `user` moved, re-run steps
     6–9), fast-forward `user`, build from `user` HEAD, install the version, flip `current`.
   - Notice: "<id> is ready; active next launch".
   - **Restart now** (only when idle and `background_tasks` is empty; otherwise offer it for
     next launch): write the run file and exit 75, so the launcher relaunches with
     `--resume <session-id>`.
-- [ ] **B4 [M1] mantle-ui side of the launcher protocol** (in `features/selfmod`,
+- [x] **B4 [M1] mantle-ui side of the launcher protocol** (in `features/selfmod`,
   subscribing to messages; no core edits needed):
   - write `run/<pid>.json` at start (session id, cwd, argv, version) and update it with the
     engine pgid and session id when the engine initializes or `conversation_reset` happens;
@@ -236,28 +236,28 @@ Build the part of mantle that makes it mantle:
   - honour `MANTLE_SAFE=1` (the host skips features with Order ≥ 1000; coordinate the flag
     with plan 01 via a request file if it's not in `pkg/ext`);
   - remove the run file on clean exit.
-- [ ] **B5 [M2] Config-first triage UI.** When the builder returns a
+- [x] **B5 [M2] Config-first triage UI.** When the builder returns a
   `MANTLE_CONFIG_PROPOSAL`, show the exact change and apply it through plan 01's config
   writer or the right control request. No rebuild.
-- [ ] **B6 [M2] Visual preview.** For stories whose rendered output differs between
+- [x] **B6 [M2] Visual preview.** For stories whose rendered output differs between
   `current` and the candidate, show before/after side by side. Setting
   `selfmod.confirm = always | on-visual-change | never` (default `on-visual-change`), declared
   as an `ext.SettingSpec`.
-- [ ] **B7 [M2] `edit <id> <request>`.** A builder session on top of the mod with the
+- [x] **B7 [M2] `edit <id> <request>`.** A builder session on top of the mod with the
   original and new requests. The result is squashed into the mod's commits, keeping one mod
   as one unit.
-- [ ] **B8 [M2] `update`.**
+- [x] **B8 [M2] `update`.**
   - Fetch `origin`; in a worktree, rebase `user` onto `origin/main` **one commit at a
     time**.
   - On conflict, the builder resolves it using that commit's `Mantle-Request` as intent
     (rules: keep the user's intent, adapt to the new core).
   - Run the full pipeline, including every mod's own tests; promote.
-- [ ] **B9 [M2] `upstream <id>` and dev mode.**
+- [x] **B9 [M2] `upstream <id>` and dev mode.**
   - `upstream <id>` exports a mod's commits to the dev repo `~/mantle` on branch
     `mantle/mod-<id>`. Never `main`, because parallel sessions are dirtying it.
   - Dev mode `selfmod.source=~/mantle`: worktrees come from the dev repo, branches are
     `mantle/mod-<id>`, never auto-merged; install from the branch for testing.
-- [ ] **B10 [M2] `docs/EXTENDING.md`.** Start as soon as `contracts-v1` exists, and keep it
+- [x] **B10 [M2] `docs/EXTENDING.md`.** Start as soon as `contracts-v1` exists, and keep it
   in sync with plan 01 (the API steward). It covers:
   - the Feature lifecycle and Order;
   - finding IDs with `catalog`; Replace, Wrap, Remove and Alias semantics;
@@ -271,6 +271,32 @@ Build the part of mantle that makes it mantle:
 - [ ] **B11 [M3] fd-handoff instant restart.** mantle-ui calls `syscall.Exec` on the new
   binary with `--attach-engine-fds=3,4,5` (plus session state). The PID stays the same, so
   the claude child, its pipes and background tasks survive.
+
+**Part B notes (as built):**
+- Builders start through `ext.EngineStartMsg` as `builder-<id>` (host-routed, plan 02's
+  Manager); their permission prompts reach plan 05's dialogs with that engine id.
+- Mods are linked into mantle-ui by `mods/link_<id>.go` (package `mods`) plus
+  `features/all/all_mods.go`; archtest lets the root `mods` package import `mods/*`.
+- Restart now refuses while a turn runs (`session_state_changed`), while non-ambient
+  background tasks exist (`background_tasks_changed`) or while a build runs. Handoff args
+  come from `cli.Parse` until plan 11's `Startup.RestartArgs` is integrated.
+- Config proposals: mantle scope via `Settings.SetMantle`, Claude scope via
+  `ext.ClaudeSettingsWriter` (user scope), falling back to a merge-write with backup.
+- Edit: the edit's commits become `fixup!` commits and are autosquashed into the mod's
+  commits when `user` has not moved (tree checked unchanged); otherwise they stay as
+  separate commits with the same `Mantle-Mod` id.
+- Update re-applies `origin/main..user` one commit at a time in a worktree at the new
+  upstream; conflicts go to the builder with that commit's `Mantle-Request`; promotion
+  replaces `user` only if it did not move meanwhile.
+- The smoke boot mirrors plan 01's smoke test (isolated HOME, trusted worktree, drift
+  check off, the candidate's own fakeclaude). Spike S16 is an automated test
+  (`internal/selfmod/s16_test.go`): job control through the launcher, ctrl+c inside an
+  exec'd editor, crash restore.
+- `docs/EXTENDING.md` examples are compiled by `TestExtendingExamplesCompile`.
+- **B11 is blocked** on plan 02 (engine adopt-from-fds), plan 01 (optional
+  `ext.HandoffEngine`, host adopt path) and plan 11 (`--attach-engine-fds` flag): see
+  `docs/plans/requests/10-02-engine-fd-handoff.md`. The launcher side is done
+  (probation follows the run file's `version` after an in-place exec).
 
 ## Design notes
 - **The launcher never imports anything outside the standard library** and never changes
