@@ -293,10 +293,15 @@ Build the part of mantle that makes it mantle:
   (`internal/selfmod/s16_test.go`): job control through the launcher, ctrl+c inside an
   exec'd editor, crash restore.
 - `docs/EXTENDING.md` examples are compiled by `TestExtendingExamplesCompile`.
-- **B11 is blocked** on plan 02 (engine adopt-from-fds), plan 01 (optional
-  `ext.HandoffEngine`, host adopt path) and plan 11 (`--attach-engine-fds` flag): see
-  `docs/plans/requests/10-02-engine-fd-handoff.md`. The launcher side is done
-  (probation follows the run file's `version` after an in-place exec).
+- **B11 (M3):** plan 10's side is done and tested. The launcher accounts probation to
+  the run file's `version` after an in-place exec; `/mantle restart` with
+  `selfmod.instantRestart` calls the engine's `HandoffToFile(path, argv)`, records the
+  new build, and execs it through `tea.Exec` (Bubble Tea releases the terminal first),
+  falling back to exit 75. The engine side (plan 02: `PrepareHandoff`, `AdoptFile`, own
+  file format) and the flag (plan 11: `--attach-engine-fds`) exist on their branches;
+  **still missing in an integration tag:** plan 02's `Engine.HandoffToFile` method and
+  plan 01's `Adopt` hook in `cmd/mantle-ui` calling `mgr.AdoptFile`. Request:
+  `docs/plans/requests/10-02-engine-fd-handoff.md`.
 
 ## Design notes
 - **The launcher never imports anything outside the standard library** and never changes
