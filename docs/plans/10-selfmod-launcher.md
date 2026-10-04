@@ -309,8 +309,10 @@ Build the part of mantle that makes it mantle:
   new build, and execs it through `tea.Exec` (Bubble Tea releases the terminal first),
   falling back to exit 75. The engine side (plan 02: `PrepareHandoff`, `AdoptFile`, own
   file format) and the flag (plan 11: `--attach-engine-fds`) exist on their branches;
-  **still missing in an integration tag:** plan 02's `Engine.HandoffToFile` method and
-  plan 01's `Adopt` hook in `cmd/mantle-ui` calling `mgr.AdoptFile`. Request:
+  Plan 02's `Engine.HandoffToFile` now exists on its branch (any error there ends in
+  a normal exit-75 restart here, since the engine may be detached). **Still missing in
+  an integration tag:** that commit, and plan 01's `Adopt` hook in `cmd/mantle-ui`
+  calling `mgr.AdoptFile`. Request:
   `docs/plans/requests/10-02-engine-fd-handoff.md`.
 
 ## Design notes
