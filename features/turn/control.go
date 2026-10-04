@@ -231,11 +231,14 @@ func (st *state) onControlResult(c ext.Ctx, m ext.ControlResultMsg) tea.Cmd {
 		st.setModels(c, eng, resp.Models)
 		return st.maybeStartupMode(c, eng)
 	case proto.SubInitialize:
+		// The handshake finished: its models say whether auto mode is available (none, or
+		// a failed handshake, means it isn't). Now the startup mode can be applied.
 		var resp proto.InitializeResponse
-		if m.Err == nil && jsonUnmarshal(m.Resp, &resp) == nil && len(resp.Models) > 0 {
-			st.setModels(c, eng, resp.Models)
-			return st.maybeStartupMode(c, eng)
+		if m.Err == nil {
+			_ = jsonUnmarshal(m.Resp, &resp)
 		}
+		st.setModels(c, eng, resp.Models)
+		return st.maybeStartupMode(c, eng)
 	case proto.SubStopTask, proto.SubBackgroundTasks, proto.SubInterrupt:
 		if m.Err != nil {
 			return c.Notify(ext.Notice{Key: "turn." + m.Subtype, Text: m.Subtype + " failed: " + m.Err.Error(), Level: ext.NoticeWarning, Source: FeatureID})
