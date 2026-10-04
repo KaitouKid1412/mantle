@@ -236,6 +236,9 @@ Everything about conversations as objects:
   `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
   (no documented shapes; mantle has its own path for each).
 - Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
+- Verified (plan 09's pty spike, Claude Code 2.1.289): an interactive `claude "/status"`
+  runs the slash command at startup, so `dialog.handoff`'s `claude --resume <sid> /cmd`
+  opens the panel directly.
 
 ## Design notes
 
