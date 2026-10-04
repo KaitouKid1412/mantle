@@ -281,10 +281,10 @@ Build the part of mantle that makes it mantle:
   against claude 2.1.288 with a zero-token parse run (variadic tool lists,
   `--append-system-prompt-file`, `--max-budget-usd` in stream-json mode).
 - The full pipeline was run over this repository plus a small mod
-  (`MANTLE_PIPELINE_E2E=1`, `TestRealPipelineOnThisRepo`): steps 1–6, 8 and 9 (the pty
-  smoke boot against the real mantle-ui and its fakeclaude) pass. Step 7 waits for plan
-  01's pty-test startup-race fix (cd8d6a7, after integration-2); load flakes are re-run
-  once alone.
+  (`MANTLE_PIPELINE_E2E=1`, `TestRealPipelineOnThisRepo`): on integration-3 all nine
+  steps pass, including `go test ./...` of the whole repository and the pty smoke boot
+  against the real mantle-ui and its fakeclaude (apidiff skips: no `pkg/` change). Test
+  packages that fail under full-suite load are re-run once alone.
 - Mods are linked into mantle-ui by `mods/link_<id>.go` (package `mods`) plus
   `features/all/all_mods.go`; archtest lets the root `mods` package import `mods/*`.
 - Restart now refuses while a turn runs (`session_state_changed`), while non-ambient
