@@ -104,10 +104,22 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 	}
 	ui := store.UI()
 	a11y := ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || env.ScreenReader, ReducedMotion: ui.PrefersReducedMotion}
-	layout := ext.Inline
-	if (ui.TUI == "fullscreen" || env.NoFlicker) && !env.DisableAltScreen && !a11y.ScreenReader {
-		layout = ext.Fullscreen
+	// Start in the same renderer as the installed claude when `tui` is unset (user
+	// decision): explicit tui > alt-screen/screen-reader rules > no-flicker > claude's
+	// default for its version (plan 11's table; unknown version = newest default).
+	explicitTUI := ""
+	if v, ok := store.Claude("tui"); ok {
+		explicitTUI, _ = v.(string)
 	}
+	engineVersion := engineVersionHint(filepath.Join(paths.StateDir(), "engines.json"))
+	layout := app.StartupLayout(app.LayoutInputs{
+		TUI:              explicitTUI,
+		EngineDefaultTUI: cli.DefaultsFor(engineVersion).TUI,
+		NoAltScreen:      env.DisableAltScreen,
+		ScreenReader:     a11y.ScreenReader,
+		NoFlicker:        env.NoFlicker,
+	})
+	logger.Info("layout", "mode", layout.String(), "tui", explicitTUI, "claude", engineVersion)
 
 	var prog *tea.Program
 	mgr := engine.NewManager(func(m tea.Msg) { prog.Send(m) })
