@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/KaitouKid1412/mantle/internal/archtest"
@@ -82,19 +83,38 @@ func TestFeature(t *testing.T) {
 	cfg := Config{
 		Smoke: DefaultSmokeConfig(),
 		// The nested go test ./... must not run this test again.
-		Env: []string{"MANTLE_PIPELINE_E2E="},
+		Env: []string{"MANTLE_PIPELINE_E2E=", "MANTLE_PIPELINE_E2E_STEPS="},
+	}
+	// MANTLE_PIPELINE_E2E_STEPS=build,selftest,smoke limits the run.
+	var steps []StepID
+	if s := os.Getenv("MANTLE_PIPELINE_E2E_STEPS"); s != "" {
+		for _, id := range strings.Split(s, ",") {
+			steps = append(steps, StepID(strings.TrimSpace(id)))
+		}
 	}
 	logDir := filepath.Join(t.TempDir(), "build")
-	rep, err := NewPipeline(cfg).Run(context.Background(), Run{BuildID: "e2e", Dir: wt, Base: head, LogDir: logDir})
+	rep, err := NewPipeline(cfg).Run(context.Background(), Run{BuildID: "e2e", Dir: wt, Base: head, LogDir: logDir, Steps: steps})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, r := range rep.Results {
 		t.Logf("%-10s ok=%v skipped=%v %s %s", r.Step, r.OK, r.Skipped, r.Duration.Round(1e6), r.Summary)
 	}
+	smoke, _ := os.ReadFile(filepath.Join(logDir, "09-smoke.log"))
 	if !rep.OK {
-		smoke, _ := os.ReadFile(filepath.Join(logDir, "09-smoke.log"))
 		t.Fatalf("pipeline failed:\n%s\nsmoke log tail:\n%s", TrimForBuilder(rep), tailBytes(smoke, 3000))
+	}
+	if r, ok := rep.Result(StepSmoke); ok && r.OK {
+		var actions []string
+		for _, ln := range strings.Split(string(smoke), "\n") {
+			if strings.HasPrefix(ln, "[smoke]") {
+				actions = append(actions, ln)
+			}
+		}
+		t.Logf("smoke boot:\n%s", strings.Join(actions, "\n"))
+		if !strings.Contains(string(smoke), "[smoke] exited with code 0") {
+			t.Error("the smoke boot did not end with exit 0")
+		}
 	}
 }
 
