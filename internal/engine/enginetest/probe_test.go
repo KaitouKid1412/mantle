@@ -151,4 +151,15 @@ func TestCheckEngine(t *testing.T) {
 	if st, _ := engine.LoadEngineState(state); st.Pinned != "" {
 		t.Error("unpin")
 	}
+
+	// $MANTLE_CLAUDE_BIN is an explicit override: version only, no probe, no record.
+	t.Setenv("MANTLE_CLAUDE_BIN", bin)
+	t.Setenv("FAKECLAUDE_VERSION", "2.1.291")
+	ov, err := engine.CheckEngine(context.Background(), engine.CheckOptions{StatePath: state})
+	if err != nil || !ov.OK || ov.Probed || !ov.Override || ov.Version != "2.1.291" || ov.Binary != bin {
+		t.Errorf("override: %+v %v", ov, err)
+	}
+	if st, _ := engine.LoadEngineState(state); len(st.Passed)+len(st.Failed) != 2 {
+		t.Errorf("override must not record: %+v", st)
+	}
 }

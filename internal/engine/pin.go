@@ -156,6 +156,9 @@ type EngineCheck struct {
 	// LastGood is the newest version that passed before, with a runnable binary, to
 	// offer for pinning when OK is false.
 	LastGood, LastGoodBinary string
+	// Override is true when $MANTLE_CLAUDE_BIN chose the binary: an explicit choice
+	// (development, tests with fakeclaude) that is accepted without a probe.
+	Override bool
 }
 
 // CheckOptions configure CheckEngine.
@@ -163,7 +166,7 @@ type CheckOptions struct {
 	StatePath string // "" = DefaultEngineStatePath
 	Binary    string // "" = ResolveBinary
 	Probe     ProbeOptions
-	// Force probes even if the version passed before.
+	// Force probes even if the version passed before, or $MANTLE_CLAUDE_BIN is set.
 	Force bool
 }
 
@@ -178,6 +181,9 @@ func CheckEngine(ctx context.Context, o CheckOptions) (EngineCheck, error) {
 	}
 	var c EngineCheck
 	bin := o.Binary
+	if bin == "" && os.Getenv("MANTLE_CLAUDE_BIN") != "" && !o.Force {
+		c.Override = true
+	}
 	if bin == "" {
 		var err error
 		if bin, err = ResolveBinary(o.StatePath); err != nil {
@@ -196,6 +202,10 @@ func CheckEngine(ctx context.Context, o CheckOptions) (EngineCheck, error) {
 	c.Version = cliVersionRe.FindString(string(out))
 	if c.Version == "" {
 		return c, fmt.Errorf("%s --version: no version in %q", bin, out)
+	}
+	if c.Override {
+		c.OK = true // explicit override: version only, no probe, nothing recorded
+		return c, nil
 	}
 	state, err := LoadEngineState(o.StatePath)
 	if err != nil {
