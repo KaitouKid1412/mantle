@@ -174,7 +174,8 @@ func TestClearAndCompact(t *testing.T) {
 	}
 	old := h.ctx.SessionValue.SessionID
 	h.run(ext.Msg(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: &proto.ConversationReset{NewConversationID: "new-id", Trigger: "clear"}}))
-	if h.ctx.Reprints != 1 || h.ctx.SessionValue.SessionID != "new-id" || h.f.lastCleared() != old {
+	if h.ctx.Reprints != 1 || h.ctx.SessionValue.SessionID != old || h.f.lastCleared() != old ||
+		len(find[ext.SessionChangedMsg](h)) != 0 {
 		t.Fatalf("reprints=%d session=%+v cleared=%v", h.ctx.Reprints, h.ctx.SessionValue, h.f.cleared)
 	}
 

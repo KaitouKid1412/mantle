@@ -66,14 +66,10 @@ func (f *feature) onConversationReset(ctx ext.Ctx, engineID string, e *proto.Con
 	if old != "" && old != e.NewConversationID {
 		f.cleared = append(f.cleared, old)
 	}
-	st.session, st.shown = e.NewConversationID, e.NewConversationID
-	cmds := []tea.Cmd{ctx.Reprint()}
-	if engineID == ext.MainEngine && e.NewConversationID != "" {
-		info := ctx.Session()
-		info.SessionID, info.Title = e.NewConversationID, ""
-		cmds = append(cmds, ext.Msg(ext.SessionChangedMsg{EngineID: engineID, Info: info}))
-	}
-	return tea.Sequence(cmds...)
+	// new_conversation_id is not the id the engine continues under (that one arrives
+	// with the engine's own session report), so it is neither stored nor published.
+	st.session, st.shown = "", "cleared"
+	return ctx.Reprint()
 }
 
 // lastCleared is the most recent session left by /clear ("" if none).
