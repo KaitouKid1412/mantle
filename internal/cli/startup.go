@@ -206,6 +206,13 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 		if m.Continue {
 			s.Warnings = append(s.Warnings, "both --continue and --resume given; resuming")
 		}
+		if m.AttachEngineFDs != "" {
+			// An in-place restart: the engine is alive and Spawn is only the fallback.
+			// Resume exactly the session the old process named; never look it up or open
+			// the picker.
+			o.Resume = m.ResumeQuery
+			break
+		}
 		if m.ResumeQuery == "" {
 			s.Picker = true
 			break
@@ -215,11 +222,6 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 			break
 		}
 		id, query, err := res.Resolve(cwd, m.ResumeQuery)
-		if err != nil && m.AttachEngineFDs != "" {
-			// An in-place restart must not stop on a lookup: the engine is alive and the
-			// fallback resumes by the ID the old process passed.
-			id, query, err = m.ResumeQuery, "", nil
-		}
 		if err != nil {
 			return s, fmt.Errorf("no conversation found for %q: %w", m.ResumeQuery, err)
 		}
