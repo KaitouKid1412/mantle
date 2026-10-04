@@ -129,6 +129,20 @@ func (e *Engine) SendPrompt(p ext.Prompt) error {
 	return r.tr.Send(line)
 }
 
+// UpdateEnv changes environment variables of the running engine
+// (update_environment_variables; there is no reply).
+func (e *Engine) UpdateEnv(vars map[string]string) error {
+	r := e.current()
+	if r == nil {
+		return ErrNotRunning
+	}
+	line, err := proto.UpdateEnvironmentVariables{Variables: vars}.MarshalLine()
+	if err != nil {
+		return err
+	}
+	return r.tr.Send(line)
+}
+
 // Interrupt stops the running turn (interrupt control request).
 func (e *Engine) Interrupt(cancelQueued bool) tea.Cmd {
 	return e.Control(proto.SubInterrupt, proto.InterruptRequest{CancelQueued: cancelQueued})
@@ -274,13 +288,13 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 		ext.SessionChangedMsg{EngineID: e.id, Info: r.track.Info()},
 	})
 	r.runFile = m.writeRunFile(e.id, bin, proc.Pid())
-	stderrDone := make(chan struct{})
+	r.stderrDone = make(chan struct{})
 	go func() {
 		_, _ = io.Copy(r.stderr, proc.Stderr())
-		close(stderrDone)
+		close(r.stderrDone)
 	}()
 	r.tr.Start(r.onEvent, func(err error) { m.logf("engine %s: %v", e.id, err) })
-	go r.wait(stderrDone)
+	go r.wait(r.stderrDone)
 	go r.initialize(m.DialogKinds)
 	return nil
 }
@@ -310,7 +324,13 @@ type run struct {
 	stopMu   sync.Mutex
 	stopping bool
 
-	exited  chan struct{}
+	exited chan struct{}
+
+	stderrDone chan struct{}
+
+	initMu  sync.Mutex
+	initRsp json.RawMessage // the initialize response (for hand-off)
+	handed  bool            // handed to another process: exit silently
 	exitErr error
 }
 
@@ -332,6 +352,9 @@ func (r *run) initialize(dialogKinds []string) {
 	req := proto.InitializeRequest{PromptSuggestions: true, SupportedDialogKinds: dialogKinds}
 	id, body, err := r.corr.RequestBody(context.Background(), req, InitializeTimeout)
 	resp := body.Response
+	if err == nil {
+		r.saveInit(resp)
+	}
 	<-verDone
 	if err == nil {
 		var ir proto.InitializeResponse
@@ -445,6 +468,9 @@ func (r *run) isStopping() bool {
 // wait reaps the process and reports the exit, after all of its output.
 func (r *run) wait(stderrDone <-chan struct{}) {
 	werr := r.proc.Wait()
+	if r.handedOff() {
+		return // the next mantle-ui owns the process now
+	}
 	select {
 	case <-r.tr.ReadDone():
 	case <-time.After(OutputDrainGrace):

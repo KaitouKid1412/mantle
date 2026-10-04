@@ -122,6 +122,14 @@ func (t *tracker) ObserveInitialize(r *proto.InitializeResponse) bool {
 	return !reflect.DeepEqual(t.s.Info, before)
 }
 
+// restore sets Info from a hand-off; later events update it as usual.
+func (t *tracker) restore(info ext.SessionInfo) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.s.Info = info
+	t.live = true
+}
+
 // SetPermissionMode and SetModel record successful control changes.
 func (t *tracker) SetPermissionMode(m string) bool {
 	return t.set(func(i *ext.SessionInfo) { i.PermissionMode = m })

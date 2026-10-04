@@ -35,6 +35,17 @@ func (s *inboundSet) first(id string) bool {
 	return true
 }
 
+// drainPeek returns the pending ids without removing them.
+func (s *inboundSet) drainPeek() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ids := make([]string, 0, len(s.pending))
+	for id := range s.pending {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 func (s *inboundSet) add(id, subtype string) {
 	s.mu.Lock()
 	s.pending[id] = subtype

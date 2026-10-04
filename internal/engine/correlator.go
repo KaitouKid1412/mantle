@@ -27,6 +27,8 @@ var slowSubtypes = map[string]time.Duration{
 	proto.SubMCPReconnect:         2 * time.Minute,
 	proto.SubReloadPlugins:        2 * time.Minute,
 	proto.SubEndSession:           10 * time.Second,
+	SubSideQuestion:               2 * time.Minute,
+	SubGetWorkspaceDiff:           time.Minute,
 }
 
 // TimeoutFor returns the timeout used for a control request subtype.
