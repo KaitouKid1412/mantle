@@ -48,6 +48,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		return s.spell.result(c, s, m)
 	case editorDoneMsg:
 		return s.externalEditorDone(c, m)
+	case ext.EditorSetTextMsg:
+		// Rewind (plan 06) puts the rewound prompt back in the box.
+		s.setText(m.Text)
+		return s.changed(c)
 	case ext.SettingsMsg:
 		s.applySettings(c)
 		return s.changed(c)
@@ -81,6 +85,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		if m.EngineID == ext.MainEngine {
 			return s.engineEvent(c, m.Event)
 		}
+	case ext.EngineAttachMsg:
+		if m.EngineID == ext.MainEngine {
+			return warmFiles(m.Engine)
+		}
 	case ext.EngineExitedMsg:
 		if m.EngineID == ext.MainEngine {
 			s.busy = false
@@ -109,10 +117,8 @@ func (s *state) engineEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 		case proto.LifecycleCompleted, proto.LifecycleCancelled, proto.LifecycleDiscarded, proto.LifecycleRefused:
 			return s.dequeue(e.CommandUUID)
 		}
-	case *proto.User:
-		if e.IsReplay && e.UUID != "" {
-			return s.dequeue(e.UUID)
-		}
+	// Replays (--replay-user-messages) are not used to prune the queue: they
+	// may echo a prompt on receipt, before it starts (spike S2).
 	case *proto.CommandsChanged:
 		s.engineCmds = e.Commands
 		return s.commandsCmd()

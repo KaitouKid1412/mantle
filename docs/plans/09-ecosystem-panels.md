@@ -137,7 +137,7 @@ Also provide:
     logout`), add (a small form that maps to `claude mcp add`/`add-json`), remove.
   - `/mcp reconnect|enable|disable <name>` with arguments goes to the engine (E).
   - Publish a "needs auth" count message for plan 07's footer.
-- [ ] **B2 [M2] `/plugin` manager** (aliases `/plugins`, `/marketplace`).
+- [x] **B2 [M2] `/plugin` manager** (aliases `/plugins`, `/marketplace`).
   - Tabs: Discover (`--available`), Installed, Marketplaces.
   - Plugin-context keys: space toggle, `i` install, `f` favorite, ctrl+s cycle marketplace.
   - Mutations via A2 with `-y`, then `reload_plugins`. If the result reports MCP or
@@ -149,7 +149,7 @@ Also provide:
 - [x] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
   then matcher, then source scope, showing handler type and command/url. "Edit" opens the
   owning settings file in `$EDITOR`.
-- [ ] **B5 [M2] `/agents`.**
+- [x] **B5 [M2] `/agents`.**
   - Browse agents from `initialize.agents` plus A3 paths (built-in agents are read-only).
   - Create: pick scope (user/project), open a template in `$EDITOR`; after saving, the
     engine picks the agent up (spike: is a restart needed? Check `commands_changed` and
@@ -194,7 +194,7 @@ Also provide:
   - **Exceptions:** anything that appears in `initialize.commands` (headless-capable, e.g.
     `/ultrareview`, `/list-agents`, `/stop`) is E, not H. Decide at runtime from the engine's
     list, with this table as the default.
-- [ ] **B11 [M2] Agent view.** A read-only list of background sessions from `claude agents
+- [x] **B11 [M2] Agent view.** A read-only list of background sessions from `claude agents
   --json [--all]`. Attach is H via ExecProcess `claude attach <id>`; logs via `claude logs
   <id>`; stop via `claude stop <id>`.
 
@@ -294,3 +294,28 @@ per-area build tag `no_ecosystem`.
 - `autoMemoryDirectory` is honoured from managed, local and user settings, not from the
   checked-in project file. Auto memory is keyed by the main checkout of the git repo
   (worktrees share it): `~/.claude/projects/<slug>/memory/MEMORY.md`.
+
+## Facts verified (Part B, zero-token spikes)
+
+- **Control replies** (headless 2.1.288, control requests only, no prompt):
+  - `mcp_status` → `{mcpServers: [{name, status, config: {type, url|command, args, …}, scope,
+    source, serverInfo?, tools?, error?}]}`. Statuses seen: `connected`, `needs-auth`,
+    `pending`, `failed`, `disabled`; claude.ai connectors have scope and source `claudeai`
+    and config type `claudeai-proxy`.
+  - `get_hooks_listing` → `{events, hooks, eventCatalog, policy}`. Hook entries carry
+    `event, matcher, source (userSettings|projectSettings|localSettings|policySettings|
+    pluginHook), sourceLabel, pluginName, type, displayText, commandText, contentLabel,
+    timeout`; `policy` has `allDisabled, disabledByPolicy, managedOnly, pluginOnly,
+    policyHookCount`. `pkg/proto` models only `events`/`hooks`; plan 09 decodes the rest
+    itself.
+  - `reload_plugins` → `{commands, agents, plugins, mcpServers, error_count}`;
+    `reload_skills` → `{skills: SlashCommand[]}`.
+- **Agents reload without a restart:** a new `.claude/agents/*.md` written while the engine
+  runs appears in the `agents` list of the next `reload_plugins` reply (B5 spike).
+- **Initial slash command (B10 spike):** interactive `claude "/status"` in a pty opens the
+  Status panel at startup (2.1.289, no model call). Passing `/cmd` as the extra argument
+  of plan 06's `dialog.handoff` therefore runs the command in Claude Code.
+- **Testing note:** panels are tested against a scripted `ext.Engine`
+  (`features/ecosystem/internal/ecotest`) whose replies are the recorded shapes above
+  (`testdata/fixtures/09/control/`), CLI calls against a stub `claude` on `PATH`, and
+  end to end in `internal/app`'s host inside the x/vt emulator (`features/ecosystem/vt_test.go`).
