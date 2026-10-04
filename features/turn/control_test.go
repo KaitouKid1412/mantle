@@ -122,26 +122,35 @@ func TestCycleModeFailureDisablesAuto(t *testing.T) {
 	}
 }
 
+// boot is what the engine bridge delivers when an engine starts: the attach, then the
+// initialize result.
+func (x *h) boot(initResp string) {
+	x.t.Helper()
+	x.send(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: x.eng})
+	x.send(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Resp: json.RawMessage(initResp)})
+}
+
+const autoModels = `{"models":[{"value":"opus","resolvedModel":"claude-x","displayName":"Opus","supportsAutoMode":true}]}`
+
 func TestStartupModeMirrorsInteractive(t *testing.T) {
 	x := newH(t)
-	x.eng.resp[proto.SubListModels] = `{"models":[{"value":"opus","resolvedModel":"claude-x","displayName":"Opus","supportsAutoMode":true}]}`
 	x.c.SessionValue.Model = "claude-x"
 	// Without the auto-mode opt-in the session stays in default.
-	x.send(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: x.eng})
+	x.boot(autoModels)
 	if x.eng.count(proto.SubSetPermissionMode) != 0 {
 		t.Fatalf("no opt-in: controls=%v", x.eng.controls)
 	}
 	// With it, a fresh engine starts in auto.
 	env, _ := x.st.env()
 	_ = gates.RecordAutoModeAccepted(env)
-	x.send(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: x.eng})
+	x.boot(autoModels)
 	if got := x.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModeAuto}) {
 		t.Fatalf("startup mode = %#v", got)
 	}
 	// A user's later choice survives an engine restart.
 	x.action(ext.ActChatCycleMode) // auto → default
 	x.c.SessionValue.PermissionMode = proto.ModeDefault
-	x.send(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: x.eng})
+	x.boot(autoModels)
 	if got := x.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModeDefault}) {
 		t.Fatalf("restart restores %#v", got)
 	}
@@ -150,10 +159,25 @@ func TestStartupModeMirrorsInteractive(t *testing.T) {
 func TestStartupModeHonoursSettings(t *testing.T) {
 	x := newH(t)
 	x.c.SettingsV = exttest.NewSettings(map[string]any{"permissions": map[string]any{"defaultMode": "acceptEdits"}})
-	x.eng.unsupported[proto.SubListModels] = true
-	x.send(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: x.eng})
+	x.boot(`{"models":[]}`)
 	if got := x.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModeAcceptEdits}) {
 		t.Fatalf("startup mode = %#v", got)
+	}
+}
+
+// The engine's first stdin traffic must be the bridge's handshake and the user's first
+// prompt: attaching sends nothing, and nothing is sent before initialize finished.
+func TestAttachSendsNoControlRequest(t *testing.T) {
+	x := newH(t)
+	x.send(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: x.eng})
+	if len(x.eng.controls) != 0 {
+		t.Fatalf("attach sent %v", x.eng.controls)
+	}
+	// A failed handshake still unblocks the startup mode (auto unavailable).
+	x.c.SettingsV = exttest.NewSettings(map[string]any{"permissions": map[string]any{"defaultMode": "plan"}})
+	x.send(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Err: errors.New("timeout")})
+	if got := x.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModePlan}) {
+		t.Fatalf("startup mode after a failed handshake = %#v", got)
 	}
 }
 
@@ -173,6 +197,23 @@ func TestEscInterruptsOnlyWhileRunning(t *testing.T) {
 	x.event(&proto.Result{})
 	if x.c.ActiveCtxs[ext.ContextTask] || x.action(ext.ActChatCancel) {
 		t.Fatal("the turn ended")
+	}
+}
+
+// S1: an interrupt mid-text or mid-tool ends the turn with an aborted result; the turn
+// state (and the Task context) must clear so esc and ctrl+c go back to idle behaviour.
+func TestInterruptedTurnEnds(t *testing.T) {
+	for _, reason := range []string{proto.TerminalAbortedStreaming, proto.TerminalAbortedTools} {
+		x := newH(t)
+		x.event(&proto.SystemInit{})
+		x.press("esc")
+		x.event(&proto.Result{Envelope: proto.Envelope{Subtype: proto.ResultErrorDuringExecution}, IsError: true, TerminalReason: reason})
+		if x.st.isRunning(ext.MainEngine) || x.c.ActiveCtxs[ext.ContextTask] {
+			t.Fatalf("%s: turn still running", reason)
+		}
+		if x.action(ext.ActChatCancel) {
+			t.Fatalf("%s: esc after the interrupt should reach the editor", reason)
+		}
 	}
 }
 

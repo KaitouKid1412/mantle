@@ -330,7 +330,8 @@ func (r *run) initialize(dialogKinds []string) {
 		}
 	}()
 	req := proto.InitializeRequest{PromptSuggestions: true, SupportedDialogKinds: dialogKinds}
-	id, resp, err := r.corr.Request(context.Background(), req, InitializeTimeout)
+	id, body, err := r.corr.RequestBody(context.Background(), req, InitializeTimeout)
+	resp := body.Response
 	<-verDone
 	if err == nil {
 		var ir proto.InitializeResponse
@@ -343,6 +344,29 @@ func (r *run) initialize(dialogKinds []string) {
 		}
 	}
 	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp, Err: err})
+	if err == nil {
+		r.replayPending(body.PendingPermissionRequests)
+		r.replayPending(body.PendingUserDialogRequests)
+	}
+}
+
+// replayPending re-raises prompts the engine was already waiting on when this client
+// attached (initialize's pending_* lists hold control_request frames). A request that
+// also arrives live is shown once (inboundSet dedupes by request_id).
+func (r *run) replayPending(list json.RawMessage) {
+	var frames []json.RawMessage
+	if len(list) == 0 || json.Unmarshal(list, &frames) != nil {
+		return
+	}
+	for _, f := range frames {
+		ev, err := proto.Decode(f)
+		if err != nil {
+			continue
+		}
+		if cr, ok := ev.(*proto.ControlRequest); ok && cr.RequestID != "" {
+			r.handleRequest(cr)
+		}
+	}
 }
 
 // onEvent runs on the reader goroutine, in stdout order.

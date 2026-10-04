@@ -87,6 +87,54 @@ func (s Startup) FlagSettings() (string, error) {
 	return MergeSettings(s.Spawn.Settings, overlay)
 }
 
+// RestartOpts are the live values a relaunch should use instead of the command line's.
+type RestartOpts struct {
+	SessionID      string // the session to resume (required)
+	Name           string // current session name; "" keeps the command line's
+	Model          string // current model; "" keeps the command line's
+	PermissionMode string // current mode; "" keeps the command line's
+}
+
+// RestartArgs is the mantle command line that relaunches this session (the launcher's
+// exit-75 handoff): every forwarded flag, in the form the engine got it (an unnamed -w
+// carries the name mantle gave it, so the restart reuses that worktree and its session
+// directory), the UI flags that must survive (--ax-screen-reader, --prompt-suggestions),
+// and --resume. The prompt, -c, -r, --fork-session, --session-id and --prefill are not
+// repeated.
+func (s Startup) RestartArgs(o RestartOpts) []string {
+	var args []string
+	pick := func(live, startup string) string {
+		if live != "" {
+			return live
+		}
+		return startup
+	}
+	if v := pick(o.Name, s.Spawn.Name); v != "" {
+		args = append(args, "--name="+v)
+	}
+	if v := pick(o.Model, s.Spawn.Model); v != "" {
+		args = append(args, "--model="+v)
+	}
+	if v := pick(o.PermissionMode, s.Spawn.PermissionMode); v != "" {
+		args = append(args, "--permission-mode="+v)
+	}
+	for _, d := range s.Spawn.AddDirs {
+		args = append(args, "--add-dir="+d)
+	}
+	if s.Spawn.Settings != "" {
+		args = append(args, "--settings="+s.Spawn.Settings)
+	}
+	if s.ScreenReader {
+		args = append(args, "--ax-screen-reader")
+	}
+	if s.PromptSuggestions != nil {
+		args = append(args, fmt.Sprintf("--prompt-suggestions=%t", *s.PromptSuggestions))
+	}
+	args = append(args, s.Spawn.ExtraArgs...)
+	// Last, in = form: it starts with "-", so a variadic flag before it ends there.
+	return append(args, "--resume="+o.SessionID)
+}
+
 // ErrNoSession is returned for -c when the directory has no session to continue.
 var ErrNoSession = errors.New("no conversation found to continue in this directory")
 

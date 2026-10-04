@@ -33,6 +33,8 @@ const (
 	menuRows     = 8
 	maxItems     = 100
 	fileDebounce = 120 * time.Millisecond
+	fileRetry    = 300 * time.Millisecond // the engine's file index may still be building
+	fileRetries  = 3
 )
 
 // compItem is one menu entry.
@@ -55,12 +57,14 @@ type completion struct {
 	token     string
 
 	fileAsked string // newest @ query sent to the engine
+	fileTries int    // empty answers for fileAsked so far
 }
 
-// fileTickMsg fires after the @ debounce.
+// fileTickMsg fires after the @ debounce (or a retry delay).
 type fileTickMsg struct {
 	seq   int
 	query string
+	retry bool
 }
 
 func (m *completion) open() bool { return m.kind != compNone && len(m.items) > 0 }
@@ -299,6 +303,9 @@ func (m *completion) fileTick(c ext.Ctx, s *state, t fileTickMsg) tea.Cmd {
 	if eng == nil {
 		return nil
 	}
+	if !t.retry || t.query != m.fileAsked {
+		m.fileTries = 0
+	}
 	m.fileAsked = t.query
 	return eng.Control(proto.SubFileSuggestions, proto.FileSuggestionsRequest{Query: t.query})
 }
@@ -323,7 +330,23 @@ func (m *completion) fileResults(c ext.Ctx, s *state, res ext.ControlResultMsg) 
 	}
 	m.items, m.sel = limit(items), 0
 	s.invalidate(c)
+	if len(items) == 0 && m.fileAsked != "" && m.fileTries < fileRetries {
+		// Right after start the engine answers from a file index that is
+		// still being built; ask again shortly.
+		m.fileTries++
+		seq, q := s.seq, m.fileAsked
+		return c.Clock().Tick(fileRetry, func(time.Time) tea.Msg { return fileTickMsg{seq: seq, query: q, retry: true} })
+	}
 	return nil
+}
+
+// warmFiles asks for file suggestions once so the engine builds its index
+// before the first @.
+func warmFiles(eng ext.Engine) tea.Cmd {
+	if eng == nil {
+		return nil
+	}
+	return eng.Control(proto.SubFileSuggestions, proto.FileSuggestionsRequest{Query: ""})
 }
 
 // ---- ! mode ----

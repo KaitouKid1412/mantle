@@ -500,8 +500,6 @@ func (v *view) Key(ctx ext.Ctx, d *eco.Dialog, k tea.KeyPressMsg) (bool, tea.Cmd
 	case "n":
 		d.Push(ctx, v.addForm())
 		return true, nil
-	case "ctrl+r":
-		return true, v.refresh(ctx, d)
 	}
 	s, ok := v.selected()
 	if !ok {

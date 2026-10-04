@@ -55,9 +55,10 @@ func compactJSON(raw json.RawMessage) string {
 	return string(out)
 }
 
-// cmdApply applies a proposal: a mantle setting through the settings API,
-// a Claude Code setting by merging it into ~/.claude/settings.json (Claude
-// Code reloads that file by itself).
+// cmdApply applies a proposal: a mantle setting through the settings API, a
+// Claude Code setting through the host's settings writer (user scope) or,
+// without one, by merging it into ~/.claude/settings.json (Claude Code
+// reloads that file by itself).
 func (c *controller) cmdApply(ctx ext.Ctx, id string) tea.Cmd {
 	var p *sm.ConfigProposal
 	if b := c.builds[id]; b != nil && b.proposal != nil {
@@ -80,6 +81,10 @@ func (c *controller) cmdApply(ctx ext.Ctx, id string) tea.Cmd {
 		return tea.Batch(ctx.Settings().SetMantle(p.Key, v),
 			c.notify(ctx, ext.NoticeSuccess, "apply", "Set mantle setting "+p.Key))
 	default:
+		if w, ok := ctx.Settings().(ext.ClaudeSettingsWriter); ok {
+			return tea.Batch(w.SetClaude(ext.ScopeUser, p.Key, v),
+				c.notify(ctx, ext.NoticeSuccess, "apply", "Set "+p.Key+" in your Claude Code user settings"))
+		}
 		path, key := c.env.claudeSettingsPath, p.Key
 		return func() tea.Msg {
 			if err := MergeJSONSetting(path, key, v); err != nil {

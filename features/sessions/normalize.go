@@ -24,6 +24,9 @@ type NormalizeOptions struct {
 	// SubagentsDir is the session's subagents directory (sessions.SubagentsDir); when
 	// set, subagent transcripts are nested under their Agent tool call.
 	SubagentsDir string
+	// Leaf, when set, normalizes the branch ending at that message instead of the
+	// active one (a rewound conversation before the engine has written to it).
+	Leaf string
 }
 
 // Normalize turns a transcript's active branch into transcript items, using the same
@@ -38,7 +41,14 @@ func Normalize(t *sessions.Transcript, opts NormalizeOptions) []*ext.Item {
 		}
 	}
 	n.inline = sessions.Sidechains(t.Entries)
-	n.entries(t.Main(sessions.BranchOptions{AcrossCompaction: opts.AcrossCompaction}), "", 0)
+	bo := sessions.BranchOptions{AcrossCompaction: opts.AcrossCompaction}
+	branch := t.Main(bo)
+	if opts.Leaf != "" {
+		if leaf := t.Tree.Node(opts.Leaf); leaf != nil {
+			branch = t.Tree.Branch(leaf, bo)
+		}
+	}
+	n.entries(branch, "", 0)
 	return n.items
 }
 

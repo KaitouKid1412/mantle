@@ -43,6 +43,8 @@ func (f *feature) registerPicker(r ext.Registrar) {
 		return newPicker(f, ctx, a), nil
 	})
 	r.AddStory(ext.Story{ID: "sessions.resume-picker", Render: pickerStory})
+	r.AddStory(ext.Story{ID: "sessions.context-grid", Render: contextStory})
+	r.AddStory(ext.Story{ID: "sessions.handoff-dialog", Render: handoffStory})
 }
 
 type pickerScope struct {
