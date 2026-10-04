@@ -68,6 +68,8 @@ type feature struct {
 	runBackground func(bin, cwd string, argv []string) (string, error)
 	// runSide runs the one-shot claude -p that answers /btw when the engine can't.
 	runSide func(bin, cwd string, argv []string) (string, error)
+
+	diffPanel *diffPanel // the fullscreen /diff sidebar
 }
 
 // engineState is what the feature tracks per engine.
@@ -125,6 +127,7 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerUsage(r)
 	f.registerRewind(r)
 	f.registerDiff(r)
+	f.registerDiffPanel(r)
 	f.registerSummary(r)
 	f.registerBtw(r)
 	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
@@ -142,7 +145,11 @@ func (f *feature) setup(r ext.Registrar) error {
 // onEngineEvent tracks engine state and reacts to session-level events.
 func (f *feature) onEngineEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	measure := f.observeUsage(ctx, m.EngineID, m.Event)
-	return tea.Batch(measure, f.onSessionEvent(ctx, m))
+	var panel tea.Cmd
+	if m.EngineID == ext.MainEngine {
+		panel = f.diffPanelTurnEnd(ctx, m.Event)
+	}
+	return tea.Batch(measure, panel, f.onSessionEvent(ctx, m))
 }
 
 func (f *feature) onSessionEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {

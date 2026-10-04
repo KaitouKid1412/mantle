@@ -29,7 +29,7 @@ func (f *feature) registerDiff(r ext.Registrar) {
 	r.AddCommand(ext.Command{
 		ID: ext.CommandID("diff"), Name: "diff", Source: ext.SourceBuiltin,
 		Description: "View uncommitted changes and what each turn changed",
-		Run:         func(ctx ext.Ctx, args string) tea.Cmd { return ctx.OpenDialog(DialogDiff, nil) },
+		Run:         f.runDiff,
 	})
 	r.AddDialog(DialogDiff, func(ctx ext.Ctx, args any) (ext.Dialog, error) {
 		return newDiffViewer(f, ctx), nil
@@ -57,6 +57,7 @@ type diffSource struct {
 var diffBases = []string{"HEAD", "merge-base"}
 
 type diffViewer struct {
+	id      string // DialogDiff, or the fullscreen panel's component ID
 	f       *feature
 	cwd     string
 	base    int
@@ -77,12 +78,12 @@ type gitDiffMsg struct {
 }
 
 func newDiffViewer(f *feature, ctx ext.Ctx) *diffViewer {
-	d := &diffViewer{f: f, cwd: f.cwd(ctx)}
+	d := &diffViewer{id: DialogDiff, f: f, cwd: f.cwd(ctx)}
 	d.sources = append([]diffSource{{label: "Uncommitted changes", loading: true}}, turnSources(ctx.Transcript())...)
 	return d
 }
 
-func (d *diffViewer) ID() string         { return DialogDiff }
+func (d *diffViewer) ID() string         { return d.id }
 func (d *diffViewer) KeyContext() string { return ext.ContextDiffDialog }
 func (d *diffViewer) KeyContexts() []string {
 	return []string{ext.ContextDiffDialog, ext.ContextDiffPanel}
@@ -95,10 +96,10 @@ func (d *diffViewer) HandlePaste(ext.Ctx, tea.PasteMsg) (bool, tea.Cmd) { return
 func (d *diffViewer) loadGit() tea.Cmd {
 	d.gen++
 	d.sources[0].loading = true
-	gen, cwd, base := d.gen, d.cwd, diffBases[d.base]
+	gen, cwd, base, to := d.gen, d.cwd, diffBases[d.base], d.id
 	return func() tea.Msg {
 		files, label, err := gitChanges(cwd, base)
-		return ext.AddressedMsg{To: DialogDiff, Msg: gitDiffMsg{gen: gen, files: files, label: label, err: err}}
+		return ext.AddressedMsg{To: to, Msg: gitDiffMsg{gen: gen, files: files, label: label, err: err}}
 	}
 }
 
@@ -330,13 +331,13 @@ func (d *diffViewer) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 		if m.label != "" {
 			s.label = m.label
 		}
-		ctx.Invalidate(DialogDiff)
+		ctx.Invalidate(d.id)
 	}
 	return nil
 }
 
 func (d *diffViewer) HandleAction(ctx ext.Ctx, a ext.ActionID) (bool, tea.Cmd) {
-	defer ctx.Invalidate(DialogDiff)
+	defer ctx.Invalidate(d.id)
 	page := max(d.height-2, 1)
 	switch a {
 	case ext.ActDiffDismiss, ext.ActDiffBack, ext.ActAppInterrupt, ext.ActSelectCancel:
