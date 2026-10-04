@@ -28,8 +28,10 @@ func (r *Root) startMain() tea.Cmd {
 	opts := *r.opts.MainSpawn
 	proceed := func(o ext.SpawnOpts) tea.Cmd { return r.spawnCmd(ext.MainEngine, o) }
 	if len(r.subs[reflect.TypeFor[ext.SpawnGateMsg]()]) == 0 {
+		r.log().Debug("main engine: spawning (no startup gates)")
 		return proceed(opts)
 	}
+	r.log().Debug("main engine: startup gates first")
 	return ext.Msg(ext.SpawnGateMsg{
 		EngineID: ext.MainEngine,
 		Opts:     opts,
@@ -41,9 +43,11 @@ func (r *Root) startMain() tea.Cmd {
 }
 
 func (r *Root) spawnCmd(id string, o ext.SpawnOpts) tea.Cmd {
-	spawn := r.opts.Spawn
+	spawn, log := r.opts.Spawn, r.log()
 	return func() tea.Msg {
+		log.Debug("engine: spawn", "id", id, "resume", o.Resume)
 		if err := spawn(id, o); err != nil {
+			log.Error("engine: spawn failed", "id", id, "err", err)
 			return spawnFailedMsg{engineID: id, err: err}
 		}
 		return nil

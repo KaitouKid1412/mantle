@@ -53,7 +53,19 @@ func smokeEnv(t *testing.T, fake, script, project string) []string {
 	})
 	os.WriteFile(filepath.Join(claudeDir, ".claude.json"), trust, 0o600)
 	os.WriteFile(filepath.Join(home, ".claude.json"), trust, 0o600)
+	// On failure, show mantle-ui's debug log: the screen alone rarely says why.
+	t.Cleanup(func() {
+		if !t.Failed() {
+			return
+		}
+		logs, _ := filepath.Glob(filepath.Join(home, ".mantle", "logs", "*.log"))
+		for _, l := range logs {
+			b, _ := os.ReadFile(l)
+			t.Logf("--- %s ---\n%s", filepath.Base(l), b)
+		}
+	})
 	return []string{
+		"MANTLE_DEBUG=1",
 		"HOME=" + home,
 		"CLAUDE_CONFIG_DIR=" + claudeDir,
 		"MANTLE_HOME=" + filepath.Join(home, ".mantle"),
@@ -118,11 +130,31 @@ func TestSmokeBoot(t *testing.T) {
 		t.Fatalf("engine pgid %d, ui pid %d pgid %d, record %+v", rec.PGID, uiPID, uiPGID, rec)
 	}
 
-	// Quit: ctrl+c twice (the core action asks for confirmation).
-	p.Send("ctrl+c")
-	time.Sleep(100 * time.Millisecond)
-	p.Send("ctrl+c")
+	quitWithCtrlC(t, p)
 	if code := p.ExitCode(10 * time.Second); code != 0 {
 		t.Fatalf("exit code %d\n%s", code, strings.Join(p.All(), "\n"))
 	}
+}
+
+// quitWithCtrlC presses ctrl+c until mantle asks for the confirming second press,
+// then presses it again. An early ctrl+c may be taken by a turn that is still
+// finishing (interrupt) or by a non-empty prompt (clear), as in Claude Code.
+func quitWithCtrlC(t *testing.T, p *testkit.Process) {
+	t.Helper()
+	for range 5 {
+		p.Send("ctrl+c")
+		deadline := time.Now().Add(time.Second)
+		for time.Now().Before(deadline) {
+			if strings.Contains(strings.ToLower(p.Screen()), "again to exit") {
+				p.Send("ctrl+c")
+				return
+			}
+			select {
+			case <-p.Done():
+				return
+			case <-time.After(20 * time.Millisecond):
+			}
+		}
+	}
+	t.Fatalf("no exit confirmation after ctrl+c\n%s", p.Screen())
 }

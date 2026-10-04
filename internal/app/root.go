@@ -432,6 +432,7 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.quitting = true
 		cmds = append(cmds, r.broadcast(msg), tea.Quit)
 	case ext.EngineAttachMsg:
+		r.log().Debug("engine: attached", "id", m.EngineID)
 		r.engines[m.EngineID] = m.Engine
 		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineStartMsg:
