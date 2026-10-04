@@ -29,6 +29,32 @@ type cacheEntry struct {
 type renderer struct {
 	cache    map[string]cacheEntry
 	expanded map[string]bool
+	expGen   int // bumped on every expand/collapse
+
+	// The last layout, reused while nothing it depends on changed (stores with Rev).
+	last      docKey
+	lastOK    bool
+	lastOut   []Block
+	lastColl  []bool
+	lastItems []*ext.Item
+}
+
+// docKey is everything a whole-document layout depends on.
+type docKey struct {
+	rev, width, expGen int
+	mode               ext.ViewMode
+	theme              string
+	tr                 ext.Transcript
+}
+
+// revSource is the transcript store's change counter (plan 03's store bumps it on
+// every change).
+type revSource interface{ Rev() int }
+
+// toggle expands or collapses an item.
+func (r *renderer) toggle(id string) {
+	r.expanded[id] = !r.expanded[id]
+	r.expGen++
 }
 
 func newRenderer() *renderer {
@@ -69,6 +95,18 @@ func (r *renderer) blocks(ctx ext.Ctx, w int) (out []Block, collapsible []bool, 
 	if tr == nil {
 		return nil, nil, nil
 	}
+	rs, hasRev := tr.(revSource)
+	var key docKey
+	if hasRev {
+		key = docKey{rev: rs.Rev(), width: w, expGen: r.expGen, mode: viewMode(ctx), theme: ctx.Theme().Name, tr: tr}
+		if r.lastOK && key == r.last && !r.anyRunning() {
+			return r.lastOut, r.lastColl, r.lastItems
+		}
+	}
+	defer func() {
+		r.last, r.lastOK = key, hasRev
+		r.lastOut, r.lastColl, r.lastItems = out, collapsible, items
+	}()
 	if ls, ok := tr.(linesSource); ok {
 		return r.fromStore(ctx, tr, ls, w)
 	}
@@ -176,4 +214,15 @@ func (r *renderer) fromStore(ctx ext.Ctx, tr ext.Transcript, ls linesSource, w i
 		}
 	}
 	return out, collapsible, items
+}
+
+// anyRunning reports whether the last layout had a running item (they re-render every
+// frame for elapsed times and spinners).
+func (r *renderer) anyRunning() bool {
+	for _, it := range r.lastItems {
+		if it != nil && (it.State == ext.Running || it.State == ext.Streaming) {
+			return true
+		}
+	}
+	return false
 }

@@ -47,6 +47,13 @@ func TestStories(t *testing.T) {
 type store struct {
 	mu    sync.Mutex
 	items []*ext.Item
+	rev   int
+}
+
+func (s *store) Rev() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.rev
 }
 
 func (s *store) Items() []*ext.Item {
@@ -87,6 +94,7 @@ func testFeature(st *store) ext.Feature {
 		ext.Subscribe(r, "test.add", func(c ext.Ctx, m addMsg) tea.Cmd {
 			st.mu.Lock()
 			st.items = append(st.items, m.items...)
+			st.rev++
 			st.mu.Unlock()
 			return ext.Msg(ext.EngineEventMsg{EngineID: ext.MainEngine})
 		})

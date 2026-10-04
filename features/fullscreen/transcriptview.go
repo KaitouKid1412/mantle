@@ -353,8 +353,7 @@ func (v *transcriptView) toggleExpand(ctx ext.Ctx, line int) tea.Cmd {
 	if !ok || !v.collapsible[b] {
 		return nil
 	}
-	id := v.blocks[b].ID
-	v.r.expanded[id] = !v.r.expanded[id]
+	v.r.toggle(v.blocks[b].ID)
 	v.invalidate(ctx)
 	return nil
 }
