@@ -21,7 +21,7 @@ PKGS_10 = ./cmd/mantle/... ./internal/launcher/... ./internal/selfmod/... \
 PKGS_11 = ./internal/cli/... ./features/cli/... ./scripts/drift/...
 PKGS_12 = ./features/fullscreen/... ./test/...
 
-.PHONY: build test lint vet archtest parity drift tags sessions install
+.PHONY: build test lint vet archtest parity parity-side-by-side drift tags sessions install
 
 build:
 	$(GO) build -o bin/ ./cmd/...
@@ -48,6 +48,12 @@ archtest:
 
 parity:
 	@echo "parity report: not implemented yet (plan 12 / CLAUDE.md rule 9)"
+
+# Side-by-side parity harness (plan 12): runs test/parity/scenarios against the
+# interactive targets with fakeapi (offline, free) and writes test/parity/out/.
+# PARITY_ARGS="-run plain -targets claude" narrows the run.
+parity-side-by-side:
+	$(GO) run ./test/parity/cmd/sidebyside $(PARITY_ARGS)
 
 # Compare the installed claude's flags, subcommands, keybindings and settings keys with
 # mantle's tables; writes docs/parity-drift.{md,json}. Exit 1 on unclassified items.
