@@ -1,6 +1,6 @@
 # 12 → 06: /clear, resume, compact, rewind and /context (parity audit)
 
-**Status:** open (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** all seven taken by 06; §1 done on worktree-mantle-06 (2026-10-04). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; keep mantle's
