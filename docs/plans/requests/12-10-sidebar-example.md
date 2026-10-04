@@ -1,6 +1,8 @@
 # 12 → 10: EXTENDING.md section "Sidebar panes in fullscreen"
 
-**Status:** resolved 2026-10-04: section 8 "A sidebar pane (fullscreen)" of docs/EXTENDING.md (plan 10), compiled by internal/selfmod's TestExtendingExamplesCompile. Plan 12 B9 asks for an EXTENDING.md example written with
+**Status:** resolved 2026-10-04: section 8 "A sidebar pane (fullscreen)" of docs/EXTENDING.md (plan 10), compiled by internal/selfmod's TestExtendingExamplesCompile.
+
+Plan 12 B9 asks for an EXTENDING.md example written with
 plan 10: a mod that adds a left sidebar. The code below is tested in
 `features/fullscreen/sidebar_example_test.go` (`TestSidebarExample`), which runs it in
 the real host's fullscreen layout. Please paste the section into `docs/EXTENDING.md`
