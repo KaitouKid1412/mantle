@@ -601,9 +601,9 @@ Spike S16 (process groups):
 - Under a test harness that makes mantle-ui its own session leader, SIGTSTP is
   discarded (orphaned process group). Real shells don't do that, which is why the test
   runs a shell.
-- **`tea.ExecProcess($EDITOR)` with ctrl+c**: during exec Bubble Tea restores the
-  terminal and sets `ignoreSignals`, so the SIGINT from ctrl+c in the editor neither
-  quits mantle nor reaches the engine (separate process group). An end-to-end test needs
-  plan 04's ctrl+g editor action.
+- **`tea.ExecProcess($EDITOR)` with ctrl+c** (`TestCtrlCInsideEditor`, bash on a pty,
+  plan 04's ctrl+g): during exec Bubble Tea restores the terminal and sets
+  `ignoreSignals`. The SIGINT from ctrl+c in the editor kills the editor, but mantle-ui
+  keeps running and redraws, and the engine (its own process group) is untouched.
 - Crash restore of termios and killing the engine group are the launcher's job (plan
   10, `internal/launcher`: `TestCrashKillsEngineGroup`, `termios*.go`).

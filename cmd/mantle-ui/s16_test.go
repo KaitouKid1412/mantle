@@ -90,3 +90,77 @@ func TestSuspendResumeUnderShell(t *testing.T) {
 		t.Logf("shell exit %d", code)
 	}
 }
+
+// TestCtrlCInsideEditor is spike S16's $EDITOR check: ctrl+g opens the prompt in
+// $EDITOR through tea.ExecProcess (terminal back in cooked mode); ctrl+c there sends
+// SIGINT to the foreground process group, which kills the editor but must leave
+// mantle-ui running (Bubble Tea ignores signals during exec) and the engine untouched
+// (its own process group).
+func TestCtrlCInsideEditor(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds binaries")
+	}
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("no bash")
+	}
+	ui, fake := buildBinaries(t)
+	project, _ := filepath.EvalSymlinks(t.TempDir())
+	script := filepath.Join(t.TempDir(), "editor.jsonl")
+	os.WriteFile(script, []byte(`{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": `+string(enginefake.DefaultInitializeResponse)+"}\n"), 0o644)
+	editor := filepath.Join(t.TempDir(), "slow-editor")
+	os.WriteFile(editor, []byte("#!/bin/sh\necho EDITOR RUNNING\nsleep 60\n"), 0o755)
+
+	cmd := exec.Command(bash, "--norc", "--noprofile", "-i")
+	cmd.Dir = project
+	cmd.Env = append(smokeEnv(t, fake, script, project), "PS1=SHELL$ ", "EDITOR="+editor, "VISUAL="+editor)
+	p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
+	p.WaitForText("SHELL$", 5*time.Second)
+	p.Type(ui + "\r")
+	p.WaitFor(func(s string) bool { return strings.Contains(s, "for shortcuts") }, 20*time.Second)
+	enginePID := engineRunPID(t, cmd.Env)
+
+	p.Send("ctrl+g")
+	p.WaitForText("EDITOR RUNNING", 10*time.Second)
+	p.Send("ctrl+c")
+
+	// mantle-ui comes back (the editor failed, so the prompt is unchanged).
+	p.WaitFor(func(s string) bool { return strings.Contains(s, "for shortcuts") && !strings.Contains(s, "EDITOR RUNNING") }, 10*time.Second)
+	if strings.HasSuffix(strings.TrimSpace(p.Screen()), "SHELL$") {
+		t.Fatalf("mantle-ui exited on ctrl+c inside the editor:\n%s", p.Screen())
+	}
+	if err := syscall.Kill(enginePID, 0); err != nil {
+		t.Fatalf("engine pid %d killed by ctrl+c inside the editor: %v", enginePID, err)
+	}
+
+	quitWithCtrlC(t, p)
+	p.WaitFor(func(s string) bool { return strings.HasSuffix(strings.TrimSpace(s), "SHELL$") }, 10*time.Second)
+}
+
+// engineRunPID reads the main engine's pid from $MANTLE_HOME/run (written by plan 02's
+// engine manager), waiting briefly for the record to appear.
+func engineRunPID(t *testing.T, env []string) int {
+	t.Helper()
+	var mantleHome string
+	for _, kv := range env {
+		if v, ok := strings.CutPrefix(kv, "MANTLE_HOME="); ok {
+			mantleHome = v
+		}
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		recs, _ := filepath.Glob(filepath.Join(mantleHome, "run", "*.json"))
+		if len(recs) == 1 {
+			var rec struct {
+				PID int `json:"pid"`
+			}
+			raw, _ := os.ReadFile(recs[0])
+			if json.Unmarshal(raw, &rec) == nil && rec.PID > 0 {
+				return rec.PID
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatal("no engine run record")
+	return 0
+}
