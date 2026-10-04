@@ -160,21 +160,17 @@ func supportsAuto(models []proto.ModelInfo, current string) bool {
 	return some
 }
 
-// onAttach asks a new engine for its models (auto-mode availability).
+// onAttach resets a (re)started engine's mode state. Auto-mode availability comes from
+// the initialize response, which the engine bridge delivers after the attach. mantle
+// sends no control request of its own here: the engine's first stdin traffic stays the
+// bridge's handshake and the user's first prompt.
 func (st *state) onAttach(c ext.Ctx, engineID string, e ext.Engine) tea.Cmd {
 	ms := st.mode(engineID)
 	ms.target = ""
 	ms.startupDone = false
+	ms.autoKnown = false
 	st.running[engineID] = false
-	if e == nil {
-		return nil
-	}
-	if e.Supports(proto.SubListModels) {
-		ms.autoKnown = false
-		return e.Control(proto.SubListModels, proto.ListModelsRequest{})
-	}
-	ms.autoKnown = true
-	return st.maybeStartupMode(c, engineID)
+	return nil
 }
 
 // maybeStartupMode applies the interactive starting mode once the main engine reports
