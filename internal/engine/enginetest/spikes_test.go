@@ -435,6 +435,38 @@ func TestSpikeS17DeltaRate(t *testing.T) {
 		deltas, span.Round(time.Millisecond), float64(deltas)/span.Seconds(), ui)
 }
 
+// TestSpikeUnstable tries the undocumented subtypes B8 wraps.
+func TestSpikeUnstable(t *testing.T) {
+	spike(t)
+	r := NewReal(t, &fakeapi.Script{DefaultReply: "ok", SideReply: "side answer"})
+	exec.Command("git", "-C", r.Work, "init", "-q").Run()
+	os.WriteFile(filepath.Join(r.Work, "a.txt"), []byte("one\n"), 0o644)
+	exec.Command("git", "-C", r.Work, "add", ".").Run()
+	exec.Command("git", "-C", r.Work, "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "init").Run()
+	os.WriteFile(filepath.Join(r.Work, "a.txt"), []byte("two\n"), 0o644)
+	e, _ := r.Manager.Start("", r.Opts())
+	u1, u2 := "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
+	e.Send(ext.Prompt{UUID: u1, Blocks: text("first")})()
+	r.Rec.WaitFor(t, resultFor(u1))
+	e.Send(ext.Prompt{UUID: u2, Blocks: text("second")})()
+	r.Rec.WaitFor(t, resultFor(u2))
+	for _, req := range []proto.RawRequest{
+		{Subtype: engine.SubGetWorkspaceDiff},
+		{Subtype: engine.SubSideQuestion, Fields: json.RawMessage(`{"question":"what is 2+2?","history":[]}`)},
+		{Subtype: engine.SubRewindConversation, Fields: json.RawMessage(`{"target_message_uuid":"` + u2 + `"}`)},
+	} {
+		n := len(r.Rec.Msgs())
+		resp, err := e.Request(context.Background(), req)
+		t.Logf("B8 %s -> err=%v resp=%s", req.Subtype, err, short(json.RawMessage(resp)))
+		time.Sleep(300 * time.Millisecond)
+		for _, m := range r.Rec.Msgs()[n:] {
+			if ev, ok := m.(ext.EngineEventMsg); ok {
+				t.Logf("   event %s/%s %s", ev.Event.Env().Type, ev.Event.Env().Subtype, short(json.RawMessage(ev.Event.Env().Raw)))
+			}
+		}
+	}
+}
+
 func TestSpikeS12Subagent(t *testing.T) {
 	spike(t)
 	r := NewReal(t, &fakeapi.Script{Turns: []fakeapi.Turn{

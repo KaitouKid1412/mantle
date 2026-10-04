@@ -73,8 +73,9 @@ can hold a real conversation (resume, tools with permission prompts, plan mode, 
 
 ## Part A: start once M1 is reached (A1–A3 may start earlier; they need only plan 02's fakeapi and plan 01's vt harness)
 
-Status (2026-10-03, taken over by session 07): A1, A2 and A4 done; A3 has the `claude`
-target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
+Status (2026-10-04, taken over by session 07): A1–A4 done. The `mantle` target runs
+mantle-ui built from the tree (`BuildMantleUI`) directly, with `MANTLE_HOME` in the
+workspace and the installed claude as its engine on the same fakeapi and config.
 - `test/parity`: `Term` (pty + x/vt, screen + scrollback + alt-screen flag),
   `.scn` scenarios (`ready`, `type`, `keys`, `paste`, `resize`, `wait_for [timeout]`,
   `wait_gone`, `settle`, `checkpoint`, `sleep`; header `name`, `size`, `script`, `args`,
@@ -90,8 +91,10 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
   (`scenario | checkpoint | pattern | reason`). `make parity-side-by-side`
   (`PARITY_ARGS="-run plain -targets claude"`).
 - Self-tests: the runner against a shell target (`make test-12`), and
-  `MANTLE_PARITY_CLAUDE=1 go test ./test/parity -run Claude`, which runs every scenario
-  twice against the installed claude and requires identical normalized frames.
+  `MANTLE_PARITY_CLAUDE=1` / `MANTLE_PARITY_MANTLE=1 go test ./test/parity -run
+  Deterministic`, which run every scenario twice per target and require identical
+  normalized frames. A `blank-lines` rule drops leading blank lines and folds blank runs
+  (inline frames start wherever the cursor was).
 - Observed in claude 2.1.288 (useful for B1/B2): the prompt is `❯` between two full-width
   rules; auto mode is the default permission mode, with a one-time notice under the
   header; the footer reads "⏵⏵ auto mode on (shift+tab to cycle) · ← for agents"; an
@@ -105,7 +108,7 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
 - [x] **A2 Normalization:** strip or collapse volatile content (spinner glyphs and verbs,
   durations, timestamps, costs, token counts, session ids, temp paths), with optional
   colour stripping and line-trailing-space trimming. Every rule is listed in the report.
-- [ ] **A3 Two targets:** `claude` (interactive TUI, isolated config, fakeapi) and
+- [x] **A3 Two targets:** `claude` (interactive TUI, isolated config, fakeapi) and
   `mantle` (current build, same fakeapi script, same isolated `CLAUDE_CONFIG_DIR` for its
   engine). The same scenario runs on both.
 - [x] **A4 Report generator:** per scenario and checkpoint, side-by-side frames (text) and a
@@ -113,6 +116,45 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
   markdown.
 
 ## Part B: after M1, `contracts-v1` and `proto-v1`
+
+Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hooks
+(`contracts-v1.4`, `-v1.6`); B1–B6 wait for M1 (`integration-2`).
+- Viewport (`fullscreen.viewport`, `SlotLive`, fullscreen only): plan 03's store through
+  `Ctx.Renderer`, cached per item (id, rev, children revs, width, view mode, theme,
+  expanded); a blank line before each item as inline; only the visible window is
+  materialized (`CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL` draws everything). When the store
+  offers `Lines(ctx, w)` (plan 03, request 12-03) the viewport uses it, so view modes,
+  brief, focus summaries and grouped MCP runs match inline exactly.
+- Scrolling: the `scroll:*` actions in the `Scroll` context (made active in fullscreen):
+  PgUp/PgDn, ctrl+home/end, wheel (3 lines per notch, `/scroll-speed` →
+  mantle setting `fullscreen.scrollSpeed`, `CLAUDE_CODE_SCROLL_SPEED` wins, acceleration
+  with `wheelScrollAccelerationEnabled`), auto-follow (`autoScrollEnabled`), and the
+  "↓ N new lines · ctrl+end" pill.
+- Sticky header (`fullscreen.header`, `SlotHeader`): the prompt of the turn in view, once
+  it has scrolled above the window.
+- Mouse (host OnMouse → `ext.MouseEvent`): drag selection, double-click word (paths and
+  URLs whole), triple-click line, shift+arrows/home/end extend, `selection:clear`,
+  copy-on-select (`copyOnSelect`) and ctrl+shift+c / cmd+c through `clipcmd` (plain text,
+  soft-wrapped lines rejoined); click expands a collapsible item, hover shows a hint.
+- Search: clicking focuses the transcript (context `Scroll`): `/` query, enter, n/N,
+  j/k/space/b/d/u/g/G, esc clears the search, esc again (or any other key) returns to the
+  prompt. Smart-case. Plan 03's viewer search isn't exported through ext, so fullscreen
+  has its own (`search.go`); ctrl+o still opens plan 03's viewer.
+- Sidebars: the host composes `SlotSidebarL` / `SlotSidebarR`; ctrl+x arrows
+  (`pane:grow` / `pane:shrink`, also bound in `Scroll`) resize the sidebar last clicked,
+  else the right one, via `ext.SidebarResizeMsg`. `/diff` is plan 06's
+  `sessions.diffPanel` in the right sidebar (request 12-06); the EXTENDING.md example is
+  section 8 (request 12-10, tested by `TestSidebarExample`).
+- Switching: the host picks the layout from `tui` / `CLAUDE_CODE_NO_FLICKER` /
+  `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN` and screen-reader mode, and switches live on
+  `ext.LayoutRequestMsg` (request 12-01, resolved); plan 08's `/tui` (and the /config
+  Renderer row) sends it, and /config has a fullscreen-only
+  `wheelScrollAccelerationEnabled` row. `CLAUDE_CODE_DISABLE_MOUSE` is the host's
+  `Options.NoMouse`.
+- Tests: `make test-12`: model unit tests, story goldens at 80/120/200 columns, vt tests
+  in the real host (layout, PgUp/ctrl+home/end, pill, header, wheel, drag-copy, click
+  expand, search, sidebar + resize), and full-screen vt goldens at 80×24, 120×40 and
+  200×60 (`TestVTFullscreenGoldens`).
 - [ ] **B1 [M2] Scenario suite** covering every PARITY area. At minimum:
   - plain Q&A with markdown and code; tool approval: allow once / always / deny with
     feedback;
@@ -154,7 +196,7 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
     working) or **X** (known gap with the reason).
   - Write `docs/parity-audit.md`: the summary, open requests, intentional differences, and
     the engine version audited (2.1.288, plus any newer version `make drift` flagged).
-- [ ] **B7 [M3] Fullscreen renderer** (`features/fullscreen`). When `tui` is `fullscreen`
+- [x] **B7 [M3] Fullscreen renderer** (`features/fullscreen`). When `tui` is `fullscreen`
   (setting, `/tui fullscreen`, plan 08's command), the host switches the layout mode to
   `Fullscreen`.
   - **Layout:** alt screen. Slot `header` at the top, a **virtual transcript viewport**,
@@ -168,7 +210,7 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
   - **Sticky header:** shows the user prompt of the turn currently in view.
   - Honour `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN` (fall back to inline) and
     `CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL`.
-- [ ] **B8 [M3] Mouse and selection.**
+- [x] **B8 [M3] Mouse and selection.**
   - `MouseModeCellMotion` (unless `CLAUDE_CODE_DISABLE_MOUSE`).
   - Hit-testing via the lipgloss Compositor to route clicks to the viewport, a sidebar, a
     dialog or the input.
@@ -177,7 +219,7 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
   - Copy-on-select (`copyOnSelect`) and ctrl+shift+c / cmd+c through plan 07's clipboard
     service. Copied text is the plain text (ANSI stripped, wrapped lines rejoined).
   - Click on a collapsed item expands it; hover highlights clickable items.
-- [ ] **B9 [M3] Search and sidebars.**
+- [x] **B9 [M3] Search and sidebars.**
   - `/` search with n/N in fullscreen, reusing plan 03's viewer search logic through ext.
   - Sidebar slots via the Compositor with resizable widths (ctrl+x arrows, per Claude Code's
     `Pane` context). `/diff` uses the right sidebar at ≥110 columns (auto at 144);

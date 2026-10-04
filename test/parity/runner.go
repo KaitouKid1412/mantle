@@ -2,6 +2,7 @@ package parity
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"math/rand/v2"
@@ -58,6 +59,9 @@ type RunOptions struct {
 	TempDir string
 	// Logf receives progress lines.
 	Logf func(format string, args ...any)
+	// RawDir, when set, receives each terminal's raw output as
+	// <scenario>.<target>.<n>.raw (n counts restarts), for debugging the emulator.
+	RawDir string
 }
 
 // Run executes sc against tg in a fresh isolated workspace and returns the captured
@@ -87,10 +91,18 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 	}
 	script := &fakeapi.Script{DefaultReply: "OK."}
 	if sc.Script != "" {
-		if script, err = fakeapi.ParseFile(sc.Script); err != nil {
+		if script, err = loadScript(sc.Script, ws); err != nil {
 			res.Err = err
 			return res
 		}
+	}
+	settings, err := scenarioSettings(sc.Settings)
+	if err == nil {
+		err = os.WriteFile(filepath.Join(ws.ConfigDir, "settings.json"), settings, 0o600)
+	}
+	if err != nil {
+		res.Err = err
+		return res
 	}
 	api := fakeapi.New(script)
 	srv := httptest.NewServer(api)
@@ -102,28 +114,58 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 	}
 	res.Workspace = ws
 
-	cmd, err := tg.Command(ws, sc)
-	if err != nil {
-		res.Err = fmt.Errorf("parity: %s: %w", tg.Name(), err)
-		return res
+	start1 := func(args []string) (*Term, error) {
+		run := *sc
+		run.Args = args
+		cmd, err := tg.Command(ws, &run)
+		if err != nil {
+			return nil, fmt.Errorf("parity: %s: %w", tg.Name(), err)
+		}
+		cmd.Env = append(cmd.Env, sc.Env...)
+		t, err := StartTerm(cmd, res.Width, res.Height)
+		if err == nil {
+			logf("%s/%s: started %s", sc.Name, tg.Name(), strings.Join(cmd.Args, " "))
+		}
+		return t, err
 	}
-	t, err := StartTerm(cmd, sc.Width, sc.Height)
+	t, err := start1(sc.Args)
 	if err != nil {
 		res.Err = err
 		return res
 	}
+	runs := 0
+	saveRaw := func() {
+		if o.RawDir == "" {
+			return
+		}
+		name := fmt.Sprintf("%s.%s.%d.raw", sanitizeName(sc.Name), tg.Name(), runs)
+		if err := os.MkdirAll(o.RawDir, 0o755); err == nil {
+			_ = os.WriteFile(filepath.Join(o.RawDir, name), t.Output(), 0o644)
+		}
+		runs++
+	}
 	defer func() {
 		tg.Quit(t)
 		_ = t.Close()
+		saveRaw()
 		res.Requests = api.Consumed()
 		res.Unmatched = api.Unmatched()
 	}()
-	logf("%s/%s: started %s", sc.Name, tg.Name(), strings.Join(cmd.Args, " "))
 
 	for _, st := range sc.Steps {
 		if err := ctx.Err(); err != nil {
 			res.Err, res.FailedLine = fmt.Errorf("scenario timeout: %w", err), st.Line
 			break
+		}
+		if st.Kind == StepRestart {
+			tg.Quit(t)
+			_ = t.Close()
+			saveRaw()
+			if t, err = start1(append(append([]string{}, sc.Args...), st.Args...)); err != nil {
+				res.Err, res.FailedLine = fmt.Errorf("line %d (restart): %w", st.Line, err), st.Line
+				return res
+			}
+			continue
 		}
 		if err := runStep(ctx, tg, t, st, res, start); err != nil {
 			res.Err, res.FailedLine = fmt.Errorf("line %d (%s): %w", st.Line, st.Kind, err), st.Line
@@ -193,6 +235,17 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 		return fmt.Errorf("unknown step")
 	}
 	return nil
+}
+
+// loadScript reads a fakeapi script, replacing {{work}}, {{config}} and {{home}} with
+// the run's directories.
+func loadScript(path string, ws Workspace) (*fakeapi.Script, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	text := strings.NewReplacer("{{work}}", ws.WorkDir, "{{config}}", ws.ConfigDir, "{{home}}", ws.HomeDir).Replace(string(data))
+	return fakeapi.Parse([]byte(text))
 }
 
 // newWorkspace creates the isolated directories and copies the scenario's fixtures.
@@ -269,4 +322,21 @@ func sanitizeName(s string) string {
 		}
 		return '-'
 	}, s)
+}
+
+// scenarioSettings is the settings.json a run starts with: the scenario's settings,
+// with "tui" pinned to the inline renderer unless the scenario chose one. Claude Code
+// 2.1.289 starts in fullscreen with a fresh config, and mantle starts inline, so an
+// unpinned comparison would set two different renderers against each other.
+func scenarioSettings(raw string) ([]byte, error) {
+	m := map[string]json.RawMessage{}
+	if strings.TrimSpace(raw) != "" {
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			return nil, fmt.Errorf("parity: settings: %w", err)
+		}
+	}
+	if _, ok := m["tui"]; !ok {
+		m["tui"] = json.RawMessage(`"default"`)
+	}
+	return json.MarshalIndent(m, "", "  ")
 }

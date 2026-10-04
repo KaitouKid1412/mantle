@@ -252,6 +252,12 @@ Everything that decides *whether* and *how* Claude proceeds:
   user's `--settings` is folded with `disabledMcpjsonServers` into one inline value, any
   `--settings` in `ExtraArgs` is stripped, and a rejected API key goes to `UnsetEnv`.
   Builder engines (`builder-<id>`) are auto-trusted. Gate passes run one at a time.
+- Engine version gate (overview gate 4): before the other gates the main engine's
+  version is checked through an `engineChecker` (plan 02's `engine.CheckEngine` /
+  `engine.Pin`). A failing version opens `dialog.engineCheck`: use the last good version
+  (pinned before the spawn), continue anyway, or exit. A check that can't run aborts the
+  launch. The adapter to plan 02's API is wired once `integration-2` brings it onto this
+  branch; until then `state.checker` is nil and the gate is skipped.
 - Tests: `exttest`-based flow tests for every item, plus pty tests on the real host
   (`internal/app`): no spawn before trust is accepted, declining exits, a permission
   prompt through the real keymap. `e2e_test.go` runs host + turn + `internal/engine`

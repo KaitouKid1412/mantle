@@ -1,7 +1,9 @@
 package turn
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -213,4 +215,106 @@ func mustEnv(t *testing.T, x *h) gates.Env {
 		t.Fatal(err)
 	}
 	return env
+}
+
+// fakeChecker stands in for plan 02's engine.CheckEngine / engine.Pin.
+type fakeChecker struct {
+	res    engineCheck
+	err    error
+	pinned []string
+	calls  int
+}
+
+func (f *fakeChecker) Check(context.Context) (engineCheck, error) { f.calls++; return f.res, f.err }
+func (f *fakeChecker) Pin(binary, version string) error {
+	f.pinned = append(f.pinned, binary+"@"+version)
+	return nil
+}
+
+func trustedProject(t *testing.T, x *h) string {
+	t.Helper()
+	proj := x.project(t)
+	if _, err := gates.RecordTrust(mustEnv(t, x), proj); err != nil {
+		t.Fatal(err)
+	}
+	return proj
+}
+
+func TestEngineCheckPassesSilently(t *testing.T) {
+	x := newH(t)
+	fc := &fakeChecker{res: engineCheck{OK: true, Version: "2.1.288"}}
+	x.st.checker = fc
+	sp := &spawnRecorder{}
+	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: trustedProject(t, x)}))
+	if fc.calls != 1 || len(sp.proceeded) != 1 || x.c.topID() != "" || len(x.c.Notices) != 0 {
+		t.Fatalf("calls=%d spawn=%+v stack=%v notices=%v", fc.calls, sp, x.c.ids, x.c.Notices)
+	}
+	// A freshly probed version gets a short notice.
+	fc.res.Probed = true
+	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: trustedProject(t, x)}))
+	if len(x.c.Notices) != 1 || !strings.Contains(x.c.Notices[0].Text, "2.1.288 passed") {
+		t.Fatalf("notices = %+v", x.c.Notices)
+	}
+	// Builders skip the check.
+	x.send(sp.msg("builder-mod1", ext.SpawnOpts{Cwd: trustedProject(t, x)}))
+	if fc.calls != 2 {
+		t.Fatalf("builders must not re-check: %d", fc.calls)
+	}
+}
+
+func TestEngineCheckFailureOffersPin(t *testing.T) {
+	x := newH(t)
+	fc := &fakeChecker{res: engineCheck{Version: "2.1.300", Failed: []string{"skills", "hooks"}, LastGood: "2.1.288", LastGoodBinary: "/v/2.1.288"}}
+	x.st.checker = fc
+	sp := &spawnRecorder{}
+	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: x.project(t)}))
+	if x.c.topID() != DialogEngineCheck || len(sp.proceeded) != 0 {
+		t.Fatalf("version gate comes first: stack=%v", x.c.ids)
+	}
+	v := testkitStrip(x.view(100))
+	for _, want := range []string{"2.1.300 did not pass", "skills, hooks", "Use claude 2.1.288 instead"} {
+		if !strings.Contains(v, want) {
+			t.Fatalf("missing %q:\n%s", want, v)
+		}
+	}
+	x.press("enter") // pin 2.1.288
+	if x.c.topID() != DialogTrust {
+		t.Fatalf("trust follows the version gate: %v", x.c.ids)
+	}
+	x.press("enter")
+	if len(sp.proceeded) != 1 || !slices.Equal(fc.pinned, []string{"/v/2.1.288@2.1.288"}) {
+		t.Fatalf("pin then spawn: spawn=%+v pinned=%v", sp, fc.pinned)
+	}
+}
+
+func TestEngineCheckContinueAndExit(t *testing.T) {
+	x := newH(t)
+	fc := &fakeChecker{res: engineCheck{Version: "2.1.300", Failed: []string{"bare"}}}
+	x.st.checker = fc
+	sp := &spawnRecorder{}
+	proj := trustedProject(t, x)
+	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: proj}))
+	if strings.Contains(testkitStrip(x.view(100)), "instead") {
+		t.Fatal("no pin option without a last good binary")
+	}
+	x.press("enter") // continue anyway
+	if len(sp.proceeded) != 1 || len(fc.pinned) != 0 {
+		t.Fatalf("continue: %+v pinned=%v", sp, fc.pinned)
+	}
+	sp = &spawnRecorder{}
+	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: proj}))
+	x.press("esc")
+	if len(sp.proceeded) != 0 || !slices.Equal(sp.aborted, []string{"claude did not pass mantle's startup checks"}) {
+		t.Fatalf("exit: %+v", sp)
+	}
+}
+
+func TestEngineCheckErrorAborts(t *testing.T) {
+	x := newH(t)
+	x.st.checker = &fakeChecker{err: errors.New("claude: not found")}
+	sp := &spawnRecorder{}
+	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: trustedProject(t, x)}))
+	if len(sp.proceeded) != 0 || len(sp.aborted) != 1 || !strings.Contains(sp.aborted[0], "claude: not found") {
+		t.Fatalf("spawn = %+v", sp)
+	}
 }

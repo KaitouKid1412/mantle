@@ -324,6 +324,150 @@ func TestPendingRequestsFromInitialize(t *testing.T) {
 	}
 }
 
+// stdinTypes lists "type[/subtype]" of every line the client wrote.
+func stdinTypes(lines [][]byte) []string {
+	var out []string
+	for _, l := range lines {
+		var h struct {
+			Type    string `json:"type"`
+			Request struct {
+				Subtype string `json:"subtype"`
+			} `json:"request"`
+		}
+		_ = json.Unmarshal(l, &h)
+		k := h.Type
+		if h.Request.Subtype != "" {
+			k += "/" + h.Request.Subtype
+		}
+		out = append(out, k)
+	}
+	return out
+}
+
+// TestNothingBeforeInitialize: prompts and control requests sent while initialize is
+// in flight are held and go out, in order, after its reply (as the SDK does).
+func TestNothingBeforeInitialize(t *testing.T) {
+	script := enginefake.MustParse(`
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"delay": 200}
+{"respond": {"commands":[]}}
+{"expect": {"type":"user","message":{"content":"early"}}}
+{"expect": {"type":"control_request","request":{"subtype":"file_suggestions"}}, "respond": {"suggestions":[]}}
+{"emit": {"type":"result","subtype":"success","is_error":false,"result":"ok","user_message_uuid":"${uuid}"}}
+`)
+	m, sp, rec := setup(t, script)
+	e, err := m.Start("", ext.SpawnOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Both right away, while initialize is unanswered.
+	if msg := e.Send(ext.Prompt{UUID: "u-early", Blocks: []proto.ContentBlock{proto.Text("early")}})(); msg != nil {
+		t.Fatalf("send: %v", msg)
+	}
+	ctl := make(chan tea.Msg, 1)
+	go func() { ctl <- e.Control(proto.SubFileSuggestions, proto.FileSuggestionsRequest{})() }()
+	rec.WaitFor(t, isResult)
+	if r := (<-ctl).(ext.ControlResultMsg); r.Err != nil {
+		t.Errorf("file_suggestions: %v", r.Err)
+	}
+	// initialize's result reaches the UI before anything the held lines caused.
+	var order []string
+	for _, msg := range rec.Msgs() {
+		switch v := msg.(type) {
+		case ext.ControlResultMsg:
+			order = append(order, "result:"+v.Subtype)
+		case ext.EngineEventMsg:
+			order = append(order, "event:"+v.Event.Env().Type)
+		}
+	}
+	if len(order) == 0 || order[0] != "result:initialize" {
+		t.Errorf("UI order: %v", order)
+	}
+	e.Stop(context.Background())
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Fatalf("strict script failed: %d %v", code, err)
+	}
+	got := strings.Join(stdinTypes(sp.Procs()[0].Received()), " ")
+	want := "control_request/initialize control_request/get_binary_version user control_request/file_suggestions control_request/end_session"
+	if got != want {
+		t.Errorf("stdin order:\n got %s\nwant %s", got, want)
+	}
+}
+
+// TestInitializeFailureDropsHeld: when initialize fails, held prompts and requests
+// fail with the cause and never reach the engine.
+func TestInitializeFailureDropsHeld(t *testing.T) {
+	script := enginefake.MustParse(`
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"delay": 150}
+{"respond_error": "initialize exploded"}
+`)
+	m, sp, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	e.Send(ext.Prompt{UUID: "u-held", Blocks: []proto.ContentBlock{proto.Text("hi")}})()
+	ctl := make(chan tea.Msg, 1)
+	go func() { ctl <- e.Control(proto.SubGetSettings, nil)() }()
+
+	init := rec.WaitFor(t, isInitialized).(ext.ControlResultMsg)
+	if init.Err == nil || !strings.Contains(init.Err.Error(), "exploded") {
+		t.Errorf("initialize: %v", init.Err)
+	}
+	failed := rec.WaitFor(t, func(msg tea.Msg) bool {
+		r, ok := msg.(ext.ControlResultMsg)
+		return ok && r.Subtype == proto.TypeUser && r.RequestID == "u-held"
+	}).(ext.ControlResultMsg)
+	if failed.Err == nil || !strings.Contains(failed.Err.Error(), "initialize failed") {
+		t.Errorf("held prompt: %v", failed.Err)
+	}
+	select {
+	case r := <-ctl:
+		if r.(ext.ControlResultMsg).Err == nil {
+			t.Error("held control request should fail")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("held control request never completed")
+	}
+	e.Stop(context.Background())
+	for _, k := range stdinTypes(sp.Procs()[0].Received()) {
+		if k == "user" || k == "control_request/get_settings" {
+			t.Errorf("held line %s reached the engine", k)
+		}
+	}
+}
+
+// TestRepliesNotHeld: answers to the engine's own requests go out during the hold.
+func TestRepliesNotHeld(t *testing.T) {
+	script := enginefake.MustParse(`
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"request": {"subtype":"hook_callback","callback_id":"x","input":{}}, "id": "cli_1"}
+{"expect": {"type":"control_response","response":{"request_id":"cli_1"}}}
+{"respond": {"commands":[]}}
+`)
+	m, sp, rec := setup(t, script)
+	if _, err := m.Start("", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	if r := rec.WaitFor(t, isInitialized).(ext.ControlResultMsg); r.Err != nil {
+		t.Fatalf("initialize: %v", r.Err)
+	}
+	m.Engine("").Stop(context.Background())
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Errorf("script: %d %v", code, err)
+	}
+}
+
+func TestUpdateEnv(t *testing.T) {
+	script := enginefake.New(enginefake.InitializeRule(nil),
+		enginefake.Expect(json.RawMessage(`{"type":"update_environment_variables","variables":{"FOO":"1"}}`)),
+		enginefake.Emit(`{"type":"result","subtype":"success","result":"ok"}`))
+	m, _, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	if err := e.UpdateEnv(map[string]string{"FOO": "1"}); err != nil {
+		t.Fatal(err)
+	}
+	rec.WaitFor(t, isResult)
+}
+
 func TestHandleStartStopAndCommands(t *testing.T) {
 	script := enginefake.New(enginefake.InitializeRule(nil),
 		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))

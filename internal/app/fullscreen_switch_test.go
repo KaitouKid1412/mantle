@@ -63,6 +63,29 @@ func TestFullscreenRefusedAndMouseOff(t *testing.T) {
 	}
 }
 
+func TestEmptySidebarTakesNoColumns(t *testing.T) {
+	side := &box{id: "fs.side", text: ""} // a closed pane
+	host := NewHost([]ext.Feature{fullscreenFeature(side)}, HostOptions{Core: CoreFeatures()})
+	r := New(Options{Host: host, NoBackgroundQuery: true, Layout: ext.Fullscreen})
+	r.Update(tea.WindowSizeMsg{Width: 100, Height: 20})
+	for _, l := range strings.Split(r.View().Content, "\n") {
+		if i := strings.Index(l, "transcript"); i >= 0 && i != 0 {
+			t.Fatalf("empty sidebar shifted the transcript to column %d", i)
+		}
+	}
+	side.text = "OPEN PANE"
+	r.invalidate("fs.side")
+	shifted := false
+	for _, l := range strings.Split(r.View().Content, "\n") {
+		if strings.Index(l, "transcript") == r.sidebarWidth(ext.SlotSidebarL)+1 {
+			shifted = true
+		}
+	}
+	if !shifted {
+		t.Fatalf("open sidebar should take its width:\n%s", r.View().Content)
+	}
+}
+
 func TestSidebarResize(t *testing.T) {
 	side := &box{id: "fs.side", text: "SIDE"}
 	host := NewHost([]ext.Feature{fullscreenFeature(side)}, HostOptions{Core: CoreFeatures()})

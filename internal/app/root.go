@@ -447,6 +447,10 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.exitCode, r.exitReason = m.Code, m.Reason
 		r.quitting = true
 		cmds = append(cmds, r.broadcast(msg), tea.Quit)
+	case ext.EngineExitedMsg:
+		// The engine's stderr never reaches the terminal; keep its tail in the log.
+		r.log().Info("engine: exited", "id", m.EngineID, "err", m.Err, "stderr", m.Stderr)
+		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineAttachMsg:
 		r.log().Debug("engine: attached", "id", m.EngineID)
 		r.engines[m.EngineID] = m.Engine

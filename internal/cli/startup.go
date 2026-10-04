@@ -55,6 +55,10 @@ type Startup struct {
 	Verbose           bool  // --verbose
 	Safe              bool  // mantle --safe reached mantle-ui: skip user mods
 	PromptSuggestions *bool // --prompt-suggestions, for initialize.promptSuggestions
+	// AttachEngineFDs is the hand-off file of an in-place restart (request 10-02). When
+	// set, the host adopts the engines it lists instead of spawning; Spawn (resuming the
+	// session) is the fallback if adopting fails.
+	AttachEngineFDs string
 	// Worktree is the -w worktree name ("" without -w). The engine creates
 	// .claude/worktrees/<name> on branch worktree-<name> and runs there (init.cwd).
 	// Headless claude never offers to remove it on exit.
@@ -157,6 +161,7 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 		ScreenReader:      m.ScreenReader,
 		Verbose:           m.Verbose,
 		Safe:              m.Safe,
+		AttachEngineFDs:   m.AttachEngineFDs,
 		PromptSuggestions: m.PromptSuggestions,
 		Warnings:          slices.Clone(p.Warnings),
 		Unknown:           slices.Clone(p.Unknown),
@@ -210,6 +215,11 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 			break
 		}
 		id, query, err := res.Resolve(cwd, m.ResumeQuery)
+		if err != nil && m.AttachEngineFDs != "" {
+			// An in-place restart must not stop on a lookup: the engine is alive and the
+			// fallback resumes by the ID the old process passed.
+			id, query, err = m.ResumeQuery, "", nil
+		}
 		if err != nil {
 			return s, fmt.Errorf("no conversation found for %q: %w", m.ResumeQuery, err)
 		}

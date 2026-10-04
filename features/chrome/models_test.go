@@ -37,12 +37,14 @@ func labels(items []Todo) []string {
 
 func TestTodosTodoWrite(t *testing.T) {
 	var td Todos
-	changed := td.OnToolUse("t1", "TodoWrite", raw(`{"todos":[
+	if td.OnToolUse("t1", "TodoWrite", raw(`{"todos":[
 		{"content":"Read code","status":"completed","activeForm":"Reading code"},
 		{"content":"Write tests","status":"in_progress","activeForm":"Writing tests"},
-		{"content":"Ship","status":"pending","activeForm":"Shipping"}]}`))
-	if !changed {
-		t.Fatal("TodoWrite should change the list")
+		{"content":"Ship","status":"pending","activeForm":"Shipping"}]}`)) {
+		t.Fatal("nothing changes before the result")
+	}
+	if !td.OnToolResult("t1", false, "Todos updated", nil) {
+		t.Fatal("a successful TodoWrite result should change the list")
 	}
 	want := []string{"completed:Read code", "in_progress:Writing tests", "pending:Ship"}
 	if got := labels(td.Items()); !slices.Equal(got, want) {
@@ -54,7 +56,13 @@ func TestTodosTodoWrite(t *testing.T) {
 	if cur, ok := td.Current(); !ok || cur.Subject != "Write tests" {
 		t.Errorf("Current = %+v", cur)
 	}
+	// A rejected call (the engine has no such tool) changes nothing.
+	td.OnToolUse("rej", "TodoWrite", raw(`{"todos":[{"content":"Nope","status":"pending"}]}`))
+	if td.OnToolResult("rej", true, "No such tool available: TodoWrite", nil) || len(td.Items()) != 3 {
+		t.Errorf("rejected call applied: %+v", td.Items())
+	}
 	td.OnToolUse("t2", "TodoWrite", raw(`{"todos":[{"content":"Only","status":"completed"}]}`))
+	td.OnToolResult("t2", false, "", nil)
 	if !td.AllDone() || len(td.Items()) != 1 || td.Items()[0].ID != "1" {
 		t.Errorf("replace: %+v", td.Items())
 	}
@@ -93,10 +101,16 @@ func TestTodosTaskTools(t *testing.T) {
 		t.Errorf("ids = %v", ids)
 	}
 
-	td.OnToolUse("u1", "TaskUpdate", raw(`{"taskId":"1","status":"in_progress"}`))
-	td.OnToolUse("u2", "TaskUpdate", raw(`{"taskId":2,"status":"completed","subject":"Build it"}`))
-	td.OnToolUse("u3", "TaskUpdate", raw(`{"taskId":"9","status":"deleted"}`))
-	if td.OnToolUse("u4", "TaskUpdate", raw(`{"taskId":"404","status":"completed"}`)) {
+	for id, in := range map[string]string{
+		"u1": `{"taskId":"1","status":"in_progress"}`,
+		"u2": `{"taskId":2,"status":"completed","subject":"Build it"}`,
+		"u3": `{"taskId":"9","status":"deleted"}`,
+	} {
+		td.OnToolUse(id, "TaskUpdate", raw(in))
+		td.OnToolResult(id, false, "Updated", nil)
+	}
+	td.OnToolUse("u4", "TaskUpdate", raw(`{"taskId":"404","status":"completed"}`))
+	if td.OnToolResult("u4", false, "", nil) {
 		t.Error("unknown id")
 	}
 	want := []string{"in_progress:Planning", "completed:Build it"}
@@ -127,6 +141,7 @@ func TestTodosWindow(t *testing.T) {
 	}
 	b.WriteString(`]}`)
 	td.OnToolUse("x", "TodoWrite", raw(b.String()))
+	td.OnToolResult("x", false, "", nil)
 
 	shown, before, after := td.Window(5)
 	if len(shown) != 5 || shown[0].Subject != "t3" || before != 3 || after != 0 {

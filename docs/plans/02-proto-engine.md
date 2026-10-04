@@ -280,12 +280,12 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
   permission mode, state (idle / running / requires_action), cwd, and init data (tools,
   commands, skills, plugins, MCP servers, output style, fast mode). Exposed through
   `ext.SessionInfo`.
-- [ ] **B8 [M2] `unstable.go`.** Wrappers for the undocumented subtypes, each with
+- [x] **B8 [M2] `unstable.go`.** Wrappers for the undocumented subtypes, each with
   `Supports` and a documented fallback:
   - `rewind_conversation` → `--resume-session-at`;
   - `side_question` → forked engine;
   - `get_workspace_diff` → `git diff`.
-- [ ] **B9 [M2] Conformance probe and pinning.**
+- [x] **B9 [M2] Conformance probe and pinning.**
   - Run S6's probe when `claude --version` changes; store passing versions in
     `~/.mantle/state/engines.json`.
   - On failure, notify and offer to pin the last passing binary
@@ -482,6 +482,22 @@ start), then fuzzy path matches. No control request lists MCP resources.
 TUI in a pty: no onboarding, the prompt reaches fakeapi. Trust is keyed by the real path
 (`EvalSymlinks`). Startup probes `HEAD /api/hello`. Side calls carry no tools. With API-key
 auth the engine never emits `rate_limit_event`.
+
+**Undocumented subtypes (B8; re-checked on 2.1.289, 2026-10-04)** All three work in
+headless mode against fakeapi:
+- `get_workspace_diff` returns `{diff: {stats, perFileStats, hunks, skippedLarge,
+  restricted, source}}`.
+- `side_question {question, history}` returns `{response, synthetic}` and emits
+  `system/control_request_progress`.
+- `rewind_conversation {target_message_uuid}` returns `{rewound, targetMessageUuid,
+  prefillText, precedingAssistantUuid}`.
+
+The fallbacks (`git diff`, a forked engine, a restart at `--resume-session-at`) are tested
+against fakeclaude.
+
+**Conformance probe (B9)** The probe sees a project CLAUDE.md, a project hook and a project
+skill on 2.1.289. It makes no model calls, but `get_context_usage` makes ~16 free
+`count_tokens` requests. `scripts/sdk-diff` against SDK 0.3.289 finds no SDK-only names.
 
 **S17 coalescing** Fed by an API that floods deltas, the engine prints ~50,000
 `stream_event` deltas/s. Decoding costs ~1.8 µs per delta. The 16 ms coalescer delivered
