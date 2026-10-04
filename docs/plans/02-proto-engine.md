@@ -280,12 +280,12 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
   permission mode, state (idle / running / requires_action), cwd, and init data (tools,
   commands, skills, plugins, MCP servers, output style, fast mode). Exposed through
   `ext.SessionInfo`.
-- [ ] **B8 [M2] `unstable.go`.** Wrappers for the undocumented subtypes, each with
+- [x] **B8 [M2] `unstable.go`.** Wrappers for the undocumented subtypes, each with
   `Supports` and a documented fallback:
   - `rewind_conversation` → `--resume-session-at`;
   - `side_question` → forked engine;
   - `get_workspace_diff` → `git diff`.
-- [ ] **B9 [M2] Conformance probe and pinning.**
+- [x] **B9 [M2] Conformance probe and pinning.**
   - Run S6's probe when `claude --version` changes; store passing versions in
     `~/.mantle/state/engines.json`.
   - On failure, notify and offer to pin the last passing binary
