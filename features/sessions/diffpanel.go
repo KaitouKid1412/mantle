@@ -117,9 +117,21 @@ func (p *diffPanel) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 
 func (p *diffPanel) HandlePaste(ext.Ctx, tea.PasteMsg) (bool, tea.Cmd) { return false, nil }
 
+// hidden reports whether the panel is out of view (the layout left fullscreen); a
+// hidden panel lets go of focus instead of taking keys the user can't see go anywhere.
+func (p *diffPanel) hidden(ctx ext.Ctx) (bool, tea.Cmd) {
+	if ctx.Layout() == ext.Fullscreen {
+		return false, nil
+	}
+	return true, p.close(ctx)
+}
+
 func (p *diffPanel) HandleAction(ctx ext.Ctx, a ext.ActionID) (bool, tea.Cmd) {
 	if !p.open {
 		return false, nil
+	}
+	if gone, cmd := p.hidden(ctx); gone {
+		return false, cmd
 	}
 	switch a {
 	case ext.ActDiffDismiss, ext.ActDiffBack, ext.ActSelectCancel:
@@ -131,6 +143,9 @@ func (p *diffPanel) HandleAction(ctx ext.Ctx, a ext.ActionID) (bool, tea.Cmd) {
 func (p *diffPanel) HandleKey(ctx ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
 	if !p.open {
 		return false, nil
+	}
+	if gone, cmd := p.hidden(ctx); gone {
+		return false, cmd
 	}
 	switch k.String() {
 	case "esc", "q":

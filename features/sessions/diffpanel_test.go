@@ -72,6 +72,18 @@ func TestDiffPanelOrDialog(t *testing.T) {
 	if p.open || !p.dismissed || h.ctx.FocusedID != "input.editor" || len(h.ctx.Closed) != 0 {
 		t.Fatalf("close: open=%v focus=%q closed=%v", p.open, h.ctx.FocusedID, h.ctx.Closed)
 	}
+
+	// Leaving fullscreen with the panel focused: the next key releases focus.
+	h.command("diff", "")
+	h.ctx.LayoutMode = ext.Inline
+	if handled, cmd := p.HandleKey(h.ctx, tea.KeyPressMsg{Code: 'j', Text: "j"}); handled || p.open {
+		t.Fatalf("hidden panel took a key: handled=%v open=%v", handled, p.open)
+	} else {
+		h.run(cmd)
+	}
+	if h.ctx.FocusedID != "input.editor" {
+		t.Fatalf("focus = %q", h.ctx.FocusedID)
+	}
 }
 
 func TestDiffPanelAutoOpens(t *testing.T) {
