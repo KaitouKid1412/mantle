@@ -55,7 +55,7 @@ func pickerStory(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	p.refilter()
 	p.sel = 1
 	if a.MaxHeight == 0 {
-		a.MaxHeight = 14
+		a.MaxHeight = 18
 	}
 	return p.View(ctx, a)
 }
