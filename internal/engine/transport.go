@@ -31,7 +31,9 @@ type Transport struct {
 	wake     chan struct{} // capacity 1: "queue changed"
 	closing  bool          // CloseInput called: flush, then close w
 	detached bool          // Detach called: flush, then stop without closing w
-	closed   bool          // writer finished
+	holding  bool          // Hold called: Send keeps lines in held until Release
+	held     [][]byte
+	closed   bool // writer finished
 	werr     error
 
 	readDone  chan struct{}
@@ -165,7 +167,13 @@ func readLine(br *bufio.Reader, acc *[]byte) ([]byte, error) {
 }
 
 // Send queues one line (without newline) for stdin. It never blocks.
-func (t *Transport) Send(line []byte) error {
+func (t *Transport) Send(line []byte) error { return t.send(line, false) }
+
+// SendNow queues one line ahead of held lines (see Hold): the initialize handshake
+// and answers to the engine's own requests.
+func (t *Transport) SendNow(line []byte) error { return t.send(line, true) }
+
+func (t *Transport) send(line []byte, now bool) error {
 	t.mu.Lock()
 	if t.closing || t.closed || t.detached {
 		t.mu.Unlock()
@@ -179,10 +187,47 @@ func (t *Transport) Send(line []byte) error {
 	b := make([]byte, len(line)+1)
 	copy(b, line)
 	b[len(line)] = '\n'
+	if t.holding && !now {
+		t.held = append(t.held, b)
+		t.mu.Unlock()
+		return nil
+	}
 	t.queue = append(t.queue, b)
 	t.mu.Unlock()
 	t.signal()
 	return nil
+}
+
+// Hold makes Send keep lines back until Release (SendNow still goes out). The engine
+// holds everything until the initialize handshake has completed, as the SDK does.
+func (t *Transport) Hold() {
+	t.mu.Lock()
+	t.holding = true
+	t.mu.Unlock()
+}
+
+// Release sends the held lines, in order, and stops holding.
+func (t *Transport) Release() {
+	t.mu.Lock()
+	t.holding = false
+	t.queue = append(t.queue, t.held...)
+	t.held = nil
+	t.mu.Unlock()
+	t.signal()
+}
+
+// DropHeld discards the held lines (returned without their newline) and stops
+// holding.
+func (t *Transport) DropHeld() [][]byte {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.holding = false
+	out := make([][]byte, 0, len(t.held))
+	for _, b := range t.held {
+		out = append(out, b[:len(b)-1])
+	}
+	t.held = nil
+	return out
 }
 
 func (t *Transport) signal() {

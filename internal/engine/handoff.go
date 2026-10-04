@@ -205,6 +205,7 @@ func (m *Manager) Adopt(id string, s AdoptSpec) (*Engine, error) {
 	r.tr = NewTransport(stdout, s.Stdin)
 	r.tr.Tap = m.Tap
 	r.corr = newCorrelator(r.tr.Send)
+	r.corr.sendNow = r.tr.SendNow
 	r.coal = newCoalescer(id, m.CoalesceInterval, e.pump.Enqueue)
 	r.caps.AddCapabilities(s.Capabilities)
 	r.caps.SetVersion(s.Session.ClaudeVersion)
