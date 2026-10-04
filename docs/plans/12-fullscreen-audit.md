@@ -119,8 +119,9 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
 - Viewport (`fullscreen.viewport`, `SlotLive`, fullscreen only): plan 03's store through
   `Ctx.Renderer`, cached per item (id, rev, children revs, width, view mode, theme,
   expanded); a blank line before each item as inline; only the visible window is
-  materialized (`CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL` draws everything). View mode comes
-  from `verbose` / `viewMode`; brief and the focus summary need request 12-03 to plan 03.
+  materialized (`CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL` draws everything). When the store
+  offers `Lines(ctx, w)` (plan 03, request 12-03) the viewport uses it, so view modes,
+  brief, focus summaries and grouped MCP runs match inline exactly.
 - Scrolling: the `scroll:*` actions in the `Scroll` context (made active in fullscreen):
   PgUp/PgDn, ctrl+home/end, wheel (3 lines per notch, `/scroll-speed` →
   mantle setting `fullscreen.scrollSpeed`, `CLAUDE_CODE_SCROLL_SPEED` wins, acceleration
@@ -151,7 +152,6 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   in the real host (layout, PgUp/ctrl+home/end, pill, header, wheel, drag-copy, click
   expand, search, sidebar + resize), and full-screen vt goldens at 80×24, 120×40 and
   200×60 (`TestVTFullscreenGoldens`).
-- Open: plan 03's streaming-text cache grows in fullscreen (request 12-03).
 - [ ] **B1 [M2] Scenario suite** covering every PARITY area. At minimum:
   - plain Q&A with markdown and code; tool approval: allow once / always / deny with
     feedback;
