@@ -1,0 +1,24 @@
+── width 60 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m ask my name                                               [m
+
+[38;2;111;194;139m⏺[m [1melicit - ask_name (MCP)[m
+  ⎿  action=accept name=Ada
+
+[38;2;230;227;222m⏺[m Nice to meet you, Ada.
+── width 100 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m ask my name                                                                                       [m
+
+[38;2;111;194;139m⏺[m [1melicit - ask_name (MCP)[m
+  ⎿  action=accept name=Ada
+
+[38;2;230;227;222m⏺[m Nice to meet you, Ada.
+── width 160 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m ask my name                                                                                                                                                   [m
+
+[38;2;111;194;139m⏺[m [1melicit - ask_name (MCP)[m
+  ⎿  action=accept name=Ada
+
+[38;2;230;227;222m⏺[m Nice to meet you, Ada.
