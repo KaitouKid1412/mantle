@@ -190,9 +190,12 @@ Two jobs:
 - [x] **B12 [M1] Spike S16 (with plan 10).** UI plus claude in a separate process group:
   ctrl+z and `fg`, `tea.ExecProcess($EDITOR)` with ctrl+c inside the editor, crash restore
   of termios.
-- [ ] **B13 [M2] API steward duties.** Review `docs/plans/requests/*-01-*.md`, add additive
+- [x] **B13 [M2] API steward duties.** Review `docs/plans/requests/*-01-*.md`, add additive
   API, keep `Alias` for renamed IDs, bump `ext.APIVersion` only for breaking changes (avoid
   them). Hold integration windows: full `go test ./...`, tag `integration-N`.
+  *Ongoing role. Every request to date is answered (`contracts-v1.1` … `v1.7`, no
+  breaking change, `APIVersion` still 1); integration windows are run by the
+  coordinator session (`integration-N` tags).*
 - [x] **B14 [M3] Fullscreen layout hooks** (sidebar slots, Compositor layering) for plan 12.
 
 ## `pkg/ext` v1 sketch (implement this shape)

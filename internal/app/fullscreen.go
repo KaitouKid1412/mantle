@@ -93,16 +93,22 @@ func (r *Root) fullscreenView() tea.View {
 	// Middle band: sidebars and the live area.
 	midH := max(0, H-bottomH-y)
 	left, right := r.slotComps(ext.SlotSidebarL), r.slotComps(ext.SlotSidebarR)
+	// A sidebar takes columns only when it renders something: a closed pane (View
+	// returns "") leaves the transcript its full width.
 	lx, mainW := 0, W
 	if len(left) > 0 {
 		sw := r.sidebarWidth(ext.SlotSidebarL)
-		regions = append(regions, r.stackRegion(left, 0, y, sw, midH, mode)...)
-		lx, mainW = sw+1, mainW-sw-1
+		if rs := r.stackRegion(left, 0, y, sw, midH, mode); len(rs) > 0 {
+			regions = append(regions, rs...)
+			lx, mainW = sw+1, mainW-sw-1
+		}
 	}
 	if len(right) > 0 {
 		sw := r.sidebarWidth(ext.SlotSidebarR)
-		regions = append(regions, r.stackRegion(right, W-sw, y, sw, midH, mode)...)
-		mainW -= sw + 1
+		if rs := r.stackRegion(right, W-sw, y, sw, midH, mode); len(rs) > 0 {
+			regions = append(regions, rs...)
+			mainW -= sw + 1
+		}
 	}
 	for _, c := range r.slotComps(ext.SlotLive) {
 		comp := c.m.comp
