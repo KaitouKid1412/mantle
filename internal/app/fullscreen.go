@@ -93,13 +93,14 @@ func (r *Root) fullscreenView() tea.View {
 	// Middle band: sidebars and the live area.
 	midH := max(0, H-bottomH-y)
 	left, right := r.slotComps(ext.SlotSidebarL), r.slotComps(ext.SlotSidebarR)
-	sw := SidebarWidth(W)
 	lx, mainW := 0, W
 	if len(left) > 0 {
+		sw := r.sidebarWidth(ext.SlotSidebarL)
 		regions = append(regions, r.stackRegion(left, 0, y, sw, midH, mode)...)
 		lx, mainW = sw+1, mainW-sw-1
 	}
 	if len(right) > 0 {
+		sw := r.sidebarWidth(ext.SlotSidebarR)
 		regions = append(regions, r.stackRegion(right, W-sw, y, sw, midH, mode)...)
 		mainW -= sw + 1
 	}
@@ -149,9 +150,15 @@ func (r *Root) fullscreenView() tea.View {
 	canvas.Compose(comp)
 	v := tea.NewView(canvas.Render())
 	v.AltScreen = true
-	v.MouseMode = tea.MouseModeCellMotion
 	v.Cursor = cursor
+	if r.opts.NoMouse {
+		return v
+	}
+	v.MouseMode = tea.MouseModeCellMotion
 	v.OnMouse = func(m tea.MouseMsg) tea.Cmd {
+		if _, wheel := m.(tea.MouseWheelMsg); wheel {
+			return nil // the wheel goes through the keymap (scroll:* actions) only
+		}
 		mm := m.Mouse()
 		hit := comp.Hit(mm.X, mm.Y)
 		if hit.Empty() || hit.ID() == "frame" {
@@ -161,6 +168,30 @@ func (r *Root) fullscreenView() tea.View {
 		return ext.Address(hit.ID(), MouseEvent{Msg: m, X: mm.X - b.Min.X, Y: mm.Y - b.Min.Y})
 	}
 	return v
+}
+
+// sidebarWidth is a sidebar's width: SidebarWidth(W) adjusted by SidebarResizeMsg,
+// clamped to [12, W/2].
+func (r *Root) sidebarWidth(s ext.Slot) int {
+	return min(max(SidebarWidth(r.w)+r.sidebarDelta[s], 12), max(12, r.w/2))
+}
+
+// layoutRequest switches between Inline and Fullscreen at runtime.
+func (r *Root) layoutRequest(m ext.LayoutRequestMsg) tea.Cmd {
+	if m.Mode == r.opts.Layout || (m.Mode != ext.Inline && m.Mode != ext.Fullscreen) {
+		return nil
+	}
+	if m.Mode == ext.Fullscreen && (r.opts.NoAltScreen || r.opts.A11y.ScreenReader) {
+		return r.addNotice(ext.Notice{Key: "layout", Text: "Fullscreen is off: the alternate screen is disabled or screen-reader mode is on", Level: ext.NoticeWarning, Source: "core"})
+	}
+	r.opts.Layout = m.Mode
+	r.invalidateAll()
+	cmds := []tea.Cmd{r.broadcast(ext.LayoutChangedMsg{Mode: m.Mode})}
+	if m.Mode == ext.Inline {
+		// Back to native scrollback: clear and let the commit policy reprint.
+		cmds = append(cmds, r.enqueueClear())
+	}
+	return tea.Batch(cmds...)
 }
 
 func (r *Root) slotComps(s ext.Slot) []*comp {

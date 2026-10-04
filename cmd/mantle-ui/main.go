@@ -103,6 +103,8 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		return ext.ExitUsage
 	}
 	store := config.NewStore(paths, flag)
+	env := config.ReadEnv(os.Getenv)
+	store.SetEnv(env)
 	host := app.NewHost(ext.Pending(), app.HostOptions{
 		Safe:     os.Getenv(ext.EnvSafe) == "1",
 		Disabled: config.DisabledIDs(config.ReadDisabled(paths)),
@@ -117,6 +119,11 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		logger.Warn("custom theme", "err", e)
 	}
 	ui := store.UI()
+	a11y := ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || env.ScreenReader, ReducedMotion: ui.PrefersReducedMotion}
+	layout := ext.Inline
+	if (ui.TUI == "fullscreen" || env.NoFlicker) && !env.DisableAltScreen && !a11y.ScreenReader {
+		layout = ext.Fullscreen
+	}
 
 	var prog *tea.Program
 	mgr := engine.NewManager(func(m tea.Msg) { prog.Send(m) })
@@ -127,7 +134,11 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		Host:          host,
 		Settings:      store,
 		Logger:        logger,
-		A11y:          ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || truthy(os.Getenv("CLAUDE_AX_SCREEN_READER")), ReducedMotion: ui.PrefersReducedMotion},
+		A11y:          a11y,
+		Layout:        layout,
+		NoAltScreen:   env.DisableAltScreen,
+		NoMouse:       env.DisableMouse,
+		NoTitle:       env.DisableTerminalTitle,
 		KeymapSources: config.LoadKeymapSources(paths),
 		StateDir:      paths.StateDir(),
 		CustomThemes:  config.ThemeMap(themes),

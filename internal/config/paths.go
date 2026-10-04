@@ -21,6 +21,21 @@ type Paths struct {
 	MantleDir  string // $MANTLE_HOME, else ~/.mantle
 	Project    string // project directory (the session cwd)
 	Managed    string // managed-settings.json for this OS
+	// ManagedPlists are MDM configuration-profile plists (macOS), device-level then
+	// per-user; later ones win. Read with /usr/bin/plutil.
+	ManagedPlists []string
+}
+
+// MDMDomain is the preference domain of Claude Code's managed settings on macOS.
+const MDMDomain = "com.anthropic.claudecode"
+
+// macManagedPlists are the device-level and per-user managed-preferences plists.
+func macManagedPlists(user string) []string {
+	out := []string{"/Library/Managed Preferences/" + MDMDomain + ".plist"}
+	if user != "" {
+		out = append(out, "/Library/Managed Preferences/"+user+"/"+MDMDomain+".plist")
+	}
+	return out
 }
 
 // DefaultPaths resolves paths from the environment for a project directory.
@@ -29,7 +44,11 @@ func DefaultPaths(project string) (Paths, error) {
 	if err != nil {
 		return Paths{}, err
 	}
-	return PathsFor(home, project, os.Getenv("CLAUDE_CONFIG_DIR"), os.Getenv(EnvMantleHome)), nil
+	p := PathsFor(home, project, os.Getenv("CLAUDE_CONFIG_DIR"), os.Getenv(EnvMantleHome))
+	if runtime.GOOS == "darwin" {
+		p.ManagedPlists = macManagedPlists(os.Getenv("USER"))
+	}
+	return p, nil
 }
 
 // PathsFor builds Paths from explicit values ("" = default).

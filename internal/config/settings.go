@@ -104,6 +104,18 @@ func readScope(p Paths, scope, flag string) (ext.SettingsSource, map[string]any)
 			found = true
 			mergeInto(doc, normalize(d).(map[string]any))
 		}
+		// MDM configuration profiles (macOS) win over the files.
+		for _, path := range p.ManagedPlists {
+			d, err := readPlist(path)
+			if err != nil {
+				if !errors.Is(err, fs.ErrNotExist) && src.Err == nil {
+					src.Err = err
+				}
+				continue
+			}
+			found = true
+			mergeInto(doc, d)
+		}
 		src.Exists = found
 		if !found {
 			return src, nil
@@ -212,7 +224,15 @@ type Store struct {
 	flag  string
 	snap  *Snapshot
 	specs map[string]ext.SettingSpec
+	env   Env
 }
+
+// SetEnv applies environment overrides (CLAUDE_CODE_SYNTAX_HIGHLIGHT wins over the
+// syntaxHighlightingDisabled setting, as in Claude Code).
+func (s *Store) SetEnv(e Env) { s.env = e }
+
+// Env returns the environment overrides.
+func (s *Store) Env() Env { return s.env }
 
 var (
 	_ ext.ScopedSettings       = (*Store)(nil)
@@ -248,6 +268,9 @@ var globalFallback = map[string]bool{
 
 // Claude returns a merged Claude Code setting.
 func (s *Store) Claude(key string) (any, bool) {
+	if key == "syntaxHighlightingDisabled" && s.env.SyntaxHighlight != nil {
+		return !*s.env.SyntaxHighlight, true
+	}
 	if v, ok := s.snap.Merged[key]; ok {
 		return v, true
 	}
