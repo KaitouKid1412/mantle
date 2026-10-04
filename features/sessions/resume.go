@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -67,12 +68,20 @@ type switchOpts struct {
 	at      string // --resume-session-at: truncate history at this message uuid
 	command string // the command shown in the restart guard ("/resume")
 	reason  string // notice text on success ("" = none)
+	// skipSummary skips the resume-from-summary offer; compactAfter compacts once the
+	// engine is back.
+	skipSummary, compactAfter bool
 }
 
 // switchTo shows meta's history and restarts the main engine on it.
 func (f *feature) switchTo(ctx ext.Ctx, meta sessions.SessionMeta, o switchOpts) tea.Cmd {
 	if o.command == "" {
 		o.command = "/resume"
+	}
+	if !o.skipSummary && f.summaryWorthy(ctx, meta.LastActive, meta.ContextTokens) {
+		return ctx.OpenDialog(DialogResumeSummary, summaryArgs{
+			meta: meta, sw: o, idle: f.now().Sub(meta.LastActive), tokens: meta.ContextTokens,
+		})
 	}
 	if warn, ok := f.restartGuard(ctx, ext.MainEngine, "switch:"+meta.ID, o.command); !ok {
 		return warn
@@ -120,6 +129,10 @@ type historyMsg struct {
 	cwd     string // the session's own cwd
 	foreign bool   // the session belongs to another project
 	err     error
+	// lastActive and tokens describe the end of the branch shown (for the
+	// resume-from-summary offer).
+	lastActive time.Time
+	tokens     int64
 }
 
 // loadCmd reads and normalizes a transcript off the UI goroutine.
@@ -151,6 +164,7 @@ func (f *feature) loadCmd(req loadReq) tea.Cmd {
 			SubagentsDir: sessions.SubagentsDir(filepath.Dir(path), sessions.SessionIDFromPath(path)),
 		})
 		m.title = tr.Title()
+		m.lastActive, m.tokens = branchEnd(tr)
 		for _, e := range tr.Entries {
 			if e.Cwd != "" && !e.IsSidechain {
 				m.cwd = e.Cwd
@@ -204,6 +218,11 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 				info.Title = title
 				cmds = append(cmds, ext.Msg(ext.SessionChangedMsg{EngineID: req.engineID, Info: info}))
 			}
+			if f.summaryWorthy(ctx, m.lastActive, m.tokens) {
+				cmds = append(cmds, ctx.OpenDialog(DialogResumeSummary, summaryArgs{
+					startup: true, idle: f.now().Sub(m.lastActive), tokens: m.tokens,
+				}))
+			}
 		}
 		return tea.Sequence(cmds...)
 
@@ -250,6 +269,9 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 	if sw.fork {
 		info.Title = ""
 	}
+	if sw.compactAfter {
+		f.compactOnAttach = true
+	}
 	cmds := []tea.Cmd{
 		ext.Msg(ext.TranscriptHistoryMsg{EngineID: req.engineID, Items: m.items, Reset: true}),
 		ctx.Reprint(),
@@ -270,4 +292,23 @@ func shellQuote(s string) string {
 		return s
 	}
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// branchEnd is when the shown branch was last active and its context size then (the
+// last main-thread response's input, cache and output tokens).
+func branchEnd(tr *sessions.Transcript) (time.Time, int64) {
+	es := tr.Main(sessions.BranchOptions{})
+	var last time.Time
+	if len(es) > 0 {
+		last = es[len(es)-1].Timestamp
+	}
+	for i := len(es) - 1; i >= 0; i-- {
+		e := es[i]
+		if e.Kind() == sessions.KindAssistant && !e.IsAPIErrorMessage && e.Message != nil && e.Message.Usage != nil &&
+			e.Message.Model != "<synthetic>" {
+			u := e.Message.Usage
+			return last, u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens + u.OutputTokens
+		}
+	}
+	return last, 0
 }

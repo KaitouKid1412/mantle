@@ -214,7 +214,7 @@ Everything about conversations as objects:
   utilization/resetsAt; `d`/`w` toggles day/week), local stats from the index. Auto-compact
   warning when context is high ("Context left until auto-compact: N%") from
   `get_context_usage` or result usage.
-- [ ] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
+- [x] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
   as is, or compact first. Mark as H if the engine offers no wire.
 
 ## Design notes

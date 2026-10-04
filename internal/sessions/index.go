@@ -49,7 +49,7 @@ type cacheFile struct {
 }
 
 // cacheVersion changes whenever SessionMeta or its extraction changes meaning.
-const cacheVersion = 1
+const cacheVersion = 2
 
 // NewIndex returns an index over l's projects. cachePath "" disables the disk cache.
 func NewIndex(l Layout, cachePath string) *Index {

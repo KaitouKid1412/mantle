@@ -47,6 +47,8 @@ type feature struct {
 	// branching is a /branch waiting for its fork's session id.
 	branching *branching
 	seq       int // for IDs of items this feature adds
+	// compactOnAttach sends /compact when the main engine next attaches.
+	compactOnAttach bool
 
 	// startupSpawn returns the main engine's options as parsed from the command line
 	// (plan 11's cli.Current().Spawn).
@@ -115,6 +117,7 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerUsage(r)
 	f.registerRewind(r)
 	f.registerDiff(r)
+	f.registerSummary(r)
 	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
 	ext.Subscribe(r, "sessions.notify", f.onNotify)
 	ext.Subscribe(r, "sessions.cwd-changed", f.onCwdChanged)
