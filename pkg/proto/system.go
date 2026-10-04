@@ -31,6 +31,7 @@ const (
 	SysPluginInstall          = "plugin_install"
 	SysControlRequestProgress = "control_request_progress"
 	SysWorkerShuttingDown     = "worker_shutting_down"
+	SysMirrorError            = "mirror_error" // with --session-mirror (since proto-v1)
 
 	// Internal or optional subtypes (may not be emitted on plain stdio).
 	SysSessionTitleChanged = "session_title_changed"
@@ -68,6 +69,7 @@ var systemTypes = map[string]func() Event{
 	SysPluginInstall:          func() Event { return &PluginInstall{} },
 	SysControlRequestProgress: func() Event { return &SystemOther{} },
 	SysWorkerShuttingDown:     func() Event { return &SystemOther{} },
+	SysMirrorError:            func() Event { return &SystemOther{} },
 	SysSessionTitleChanged:    func() Event { return &SessionTitleChanged{} },
 	SysTurnDuration:           func() Event { return &TurnDuration{} },
 	SysAPIError:               func() Event { return &SystemOther{} },
