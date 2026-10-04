@@ -143,8 +143,10 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   section 8 (request 12-10, tested by `TestSidebarExample`).
 - Switching: the host picks the layout from `tui` / `CLAUDE_CODE_NO_FLICKER` /
   `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN` and screen-reader mode, and switches live on
-  `ext.LayoutRequestMsg` (request 12-01, resolved); plan 08 is asked to send it from
-  `/tui`. `CLAUDE_CODE_DISABLE_MOUSE` is the host's `Options.NoMouse`.
+  `ext.LayoutRequestMsg` (request 12-01, resolved); plan 08's `/tui` (and the /config
+  Renderer row) sends it, and /config has a fullscreen-only
+  `wheelScrollAccelerationEnabled` row. `CLAUDE_CODE_DISABLE_MOUSE` is the host's
+  `Options.NoMouse`.
 - Tests: `make test-12`: model unit tests, story goldens at 80/120/200 columns, vt tests
   in the real host (layout, PgUp/ctrl+home/end, pill, header, wheel, drag-copy, click
   expand, search, sidebar + resize), and full-screen vt goldens at 80×24, 120×40 and
