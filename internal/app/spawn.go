@@ -22,14 +22,34 @@ type spawnFailedMsg struct {
 // startMain spawns the main engine after OnStart hooks: through the startup gates
 // when a feature subscribes to ext.SpawnGateMsg, else directly.
 func (r *Root) startMain() tea.Cmd {
+	if adopt := r.opts.Adopt; adopt != nil {
+		log := r.log()
+		return func() tea.Msg {
+			if err := adopt(); err != nil {
+				log.Error("engine: adopt failed; spawning instead", "err", err)
+				return adoptFailedMsg{err: err}
+			}
+			log.Debug("engine: adopted handed-over engines")
+			return nil
+		}
+	}
+	return r.spawnMain()
+}
+
+type adoptFailedMsg struct{ err error }
+
+// spawnMain spawns the main engine through the gates (or directly).
+func (r *Root) spawnMain() tea.Cmd {
 	if r.opts.MainSpawn == nil || r.opts.Spawn == nil {
 		return nil
 	}
 	opts := *r.opts.MainSpawn
 	proceed := func(o ext.SpawnOpts) tea.Cmd { return r.spawnCmd(ext.MainEngine, o) }
 	if len(r.subs[reflect.TypeFor[ext.SpawnGateMsg]()]) == 0 {
+		r.log().Debug("main engine: spawning (no startup gates)")
 		return proceed(opts)
 	}
+	r.log().Debug("main engine: startup gates first")
 	return ext.Msg(ext.SpawnGateMsg{
 		EngineID: ext.MainEngine,
 		Opts:     opts,
@@ -41,9 +61,11 @@ func (r *Root) startMain() tea.Cmd {
 }
 
 func (r *Root) spawnCmd(id string, o ext.SpawnOpts) tea.Cmd {
-	spawn := r.opts.Spawn
+	spawn, log := r.opts.Spawn, r.log()
 	return func() tea.Msg {
+		log.Debug("engine: spawn", "id", id, "resume", o.Resume)
 		if err := spawn(id, o); err != nil {
+			log.Error("engine: spawn failed", "id", id, "err", err)
 			return spawnFailedMsg{engineID: id, err: err}
 		}
 		return nil

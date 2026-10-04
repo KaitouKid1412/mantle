@@ -60,23 +60,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "mantle:", err)
 		return 1
 	}
-	resolver := cli.ResolverFuncs{
-		ContinueFunc: func(cwd string) (string, error) {
-			m, err := ix.Continue(cwd)
-			return m.ID, err
-		},
-		ResolveFunc: func(cwd, arg string) (string, string, error) {
-			r, err := ix.Resolve(cwd, arg)
-			if err != nil {
-				return "", "", err
-			}
-			if r.Session != nil {
-				return r.Session.ID, "", nil
-			}
-			return "", r.Query, nil
-		},
-	}
-	st, err := p.Startup(cwd, resolver)
+	st, err := p.Startup(cwd, cli.IndexResolver{Index: ix}) // plan 06's index, saved on exit
 	if err != nil {
 		fmt.Fprintln(stderr, "mantle:", err)
 		return 1
@@ -103,6 +87,8 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		return ext.ExitUsage
 	}
 	store := config.NewStore(paths, flag)
+	env := config.ReadEnv(os.Getenv)
+	store.SetEnv(env)
 	host := app.NewHost(ext.Pending(), app.HostOptions{
 		Safe:     os.Getenv(ext.EnvSafe) == "1",
 		Disabled: config.DisabledIDs(config.ReadDisabled(paths)),
@@ -117,6 +103,11 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		logger.Warn("custom theme", "err", e)
 	}
 	ui := store.UI()
+	a11y := ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || env.ScreenReader, ReducedMotion: ui.PrefersReducedMotion}
+	layout := ext.Inline
+	if (ui.TUI == "fullscreen" || env.NoFlicker) && !env.DisableAltScreen && !a11y.ScreenReader {
+		layout = ext.Fullscreen
+	}
 
 	var prog *tea.Program
 	mgr := engine.NewManager(func(m tea.Msg) { prog.Send(m) })
@@ -127,7 +118,11 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		Host:          host,
 		Settings:      store,
 		Logger:        logger,
-		A11y:          ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || truthy(os.Getenv("CLAUDE_AX_SCREEN_READER")), ReducedMotion: ui.PrefersReducedMotion},
+		A11y:          a11y,
+		Layout:        layout,
+		NoAltScreen:   env.DisableAltScreen,
+		NoMouse:       env.DisableMouse,
+		NoTitle:       env.DisableTerminalTitle,
 		KeymapSources: config.LoadKeymapSources(paths),
 		StateDir:      paths.StateDir(),
 		CustomThemes:  config.ThemeMap(themes),
