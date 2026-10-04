@@ -135,6 +135,11 @@ func TestCatalog(t *testing.T) {
 	if _, err := parseCatalog([]byte("not json")); err == nil {
 		t.Error("want an error")
 	}
+	// The current shape: an object with entries.
+	c, err = parseCatalog([]byte(`{"apiVersion":1,"entries":[{"kind":"command","id":"cmd.model"},{"kind":"renderer","id":"render.tool.Read"}],"themes":["dark"]}`))
+	if err != nil || !c.Commands["model"] || !c.HasToolRenderer("Read") {
+		t.Errorf("object catalog: %+v %v", c, err)
+	}
 	if c, err := loadCatalog(context.Background(), "none"); c != nil || err != nil {
 		t.Errorf("none: %v %v", c, err)
 	}
