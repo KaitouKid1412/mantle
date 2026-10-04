@@ -1,0 +1,20 @@
+{"type":"system","subtype":"init","uuid":"i0","cwd":"/work/app","tools":["Agent","Read","Grep"],"mcp_servers":[],"model":"model-a","permissionMode":"default","slash_commands":[],"claude_code_version":"2.1.288","output_style":"default"}
+{"type":"user","uuid":"u1","isReplay":true,"message":{"role":"user","content":"Audit the repo for TODOs and for unused exports, in parallel."}}
+{"type":"assistant","uuid":"a1","message":{"id":"m1","content":[{"type":"text","text":"I'll run two agents in parallel."}]}}
+{"type":"assistant","uuid":"a2","message":{"id":"m1","content":[{"type":"tool_use","id":"ag1","name":"Agent","input":{"description":"Find TODOs","prompt":"List TODO comments.","subagent_type":"Explore"}}]}}
+{"type":"assistant","uuid":"a3","message":{"id":"m1","content":[{"type":"tool_use","id":"ag2","name":"Task","input":{"description":"Find unused exports","prompt":"List unused exported identifiers.","subagent_type":"general-purpose"}}]}}
+{"type":"system","subtype":"task_started","uuid":"ts1","task_id":"k1","tool_use_id":"ag1","description":"Find TODOs","subagent_type":"Explore"}
+{"type":"system","subtype":"task_started","uuid":"ts2","task_id":"k2","tool_use_id":"ag2","description":"Find unused exports","subagent_type":"general-purpose"}
+{"type":"assistant","uuid":"b1","parent_tool_use_id":"ag1","message":{"id":"m2","content":[{"type":"tool_use","id":"g1","name":"Grep","input":{"pattern":"TODO","path":"/work/app","output_mode":"content"}}]}}
+{"type":"assistant","uuid":"b2","parent_tool_use_id":"ag2","message":{"id":"m3","content":[{"type":"tool_use","id":"g2","name":"Grep","input":{"pattern":"^func [A-Z]","path":"/work/app"}}]}}
+{"type":"user","uuid":"c1","parent_tool_use_id":"ag2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"g2","content":"12 files"}]},"tool_use_result":{"mode":"files_with_matches","filenames":["a.go"],"numFiles":12}}
+{"type":"user","uuid":"c2","parent_tool_use_id":"ag1","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"g1","content":"main.go:3: // TODO"}]},"tool_use_result":{"mode":"content","content":"main.go:3: // TODO remove\nutil.go:9: // TODO speed up","numLines":2}}
+{"type":"system","subtype":"task_progress","uuid":"tp1","task_id":"k1","description":"Find TODOs","usage":{"total_tokens":5200,"tool_uses":1,"duration_ms":2100},"last_tool_name":"Grep"}
+{"type":"assistant","uuid":"b3","parent_tool_use_id":"ag1","message":{"id":"m4","content":[{"type":"text","text":"Two TODOs found."}]}}
+{"type":"user","uuid":"c3","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"ag1","content":[{"type":"text","text":"Two TODOs: main.go:3 and util.go:9."}]}]},"tool_use_result":{"status":"completed","totalDurationMs":4200,"totalTokens":6100,"totalToolUseCount":1}}
+{"type":"assistant","uuid":"b4","parent_tool_use_id":"ag2","message":{"id":"m5","content":[{"type":"tool_use","id":"r2","name":"Read","input":{"file_path":"/work/app/a.go"}}]}}
+{"type":"user","uuid":"c4","parent_tool_use_id":"ag2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r2","content":"package a"}]},"tool_use_result":{"type":"text","file":{"filePath":"/work/app/a.go","content":"package a\n","numLines":1,"startLine":1,"totalLines":1}}}
+{"type":"system","subtype":"task_notification","uuid":"tn2","task_id":"k2","status":"completed","summary":"Three unused exports","usage":{"total_tokens":9800,"tool_uses":2,"duration_ms":6900}}
+{"type":"user","uuid":"c5","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"ag2","content":[{"type":"text","text":"Unused: Foo, Bar, Baz."}]}]},"tool_use_result":{"status":"completed","totalDurationMs":6900,"totalTokens":9800,"totalToolUseCount":2}}
+{"type":"assistant","uuid":"a4","message":{"id":"m1","content":[{"type":"text","text":"Both agents finished:\n\n1. **TODOs:** `main.go:3`, `util.go:9`\n2. **Unused exports:** `Foo`, `Bar`, `Baz`"}]}}
+{"type":"result","subtype":"success","uuid":"res1","duration_ms":9100,"duration_api_ms":7000,"is_error":false,"num_turns":3,"result":"Both agents finished.","total_cost_usd":0.02}

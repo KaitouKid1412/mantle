@@ -1,6 +1,6 @@
 # 03 → 11: how `--verbose` reaches the transcript
 
-**Status:** open (2026-10-03).
+**Status:** resolved 2026-10-03: plan 11 adds `{"verbose": true}` to the flag scope (`cli.Startup.FlagSettings()`), so `Settings().Claude("verbose")` is true with `--verbose`.
 
 Plan 11 says `--verbose` "sets mantle's verbose view and is also forwarded". The
 transcript (plan 03) decides the view mode from the merged Claude Code settings:

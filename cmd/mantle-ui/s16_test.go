@@ -83,9 +83,7 @@ func TestSuspendResumeUnderShell(t *testing.T) {
 		t.Fatalf("engine left stopped after fg (ps stat %q)", out)
 	}
 
-	p.Send("ctrl+c")
-	time.Sleep(100 * time.Millisecond)
-	p.Send("ctrl+c")
+	quitWithCtrlC(t, p)
 	p.WaitFor(func(s string) bool { return strings.HasSuffix(strings.TrimSpace(s), "SHELL$") }, 10*time.Second)
 	p.Type("exit\r")
 	if code := p.ExitCode(5 * time.Second); code != 0 {

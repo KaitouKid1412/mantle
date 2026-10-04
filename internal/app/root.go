@@ -48,6 +48,12 @@ type Options struct {
 	Stop func(engineID string) error
 	// NoBackgroundQuery skips asking the terminal for its background colour (tests).
 	NoBackgroundQuery bool
+	// NoAltScreen refuses the fullscreen layout (CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN).
+	NoAltScreen bool
+	// NoMouse keeps the mouse off in fullscreen (CLAUDE_CODE_DISABLE_MOUSE).
+	NoMouse bool
+	// NoTitle never sets the terminal window title (CLAUDE_CODE_DISABLE_TERMINAL_TITLE).
+	NoTitle bool
 }
 
 // comp is a mounted component with its render cache.
@@ -110,6 +116,8 @@ type Root struct {
 
 	frameShown int // height of the last inline frame
 	shrink     shrinkState
+
+	sidebarDelta map[ext.Slot]int // fullscreen sidebar width adjustments
 
 	exitCode   int
 	exitReason string
@@ -432,6 +440,7 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.quitting = true
 		cmds = append(cmds, r.broadcast(msg), tea.Quit)
 	case ext.EngineAttachMsg:
+		r.log().Debug("engine: attached", "id", m.EngineID)
 		r.engines[m.EngineID] = m.Engine
 		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineStartMsg:
@@ -440,6 +449,17 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if r.opts.Spawn != nil {
 			cmds = append(cmds, r.spawnCmd(m.EngineID, m.Opts))
 		}
+		cmds = append(cmds, r.broadcast(msg))
+	case ext.LayoutRequestMsg:
+		cmds = append(cmds, r.layoutRequest(m))
+	case ext.SidebarResizeMsg:
+		if r.sidebarDelta == nil {
+			r.sidebarDelta = map[ext.Slot]int{}
+		}
+		// Keep the stored delta within what sidebarWidth can show.
+		base := SidebarWidth(r.w)
+		r.sidebarDelta[m.Slot] = min(max(r.sidebarDelta[m.Slot]+m.Delta, 12-base), max(12, r.w/2)-base)
+		r.invalidateAll()
 		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineStopMsg:
 		if stop := r.opts.Stop; stop != nil {

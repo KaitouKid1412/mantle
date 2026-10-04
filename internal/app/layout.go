@@ -234,7 +234,7 @@ func (r *Root) terminalState(v *tea.View) {
 		if !r.safe(c.feature, c.m.comp.ID()+".TerminalState", func() { s = ts.TerminalState(r.ctx) }) {
 			continue
 		}
-		if v.WindowTitle == "" {
+		if v.WindowTitle == "" && !r.opts.NoTitle {
 			v.WindowTitle = s.WindowTitle
 		}
 		if v.ProgressBar == nil {

@@ -44,10 +44,14 @@ func init() {
 func Setup(r ext.Registrar) error {
 	ext.Subscribe(r, FeatureID+".events", func(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 		before, after, ok := eco.State.Observe(m.EngineID, m.Event)
-		if !ok || after.NeedsAuth == 0 || after.NeedsAuth == before.NeedsAuth {
+		if !ok {
 			return nil
 		}
-		return ctx.Notify(MCPNeedsAuthNotice(after.NeedsAuth))
+		status := ext.Msg(MCPStatus(m.EngineID, after))
+		if after.NeedsAuth == 0 || after.NeedsAuth <= before.NeedsAuth {
+			return status
+		}
+		return tea.Batch(status, ctx.Notify(MCPNeedsAuthNotice(after.NeedsAuth)))
 	})
 	ext.Subscribe(r, FeatureID+".detach", func(ctx ext.Ctx, m ext.EngineDetachMsg) tea.Cmd {
 		eco.State.Forget(m.EngineID)
@@ -57,9 +61,15 @@ func Setup(r ext.Registrar) error {
 	return nil
 }
 
-// MCPNeedsAuthNotice is the notice raised when MCP servers need OAuth. The
-// footer (plan 07) can match its Key until pkg/ext carries a typed message
-// (docs/plans/requests/09-01-mcp-status-msg.md).
+// MCPStatus converts tracker counts to the footer's message.
+func MCPStatus(engineID string, c eco.MCPCounts) ext.MCPStatusMsg {
+	if engineID == "" {
+		engineID = ext.MainEngine
+	}
+	return ext.MCPStatusMsg{EngineID: engineID, Total: c.Total, Connected: c.Connected, NeedsAuth: c.NeedsAuth, Failed: c.Failed}
+}
+
+// MCPNeedsAuthNotice is the notice raised when more MCP servers need OAuth.
 func MCPNeedsAuthNotice(n int) ext.Notice {
 	s := "s need"
 	if n == 1 {

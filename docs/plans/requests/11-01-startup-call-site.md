@@ -14,7 +14,7 @@ if done { // exec claude (-p, subcommands), --version, --help, usage errors (exi
 	os.Exit(code)
 }
 cwd, _ := os.Getwd()
-st, err := p.Startup(cwd, resolver) // resolver: plan 06's index, see below; nil is allowed
+st, err := p.Startup(cwd, cli.DefaultResolver()) // plan 06's session index
 if err != nil { // e.g. -c with no session, -r <id> that doesn't exist
 	fmt.Fprintln(os.Stderr, "mantle:", err)
 	os.Exit(1)
@@ -27,19 +27,8 @@ opts.A11y.ScreenReader = opts.A11y.ScreenReader || st.ScreenReader
 if st.Safe { os.Setenv(ext.EnvSafe, "1") } // mantle --safe reached mantle-ui directly
 ```
 
-Resolver for plan 06's `internal/sessions` (once merged):
-
-```go
-resolver := cli.ResolverFuncs{
-	ContinueFunc: func(cwd string) (string, error) { m, err := ix.Continue(cwd); return m.ID, err },
-	ResolveFunc: func(cwd, arg string) (string, string, error) {
-		r, err := ix.Resolve(cwd, arg)
-		if err != nil { return "", "", err }
-		if r.Session != nil { return r.Session.ID, "", nil }
-		return "", r.Query, nil
-	},
-}
-```
+`cli.DefaultResolver()` wraps plan 06's `internal/sessions` index at Claude Code's default
+locations (`cli.IndexResolver{Index: ix}` reuses an index you already have).
 
 mantle's own config store should take its flag scope from `st.FlagSettings()` instead of the
 raw `--settings` value: it is the user's `--settings` plus `{"verbose": true}` for

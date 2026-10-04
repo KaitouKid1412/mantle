@@ -108,7 +108,7 @@ func (f *Feature) hidden(it *ext.Item) bool {
 	}
 	switch it.Key {
 	case ext.KeyUserPrompt, ext.KeyUserBash, ext.KeyAssistantText, ext.KeySystemError,
-		ext.KeySystemLocalCommand, ext.KeySystemCompactBoundary, ext.ToolKey("SendUserMessage"):
+		ext.KeySystemLocalCommand, ext.KeySystemCompactBoundary, ext.ToolKey("SendUserMessage"), ext.ToolKey("Brief"):
 		return false
 	case KeyResult:
 		return m == ext.Brief

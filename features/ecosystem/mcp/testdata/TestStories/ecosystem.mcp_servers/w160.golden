@@ -1,0 +1,16 @@
+[1;38;2;224;149;110mMCP servers[m[38;2;139;139;147m · 2 connected of 5[m
+
+  [1;38;2;230;227;222mLocal · this project, only you[m
+  [38;2;147;180;251m❯ [m[38;2;111;194;139m✓[m [38;2;147;180;251mfilesystem        [m  [38;2;139;139;147mconnected · 3 tools[m
+
+  [1;38;2;230;227;222mProject · .mcp.json[m
+    [38;2;239;122;128m✗[m [38;2;230;227;222mbroken            [m  [38;2;139;139;147mfailed · spawn /usr/local/bin/broken-mcp ENOENT[m
+
+  [1;38;2;230;227;222mUser · all projects[m
+    [38;2;139;139;147m○[m [38;2;230;227;222mquiet             [m  [38;2;139;139;147mdisabled[m
+    [38;2;231;183;95m![m [38;2;230;227;222msearch            [m  [38;2;139;139;147mneeds sign-in[m
+
+  [1;38;2;230;227;222mclaude.ai connectors[m
+    [38;2;111;194;139m✓[m [38;2;230;227;222mclaude.ai Example Docs[m  [38;2;139;139;147mconnected · 1 tool[m
+
+  [38;2;139;139;147menter details · space enable/disable · r reconnect · a sign in · n add · x remove · esc close[m

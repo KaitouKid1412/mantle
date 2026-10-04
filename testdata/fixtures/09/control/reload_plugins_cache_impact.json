@@ -1,0 +1,14 @@
+{
+  "commands": [],
+  "agents": [],
+  "plugins": [],
+  "mcpServers": [],
+  "error_count": 1,
+  "held": true,
+  "cache_impact": {
+    "reason": "plugin MCP servers changed",
+    "servers": [
+      "plugin:demo:search"
+    ]
+  }
+}

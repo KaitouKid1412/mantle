@@ -110,15 +110,40 @@ func (e *Engine) Subtypes() []string {
 
 var _ ext.Engine = (*Engine)(nil)
 
-// NewCtx returns an exttest.Ctx with the engine attached and a session in cwd.
-func NewCtx(eng *Engine, cwd string) *exttest.Ctx {
+// Ctx is an exttest.Ctx that also records the args of every OpenDialog.
+type Ctx struct {
+	*exttest.Ctx
+	DialogArgs []any // parallel to Opened
+}
+
+// OpenDialog records the dialog ID and its args.
+func (c *Ctx) OpenDialog(id string, args any) tea.Cmd {
+	c.DialogArgs = append(c.DialogArgs, args)
+	return c.Ctx.OpenDialog(id, args)
+}
+
+// Handoffs returns the args of every hand-off dialog opened, joined by spaces.
+func (c *Ctx) Handoffs() []string {
+	var out []string
+	for i, id := range c.Opened {
+		if id != eco.HandoffDialogID || i >= len(c.DialogArgs) {
+			continue
+		}
+		a, _ := c.DialogArgs[i].([]string)
+		out = append(out, strings.Join(a, " "))
+	}
+	return out
+}
+
+// NewCtx returns a test Ctx with the engine attached and a session in cwd.
+func NewCtx(eng *Engine, cwd string) *Ctx {
 	c := exttest.NewCtx()
 	c.SessionValue = ext.SessionInfo{EngineID: ext.MainEngine, SessionID: "11111111-2222-4333-8444-555555555555",
 		Cwd: cwd, Model: "claude-test", PermissionMode: "default"}
 	if eng != nil {
 		c.Engines[ext.MainEngine] = eng
 	}
-	return c
+	return &Ctx{Ctx: c}
 }
 
 // Execs records commands handed the terminal. Install it with Capture.
@@ -228,7 +253,7 @@ func Key(s string) tea.KeyPressMsg {
 // Press routes keys like the host: the dialog's contexts (then Global) are
 // looked up in the default bindings; a bound action goes to HandleAction, and
 // anything unhandled to HandleKey. Resulting Cmds are driven.
-func Press(t *testing.T, ctx *exttest.Ctx, d ext.Dialog, keys ...string) []tea.Msg {
+func Press(t *testing.T, ctx ext.Ctx, d ext.Dialog, keys ...string) []tea.Msg {
 	t.Helper()
 	var seen []tea.Msg
 	for _, key := range keys {
@@ -244,7 +269,7 @@ func Press(t *testing.T, ctx *exttest.Ctx, d ext.Dialog, keys ...string) []tea.M
 		if ah, ok := d.(ext.ActionHandler); ok {
 		lookup:
 			for _, c := range contexts {
-				for _, b := range ctx.Bindings {
+				for _, b := range ext.DefaultBindings {
 					if b.Context == c && (b.Keys == name || b.Keys == key) {
 						handled, cmd = ah.HandleAction(ctx, b.Action)
 						break lookup

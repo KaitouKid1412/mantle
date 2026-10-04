@@ -1,6 +1,8 @@
 // Package cli carries the command line into the running UI: it shows the parser's
 // warnings, opens the resume picker for -r, and submits the positional prompt as the
-// first user message once the main engine is attached (after the startup gates).
+// first user message once the main engine is attached (after the startup gates). When
+// the installed claude is a version mantle hasn't checked, it compares it with mantle's
+// tables in the background and shows one notice (runtime drift).
 //
 // mantle-ui records the parsed command line with internal/cli.SetCurrent before the
 // host starts. Without it (tests, stories) the feature does nothing.
@@ -9,8 +11,10 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -25,7 +29,7 @@ func init() {
 	ext.Register(ext.Feature{
 		ID:     FeatureID,
 		Order:  900, // after the features whose commands it uses (resume)
-		Parity: []string{"CLI-03", "CLI-06", "CLI-27"},
+		Parity: []string{"CLI-03", "CLI-06", "CLI-25", "CLI-27"},
 		Setup:  setup,
 	})
 }
@@ -38,7 +42,49 @@ func setup(r ext.Registrar) error {
 	f := &startup{st: st}
 	r.OnStart(FeatureID, f.start)
 	ext.Subscribe(r, FeatureID+".prompt", f.attached)
+	r.OnStart(FeatureID+".drift", f.driftCheck)
+	ext.Subscribe(r, FeatureID+".drift", f.driftDone)
 	return nil
+}
+
+// runtimeDrift is icli.RuntimeDrift; tests replace it.
+var runtimeDrift = icli.RuntimeDrift
+
+// driftDoneMsg carries a finished runtime drift check.
+type driftDoneMsg struct {
+	state icli.DriftState
+	ran   bool
+	err   error
+}
+
+// driftCheck compares a newly installed engine with mantle's tables in the background
+// (never blocking startup) when its version changed since the last check.
+func (f *startup) driftCheck(ext.Ctx) tea.Cmd {
+	path := icli.DriftStatePath()
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		s, ran, err := runtimeDrift(ctx, path)
+		return driftDoneMsg{state: s, ran: ran, err: err}
+	}
+}
+
+// driftDone shows one notice when the engine adds things mantle doesn't know.
+func (f *startup) driftDone(ctx ext.Ctx, m driftDoneMsg) tea.Cmd {
+	if m.err != nil {
+		ctx.Log().Debug("runtime drift check failed", "err", m.err)
+	}
+	if len(m.state.Errors) > 0 {
+		ctx.Log().Debug("runtime drift check incomplete", "errors", strings.Join(m.state.Errors, "; "))
+	}
+	if !m.ran {
+		return nil
+	}
+	text := m.state.Notice()
+	if text == "" {
+		return nil
+	}
+	return ctx.Notify(ext.Notice{Key: FeatureID + ".drift", Text: text, Level: ext.NoticeInfo, Source: FeatureID})
 }
 
 type startup struct {

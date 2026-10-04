@@ -129,7 +129,7 @@ Also provide:
   - a trust gate reminder for the cwd.
 
 ## Part B: after `contracts-v1` and `proto-v1`
-- [ ] **B1 [M2] `/mcp` panel.**
+- [x] **B1 [M2] `/mcp` panel.**
   - Server list from `mcp_status`: name, scope, status (connected / needs-auth / failed /
     disabled), tool counts, errors.
   - Actions: enable/disable (`mcp_toggle`), reconnect (`mcp_reconnect`), authenticate
@@ -143,10 +143,10 @@ Also provide:
   - Mutations via A2 with `-y`, then `reload_plugins`. If the result reports MCP or
     cache-impact changes, offer an engine restart (`Engine.Restart` with `--resume`).
   - Show `init.plugin_errors`.
-- [ ] **B3 [M2] `/skills`.** Skills from `init.skills`, refreshed with `reload_skills`;
+- [x] **B3 [M2] `/skills`.** Skills from `init.skills`, refreshed with `reload_skills`;
   source and path from A3; cycle visibility, which writes `skillOverrides` through plan
   01's config writer; open SKILL.md in `$EDITOR`. `/skill-doctor` stays E.
-- [ ] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
+- [x] **B4 [M2] `/hooks`.** A read-only browser over `get_hooks_listing`, grouped by event,
   then matcher, then source scope, showing handler type and command/url. "Edit" opens the
   owning settings file in `$EDITOR`.
 - [ ] **B5 [M2] `/agents`.**
@@ -156,7 +156,7 @@ Also provide:
     `initialize.agents` after a reload).
   - Edit and delete with confirmation. In 2.1.288 Claude Code's `/agents` is marked removed,
     so mantle's version is a convenience; keep it minimal.
-- [ ] **B6 [M2] `/memory` and `/pause-memory`.**
+- [x] **B6 [M2] `/memory` and `/pause-memory`.**
   - List memory files (A3 plus `init.memory_paths`) and open one in `$EDITOR`.
   - Toggle auto memory (`autoMemoryEnabled`); open the auto-memory folder.
   - After editing, call `register_repo_root {directory, reload_claude_md: true}` if

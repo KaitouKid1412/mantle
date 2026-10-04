@@ -1,8 +1,4 @@
-//go:build engine_integration
-
-// The engine argv end-to-end check for plan 11's B1. It needs plan 02's
-// internal/engine (BuildArgs), so it is tagged until both land on one branch:
-// go test -tags engine_integration ./internal/cli
+// The engine argv end-to-end check for plan 11's B1, against plan 02's BuildArgs.
 
 package cli_test
 

@@ -49,6 +49,10 @@ type Request struct {
 	Target string `json:"target,omitempty"`
 	// Original is the target mod's request, for edits.
 	Original string `json:"original,omitempty"`
+	// Pending are the commits an update still has to re-apply, oldest first.
+	Pending []string `json:"pending,omitempty"`
+	// UpdateFrom is the promotion branch's head when an update started.
+	UpdateFrom string `json:"update_from,omitempty"`
 	// Base is the commit the worktree started from.
 	Base   string `json:"base"`
 	Branch string `json:"branch"`
@@ -213,10 +217,14 @@ func (w *Workspace) Start(request, kind, target string) (*Request, error) {
 	case RequestEdit:
 		seed = "edit " + target
 	}
-	id := NewModID(seed, w.idTaken(mods))
-	base, err := w.src().RevParse(w.head())
+	return w.startAt(request, kind, target, NewModID(seed, w.idTaken(mods)), w.head())
+}
+
+// startAt creates the worktree of a request on a new branch at ref.
+func (w *Workspace) startAt(request, kind, target, id, ref string) (*Request, error) {
+	base, err := w.src().RevParse(ref)
 	if err != nil {
-		return nil, fmt.Errorf("cannot resolve %s in %s: %w", w.head(), w.Source, err)
+		return nil, fmt.Errorf("cannot resolve %s in %s: %w", ref, w.Source, err)
 	}
 	r := &Request{
 		ID: id, Request: request, Kind: kind, Target: target, Base: base,
@@ -393,13 +401,29 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 		if err != nil {
 			return nil, err
 		}
-		if ok, err := wt.IsAncestor(head, "HEAD"); err != nil {
+		if r.Kind == RequestUpdate {
+			// The update replaces the branch with the mods re-applied on the
+			// new upstream, if nothing was promoted meanwhile.
+			if head != r.UpdateFrom {
+				return nil, fmt.Errorf("%s moved while the update ran; run /mantle update again", w.Branch)
+			}
+			newHead, err := wt.HeadSHA()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := src.run("reset", "--hard", "--quiet", newHead); err != nil {
+				return nil, err
+			}
+		} else if ok, err := wt.IsAncestor(head, "HEAD"); err != nil {
 			return nil, err
 		} else if !ok {
 			if err := wt.Rebase(w.Branch); err != nil {
+				r.Base = head
+				w.Save(r)
 				return nil, err // *ConflictError leaves the rebase for the builder
 			}
 			p.Rebased = true
+			r.Base = head
 			logDir := filepath.Join(w.Layout.Build(r.ID), "promote")
 			rerun, err := NewPipeline(w.Pipeline).Run(ctx, Run{BuildID: r.ID, Dir: r.Dir, Base: head, LogDir: logDir, Steps: PostRebaseSteps})
 			if err != nil {
@@ -412,8 +436,10 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 			}
 			summary = rerun.Summary(w.Layout.Build(r.ID))
 		}
-		if err := src.MergeFastForward(r.Branch); err != nil {
-			return nil, err
+		if r.Kind != RequestUpdate {
+			if err := src.MergeFastForward(r.Branch); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -437,6 +463,36 @@ func (w *Workspace) Promote(ctx context.Context, r *Request, rep *Report) (*Prom
 		w.WriteModsCache()
 	}
 	return p, nil
+}
+
+// ContinueRebase continues a rebase the builder resolved: it stages the
+// worktree, refuses leftover conflict markers, and continues. Another
+// *ConflictError means the next commit conflicts too.
+func (w *Workspace) ContinueRebase(r *Request) error {
+	wt := w.git(r.Dir)
+	if err := stageResolved(wt); err != nil {
+		return err
+	}
+	return wt.RebaseContinue()
+}
+
+// stageResolved stages every change in a worktree and fails if a conflict
+// marker is left.
+func stageResolved(wt Git) error {
+	if _, err := wt.run("add", "-A"); err != nil {
+		return err
+	}
+	out, _ := wt.run("diff", "--cached", "--check")
+	var markers []string
+	for _, ln := range strings.Split(out, "\n") {
+		if strings.Contains(ln, "conflict marker") {
+			markers = append(markers, strings.TrimSpace(ln))
+		}
+	}
+	if len(markers) > 0 {
+		return fmt.Errorf("conflict markers are left: %s", strings.Join(markers, "; "))
+	}
+	return nil
 }
 
 func (w *Workspace) removeWorktree(r *Request) {

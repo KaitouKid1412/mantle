@@ -217,13 +217,29 @@
     otherwise exec `claude` (H).
 
   Each decision is a row in the flag table with a test.
-- [ ] **B3 [M2] Engine-reported drift.**
+- [x] **B3 [M2] Engine-reported drift.** Done: a zero-token engine session (temp
+  `CLAUDE_CONFIG_DIR` and empty cwd, so only built-ins show; dummy key; API at a closed
+  local port, so the one prompt fails locally) collects `initialize.commands`, models,
+  output styles and `system/init.tools`. Commands are classified by the catalog (native),
+  PARITY.md's slash index (E/N/H) or the baseline; tools by a specific renderer in
+  `mantle-ui catalog --json` (`-catalog auto|FILE|none`) or the baseline. The protocol list
+  runs `scripts/sdk-diff -json` when plan 02 adds it (not in the tree yet; the report says
+  so). 2.1.288 baseline: 44 commands, 20 tools, 5 models, 5 styles.
   - Add collectors that use a zero-token engine session (plan 02's conformance probe
     pattern: `initialize`, then `end_session`): `initialize.commands` (vs mantle's routing
     table: native / E / H), `init.tools` (vs plan 03's renderer keys; tools without a
     renderer fall back to the generic renderer and are flagged), output styles and models.
   - Integrate `scripts/sdk-diff` (plan 02) for protocol message and control subtypes.
-- [ ] **B4 [M2] Runtime drift notice.** When plan 02 detects an engine version change
+- [x] **B4 [M2] Runtime drift notice.** Done in `features/cli` + `cli.RuntimeDrift`: on
+  start, a background Cmd runs `claude --version`; when it differs from
+  `~/.mantle/state/drift.json`, it compares `claude --help` flags and a zero-token engine
+  session's built-in commands and tools with the tables embedded in the binary
+  (`internal/cli/known_engine.json`, written by `scripts/drift -accept`, and the flag
+  table), records the result and shows one notice. New flags' arity is fed back to the
+  parser on later starts (`TableWithLearnt`), so a new flag's value is never taken for the
+  prompt. `MANTLE_DRIFT_CHECK=off` disables it (tests, CI). Plan 02's version probe (B9)
+  isn't needed: the check keys on the version itself.
+  Original text: When plan 02 detects an engine version change
   (probe), compare engine-reported commands, tools and flags against the tables embedded in
   the binary. Show one notice, e.g. "Claude Code 2.1.290 adds 3 commands mantle doesn't know
   yet; they work as engine passthrough". Record the result in `~/.mantle/state/drift.json`.
