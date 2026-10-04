@@ -72,11 +72,22 @@ func storyEnv() []string {
 	return append(os.Environ(), "ANTHROPIC_BASE_URL=http://127.0.0.1:9", "NO_COLOR=")
 }
 
-// storyIDs reads `mantle-ui catalog --json` and returns the story ids. The
-// format is plan 01's; this accepts a list of entries (or an object holding
-// one) where stories have kind or type "story".
+// storyIDs lists the story ids of a mantle-ui binary: `story --list` (one id
+// per line), else the entries of kind "story" in `catalog --json`.
 func storyIDs(ctx context.Context, bin string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, bin, "catalog", "--json")
+	list := exec.CommandContext(ctx, bin, "story", "--list")
+	list.Env = storyEnv()
+	if out, err := list.Output(); err == nil {
+		var ids []string
+		for _, ln := range strings.Split(string(out), "\n") {
+			if ln = strings.TrimSpace(ln); ln != "" {
+				ids = append(ids, ln)
+			}
+		}
+		slices.Sort(ids)
+		return slices.Compact(ids), nil
+	}
+	cmd := exec.CommandContext(ctx, bin, "catalog", "--json", "--kind", "story")
 	cmd.Env = storyEnv()
 	out, err := cmd.Output()
 	if err != nil {

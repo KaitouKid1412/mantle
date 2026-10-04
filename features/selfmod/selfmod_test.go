@@ -753,7 +753,19 @@ func TestDiffStories(t *testing.T) {
 	if len(diffs) != 2 || !diffs[0].New {
 		t.Errorf("without a current build: %+v", diffs)
 	}
+	// mantle-ui story --list is preferred over the catalog.
+	lister := filepath.Join(dir, "lister")
+	os.WriteFile(lister, []byte("#!/bin/sh\nif [ \"$1\" = story ] && [ \"$2\" = --list ]; then printf 'z/two\\n\\nz/one\\n'; exit 0; fi\necho \"render $2\"\n"), 0o755)
+	diffs, err = DiffStories(context.Background(), "", lister)
+	if err != nil || len(diffs) != 2 || diffs[0].ID != "z/one" || diffs[0].After != "render z/one" {
+		t.Errorf("story --list diffs = %+v, %v", diffs, err)
+	}
 	var ids []string
+	collectStories(map[string]any{"apiVersion": 1, "entries": []any{map[string]any{"kind": "story", "id": "e1"}, map[string]any{"kind": "command", "id": "cmd.x"}}}, false, &ids)
+	if !slices.Equal(ids, []string{"e1"}) {
+		t.Errorf("catalog entries = %v", ids)
+	}
+	ids = nil
 	collectStories(map[string]any{"stories": []any{"s1", map[string]any{"id": "s2"}}, "commands": []any{map[string]any{"id": "c"}}}, false, &ids)
 	slices.Sort(ids)
 	if !slices.Equal(ids, []string{"s1", "s2"}) {
