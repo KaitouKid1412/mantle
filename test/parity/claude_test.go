@@ -19,6 +19,26 @@ func TestClaudeScenariosDeterministic(t *testing.T) {
 	if _, err := exec.LookPath("claude"); err != nil {
 		t.Skip("claude not on PATH")
 	}
+	deterministic(t, ClaudeTarget{})
+}
+
+// TestMantleScenariosDeterministic is the same for mantle-ui built from this tree (its
+// engine is the installed claude). Opt in with MANTLE_PARITY_MANTLE=1.
+func TestMantleScenariosDeterministic(t *testing.T) {
+	if os.Getenv("MANTLE_PARITY_MANTLE") != "1" {
+		t.Skip("set MANTLE_PARITY_MANTLE=1 to build and drive mantle-ui")
+	}
+	if _, err := exec.LookPath("claude"); err != nil {
+		t.Skip("claude not on PATH (mantle's engine)")
+	}
+	bin, err := BuildMantleUI(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	deterministic(t, MantleTarget{Bin: bin})
+}
+
+func deterministic(t *testing.T, tg Target) {
 	scs, err := LoadScenarios("scenarios")
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +48,7 @@ func TestClaudeScenariosDeterministic(t *testing.T) {
 		t.Run(sc.Name, func(t *testing.T) {
 			var runs [2]*Result
 			for i := range runs {
-				runs[i] = Run(context.Background(), ClaudeTarget{}, sc, RunOptions{Timeout: 90 * time.Second})
+				runs[i] = Run(context.Background(), tg, sc, RunOptions{Timeout: 90 * time.Second})
 				if runs[i].Err != nil {
 					t.Fatalf("run %d: %v\n%s", i+1, runs[i].Err, strings.Join(runs[i].Final.Screen, "\n"))
 				}

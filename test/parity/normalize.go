@@ -32,6 +32,9 @@ type Normalizer struct {
 	// Scrollback lines kept before the screen (the tail); 0 drops the scrollback, < 0
 	// keeps all of it.
 	Scrollback int
+	// CollapseBlank drops leading blank lines and folds runs of blank lines into one.
+	// Inline TUIs start drawing wherever the cursor was, so absolute rows say nothing.
+	CollapseBlank bool
 }
 
 // spinnerGlyphs are the glyphs a busy indicator cycles through (Claude Code's flower
@@ -43,7 +46,7 @@ var DefaultRules = []Rule{
 	rule("spinner", "A busy line (spinner glyph, a verb ending in …, timers and hints) becomes <spinner>.",
 		`^(\s*)[`+spinnerGlyphs+`]\s+\p{Lu}[\p{L}'-]*….*$`, "${1}<spinner>"),
 	rule("logo", "Block-element art at the start of a line (an animated startup logo, a meter) becomes <logo>.",
-		`^\s*(?:[\x{2580}-\x{259F}]+ {0,3})+`, "<logo> "),
+		`^\s*(?:[\x{2580}-\x{259F}]+ {0,3})+\s*`, "<logo> "),
 	rule("turn-done", "The turn summary line (\"✻ Baked for 12s\") loses its randomly chosen verb.",
 		`^(\s*)([`+spinnerGlyphs+`])\s+\p{Lu}[\p{L}'-]*(ed|t)\s+for\b`, "${1}${2} <verb> for"),
 	rule("tmp-path", "Temporary paths (/var/folders, /private/var, /tmp) become <tmp>.",
@@ -69,7 +72,7 @@ var DefaultRules = []Rule{
 // DefaultNormalizer strips colour, trims trailing spaces, keeps the last 200
 // scrollback lines and applies DefaultRules.
 func DefaultNormalizer() *Normalizer {
-	return &Normalizer{Rules: DefaultRules, StripColor: true, TrimTrailing: true, Scrollback: 200}
+	return &Normalizer{Rules: DefaultRules, StripColor: true, TrimTrailing: true, Scrollback: 200, CollapseBlank: true}
 }
 
 // Line normalizes one line for a run's workspace.
@@ -116,11 +119,30 @@ func (n *Normalizer) Frame(f Frame, ws Workspace) []string {
 	for _, l := range sb {
 		out = append(out, n.Line(l, ws))
 	}
+	if n.CollapseBlank {
+		out = collapseBlank(out)
+	}
 	if len(out) > 0 {
 		out = append(out, ScreenMarker)
 	}
+	var screen []string
 	for _, l := range trimBlankTail(f.Screen) {
-		out = append(out, n.Line(l, ws))
+		screen = append(screen, n.Line(l, ws))
+	}
+	if n.CollapseBlank {
+		screen = collapseBlank(screen)
+	}
+	return append(out, screen...)
+}
+
+// collapseBlank drops leading blank lines and folds blank runs into one line.
+func collapseBlank(lines []string) []string {
+	var out []string
+	for _, l := range lines {
+		if strings.TrimSpace(l) == "" && (len(out) == 0 || strings.TrimSpace(out[len(out)-1]) == "") {
+			continue
+		}
+		out = append(out, l)
 	}
 	return out
 }
@@ -139,6 +161,9 @@ func (n *Normalizer) Describe() []RuleDoc {
 	}
 	if n.TrimTrailing {
 		docs = append(docs, RuleDoc{"trim", "Trailing spaces and trailing blank lines are removed."})
+	}
+	if n.CollapseBlank {
+		docs = append(docs, RuleDoc{"blank-lines", "Leading blank lines are dropped and runs of blank lines fold into one (inline frames start wherever the cursor was)."})
 	}
 	switch {
 	case n.Scrollback == 0:

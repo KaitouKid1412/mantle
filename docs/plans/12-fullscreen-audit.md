@@ -73,8 +73,9 @@ can hold a real conversation (resume, tools with permission prompts, plan mode, 
 
 ## Part A: start once M1 is reached (A1–A3 may start earlier; they need only plan 02's fakeapi and plan 01's vt harness)
 
-Status (2026-10-03, taken over by session 07): A1, A2 and A4 done; A3 has the `claude`
-target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
+Status (2026-10-04, taken over by session 07): A1–A4 done. The `mantle` target runs
+mantle-ui built from the tree (`BuildMantleUI`) directly, with `MANTLE_HOME` in the
+workspace and the installed claude as its engine on the same fakeapi and config.
 - `test/parity`: `Term` (pty + x/vt, screen + scrollback + alt-screen flag),
   `.scn` scenarios (`ready`, `type`, `keys`, `paste`, `resize`, `wait_for [timeout]`,
   `wait_gone`, `settle`, `checkpoint`, `sleep`; header `name`, `size`, `script`, `args`,
@@ -90,8 +91,10 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
   (`scenario | checkpoint | pattern | reason`). `make parity-side-by-side`
   (`PARITY_ARGS="-run plain -targets claude"`).
 - Self-tests: the runner against a shell target (`make test-12`), and
-  `MANTLE_PARITY_CLAUDE=1 go test ./test/parity -run Claude`, which runs every scenario
-  twice against the installed claude and requires identical normalized frames.
+  `MANTLE_PARITY_CLAUDE=1` / `MANTLE_PARITY_MANTLE=1 go test ./test/parity -run
+  Deterministic`, which run every scenario twice per target and require identical
+  normalized frames. A `blank-lines` rule drops leading blank lines and folds blank runs
+  (inline frames start wherever the cursor was).
 - Observed in claude 2.1.288 (useful for B1/B2): the prompt is `❯` between two full-width
   rules; auto mode is the default permission mode, with a one-time notice under the
   header; the footer reads "⏵⏵ auto mode on (shift+tab to cycle) · ← for agents"; an
@@ -105,7 +108,7 @@ target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
 - [x] **A2 Normalization:** strip or collapse volatile content (spinner glyphs and verbs,
   durations, timestamps, costs, token counts, session ids, temp paths), with optional
   colour stripping and line-trailing-space trimming. Every rule is listed in the report.
-- [ ] **A3 Two targets:** `claude` (interactive TUI, isolated config, fakeapi) and
+- [x] **A3 Two targets:** `claude` (interactive TUI, isolated config, fakeapi) and
   `mantle` (current build, same fakeapi script, same isolated `CLAUDE_CONFIG_DIR` for its
   engine). The same scenario runs on both.
 - [x] **A4 Report generator:** per scenario and checkpoint, side-by-side frames (text) and a

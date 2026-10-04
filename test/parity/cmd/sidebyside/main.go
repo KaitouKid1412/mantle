@@ -20,7 +20,7 @@ import (
 
 func main() {
 	scenarios := flag.String("scenarios", "test/parity/scenarios", "directory of .scn files")
-	targets := flag.String("targets", "claude", "comma-separated targets; the first is the reference")
+	targets := flag.String("targets", "claude,mantle", "comma-separated targets; the first is the reference")
 	out := flag.String("out", "test/parity/out", "report directory (gitignored)")
 	allow := flag.String("allow", "test/parity/allowlist.txt", "allowlist of intentional differences")
 	runRe := flag.String("run", "", "only scenarios whose name matches this regexp")
@@ -62,8 +62,14 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 		switch strings.TrimSpace(name) {
 		case "claude":
 			tgs = append(tgs, parity.ClaudeTarget{Bin: claudeBin})
+		case "mantle":
+			bin, err := parity.BuildMantleUI(out + "/.bin")
+			if err != nil {
+				return err
+			}
+			tgs = append(tgs, parity.MantleTarget{Bin: bin})
 		default:
-			return fmt.Errorf("unknown target %q (available: claude)", name)
+			return fmt.Errorf("unknown target %q (available: claude, mantle)", name)
 		}
 	}
 	al, err := parity.LoadAllowlist(allowPath)
