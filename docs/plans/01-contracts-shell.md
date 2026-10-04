@@ -607,3 +607,23 @@ Spike S16 (process groups):
   keeps running and redraws, and the engine (its own process group) is untouched.
 - Crash restore of termios and killing the engine group are the launcher's job (plan
   10, `internal/launcher`: `TestCrashKillsEngineGroup`, `termios*.go`).
+
+## Startup layout (user decision, 2026-10-04)
+
+mantle starts in the same renderer as the installed claude (`app.StartupLayout`,
+`cmd/mantle-ui`):
+1. `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN` or screen-reader mode: inline.
+2. An explicit `tui` setting in any scope (user, project, local, `--settings`) wins:
+   `"fullscreen"` or `"default"` (inline).
+3. `CLAUDE_CODE_NO_FLICKER`: fullscreen.
+4. Otherwise claude's own default for its version, from plan 11's table
+   (`cli.DefaultsFor`): inline before 2.1.289, fullscreen from 2.1.289. Unknown versions
+   get the newest entry. `make drift` probes a fresh-config claude and flags a change.
+
+The version comes from `engineVersionHint`, which never runs claude: the pinned
+version, the native installer's `versions/<v>` symlink target, or the npm
+`package.json`. The startup gate still verifies the real version. `/tui` switches at
+runtime (`ext.LayoutRequestMsg`). In fullscreen, `PlaceInline` dialogs (permission
+prompts, pickers) take the input's place at the bottom, as inline; only
+`PlaceCentered` dialogs overlay. `TestM1FlowsBothLayouts` runs the / menu, a permission
+prompt, the reply and the statusLine in both layouts.
