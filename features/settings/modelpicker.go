@@ -45,7 +45,19 @@ func (a *area) setupModel(r ext.Registrar) error {
 
 // modelRows builds picker rows from the cached engine state and current settings.
 func (a *area) modelRows(c ext.Ctx) []model.Row {
-	return model.Rows(a.engine.models, a.engine.unavailable, model.Current{Model: a.currentModel(c)}, a.effortInputs(c))
+	rows := model.Rows(a.engine.models, a.engine.unavailable, model.Current{Model: a.currentModel(c)}, a.effortInputs(c))
+	// The engine reports the session model's effort in system/init; when nothing
+	// mantle knows sets it, that beats our assumed default.
+	if a.engine.sys != nil {
+		if e, ok := model.ParseEffort(a.engine.sys.Effort); ok {
+			for i := range rows {
+				if rows[i].Current && rows[i].Effort.Source == model.SourceDefault && len(rows[i].Efforts) > 0 {
+					rows[i].Effort.Effort = model.Clamp(e, rows[i].Efforts)
+				}
+			}
+		}
+	}
+	return rows
 }
 
 func (a *area) effortInputs(c ext.Ctx) model.EffortInputs {

@@ -24,10 +24,10 @@ func TestModelPickerApplyAndPersist(t *testing.T) {
 	if !reflect.DeepEqual(g.eng.subtypes(), []string{proto.SubListModels}) {
 		t.Errorf("controls on open %v", g.eng.subtypes())
 	}
-	g.mustContain(100, "Model", "❯ 3. Opus", "✔", "Effort", "● high")
+	g.mustContain(100, "Model", "❯ 3. Opus", "✔", "Effort", "● medium")
 
-	g.press(ext.ActSelectNext)                // Opus (1M context)
-	g.press(ext.ActModelPickerIncreaseEffort) // xhigh
+	g.press(ext.ActSelectNext)                                                  // Opus (1M context)
+	g.press(ext.ActModelPickerIncreaseEffort, ext.ActModelPickerIncreaseEffort) // medium → xhigh
 	g.mustContain(100, "❯ 4. Opus (1M context)", "● xhigh")
 	g.press(ext.ActSelectAccept)
 
