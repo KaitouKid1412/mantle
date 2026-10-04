@@ -322,6 +322,33 @@ func TestRestartArgs(t *testing.T) {
 	}
 }
 
+// The in-place restart's argv: RestartArgs plus the hand-off file. The flag is consumed,
+// and Spawn still resumes the session as the host's fallback, even when the session
+// index can't find it.
+func TestStartupAttachEngineFDs(t *testing.T) {
+	s := startup(t, "--model", "sonnet", "-n", "work")
+	argv := append(s.RestartArgs(RestartOpts{SessionID: "33333333-3333-4333-8333-333333333333"}), "--attach-engine-fds=/run/42.handoff.json")
+	p, err := Parse(argv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := p.Startup("/work/repo", resolver) // resolver says this ID doesn't exist
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.AttachEngineFDs != "/run/42.handoff.json" || r.Spawn.Resume != "33333333-3333-4333-8333-333333333333" || r.MainSpawn() == nil {
+		t.Errorf("startup %+v", r)
+	}
+	if slices.ContainsFunc(r.Spawn.ExtraArgs, func(a string) bool { return strings.Contains(a, "attach-engine-fds") }) {
+		t.Errorf("hand-off flag forwarded: %q", r.Spawn.ExtraArgs)
+	}
+	// Without the hand-off a missing session is still an error.
+	p, _ = Parse([]string{"-r", "33333333-3333-4333-8333-333333333333"})
+	if _, err := p.Startup("/work/repo", resolver); err == nil {
+		t.Error("want an error for a missing session")
+	}
+}
+
 func TestCurrent(t *testing.T) {
 	ClearCurrent()
 	if _, ok := Current(); ok {

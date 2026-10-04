@@ -315,6 +315,8 @@ func (p *configPanel) activate(c ext.Ctx) tea.Cmd {
 			return c.OpenDialog(dialogTheme, nil)
 		case "outputStyle":
 			return c.OpenDialog(dialogOutputStyle, nil)
+		case "tui":
+			return c.OpenDialog(dialogTUI, nil)
 		case "fast":
 			on := !p.a.fastOn(c)
 			p.override[o.Key] = on

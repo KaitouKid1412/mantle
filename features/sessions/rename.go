@@ -34,6 +34,7 @@ func (f *feature) registerRename(r ext.Registrar) {
 type titledMsg struct {
 	sid, title string
 	err        error
+	auto       bool // a title mantle asked for on its own: no notice
 }
 
 // runRename sets the title through rename_session, or asks the engine to suggest one
@@ -68,6 +69,9 @@ func (f *feature) runRename(ctx ext.Ctx, args string) tea.Cmd {
 
 func (f *feature) onTitled(ctx ext.Ctx, m titledMsg) tea.Cmd {
 	if m.err != nil {
+		if m.auto {
+			return nil
+		}
 		return notice(ctx, "rename", "Rename failed: "+m.err.Error(), ext.NoticeError)
 	}
 	if m.title == "" {
@@ -80,10 +84,39 @@ func (f *feature) onTitled(ctx ext.Ctx, m titledMsg) tea.Cmd {
 	if info.SessionID == m.sid {
 		info.Title = m.title
 	}
+	if m.auto {
+		return ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: info})
+	}
 	return tea.Batch(
 		ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: info}),
 		notice(ctx, "rename", "Conversation renamed to "+m.title, ext.NoticeSuccess),
 	)
+}
+
+// autoTitle names a mantle session after its first turn. Claude Code titles its
+// interactive sessions itself (ai-title); headless sessions get none, so mantle asks
+// generate_session_title (persisted) once per session that has no title yet.
+func (f *feature) autoTitle(ctx ext.Ctx) tea.Cmd {
+	info := ctx.Session()
+	sid := info.SessionID
+	if sid == "" || info.Title != "" || f.titles[sid] != "" || f.titleAsked[sid] {
+		return nil
+	}
+	eng := ctx.Engine(ext.MainEngine)
+	if eng == nil || !eng.Supports(proto.SubGenerateSessionTitle) {
+		return nil
+	}
+	desc := conversationDigest(ctx.Transcript(), 2000)
+	if desc == "" {
+		return nil
+	}
+	f.titleAsked[sid] = true
+	req := proto.GenerateSessionTitleRequest{Description: desc, Persist: true}
+	return controlCmd(eng.Control(proto.SubGenerateSessionTitle, req), func(r ext.ControlResultMsg) tea.Msg {
+		var t proto.TitleResponse
+		err := decodeControl(r, &t)
+		return titledMsg{sid: sid, title: strings.TrimSpace(t.Title), err: err, auto: true}
+	})
 }
 
 // conversationDigest is the user's prompts (most recent last), cut to max bytes from

@@ -1,6 +1,7 @@
 package turn
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -20,11 +21,36 @@ type gateRun struct {
 	cwd     string
 	flags   gates.LaunchFlags
 	report  *gates.Report
+	check   *engineCheck
 	pending []gates.Kind
 	i       int
 	answers gates.Answers
 	aborted bool
+	// pin is set when the user chose the last good engine version; declined when they
+	// exited at the version check.
+	pin, declined bool
 }
+
+// engineCheck is the version gate's view of plan 02's engine.CheckEngine result.
+type engineCheck struct {
+	OK, Probed               bool
+	Version                  string
+	Failed                   []string // failed conformance checks
+	LastGood, LastGoodBinary string   // last passing version, to offer pinning
+}
+
+// engineChecker checks the installed engine and pins a known-good one. Both run off the
+// UI goroutine.
+type engineChecker interface {
+	Check(ctx context.Context) (engineCheck, error)
+	Pin(binary, version string) error
+}
+
+// kindVersion is the engine version gate; it runs before the gates in package gates.
+const kindVersion gates.Kind = "engineVersion"
+
+// engineCheckTimeout bounds `claude --version` plus a conformance probe.
+const engineCheckTimeout = 2 * time.Minute
 
 // gateQueue runs one gate pass at a time (main first, builders after).
 type gateQueue struct {
@@ -33,9 +59,11 @@ type gateQueue struct {
 }
 
 type gateEvaluatedMsg struct {
-	run    *gateRun
-	report *gates.Report
-	err    error
+	run      *gateRun
+	report   *gates.Report
+	err      error
+	check    *engineCheck
+	checkErr error
 }
 
 type gateNextMsg struct{}
@@ -47,10 +75,11 @@ var gateDialogs = map[gates.Kind]string{
 	gates.KindBypass: DialogBypassWarning,
 	gates.KindMcp:    DialogMcpApproval,
 	gates.KindAPIKey: DialogAPIKey,
+	kindVersion:      DialogEngineCheck,
 }
 
 func (st *state) setupGates(r ext.Registrar) {
-	for _, id := range []string{DialogTrust, DialogBypassWarning, DialogMcpApproval, DialogAPIKey} {
+	for _, id := range []string{DialogTrust, DialogBypassWarning, DialogMcpApproval, DialogAPIKey, DialogEngineCheck} {
 		r.AddDialog(id, st.gateDialog(id))
 	}
 	ext.Subscribe(r, "turn.spawnGate", func(c ext.Ctx, m ext.SpawnGateMsg) tea.Cmd {
@@ -92,11 +121,23 @@ func (st *state) startGates(c ext.Ctx) tea.Cmd {
 		AutoTrust:      strings.HasPrefix(run.msg.EngineID, "builder"),
 		SessionTrusted: st.trusted[run.cwd],
 	}
+	checker := st.checker
+	if engineKey(run.msg.EngineID) != ext.MainEngine {
+		checker = nil // builders run the same claude the main engine was checked with
+	}
 	return func() tea.Msg {
 		if err != nil {
 			return gateEvaluatedMsg{run: run, err: err}
 		}
-		return gateEvaluatedMsg{run: run, report: gates.Evaluate(in)}
+		m := gateEvaluatedMsg{run: run}
+		if checker != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), engineCheckTimeout)
+			c, cerr := checker.Check(ctx)
+			cancel()
+			m.check, m.checkErr = &c, cerr
+		}
+		m.report = gates.Evaluate(in)
+		return m
 	}
 }
 
@@ -111,13 +152,28 @@ func (st *state) onGateEvaluated(c ext.Ctx, m gateEvaluatedMsg) tea.Cmd {
 		st.gates.active = nil
 		return tea.Batch(run.msg.Abort("startup checks failed: "+m.err.Error()), st.startGates(c))
 	}
+	if m.checkErr != nil {
+		st.gates.active = nil
+		return tea.Batch(run.msg.Abort("could not check the claude engine: "+m.checkErr.Error()), st.startGates(c))
+	}
 	run.report = m.report
+	run.check = m.check
 	ms := st.mode(engineKey(run.msg.EngineID))
 	ms.flags = run.flags
 	ms.bypass = gates.BypassAvailable(run.flags, run.report.Settings)
 	run.pending = run.report.Pending()
 
 	var cmds []tea.Cmd
+	if ck := run.check; ck != nil {
+		if !ck.OK {
+			run.pending = append([]gates.Kind{kindVersion}, run.pending...)
+		} else if ck.Probed {
+			cmds = append(cmds, c.Notify(ext.Notice{
+				Key: "turn.engineCheck", Text: "claude " + ck.Version + " passed mantle's startup checks.",
+				Level: ext.NoticeInfo, Timeout: 5 * time.Second, Source: FeatureID,
+			}))
+		}
+	}
 	for i, n := range run.report.Notices() {
 		cmds = append(cmds, c.Notify(ext.Notice{
 			Key: fmt.Sprintf("turn.gateNotice.%d", i), Text: n, Level: ext.NoticeWarning,
@@ -170,6 +226,25 @@ func (st *state) gateDialog(id string) ext.DialogFactory {
 				run.answers.McpApproved = m.Approved()
 				run.answers.McpEnableAll = m.EnableAll()
 			}
+		case DialogEngineCheck:
+			ck := run.check
+			if ck == nil {
+				ck = &engineCheck{}
+			}
+			lastGood := ck.LastGood
+			if ck.LastGoodBinary == "" {
+				lastGood = ""
+			}
+			ch := dialogs.NewEngineCheck(ck.Version, ck.Failed, lastGood)
+			d.vm, d.result = ch, func() any { return ch.Chosen() }
+			answer = func() {
+				switch ch.Chosen() {
+				case dialogs.EnginePin:
+					run.pin = true
+				case dialogs.EngineExit:
+					run.aborted, run.declined = true, true
+				}
+			}
 		case DialogAPIKey:
 			ch := dialogs.NewAPIKeyPrompt(rep.APIKey.Suffix)
 			d.vm, d.result = ch, func() any { return ch.Chosen() }
@@ -209,6 +284,8 @@ func (st *state) finishGates(c ext.Ctx) tea.Cmd {
 	if run.aborted {
 		reason := "startup cancelled"
 		switch {
+		case run.declined:
+			reason = "claude did not pass mantle's startup checks"
 		case gatePending(run, gates.KindTrust) && !answers.TrustAccepted:
 			reason = "workspace not trusted"
 		case gatePending(run, gates.KindBypass) && !answers.BypassAccepted:
@@ -227,7 +304,19 @@ func (st *state) finishGates(c ext.Ctx) tea.Cmd {
 	opts.Settings = out.Settings
 	opts.ExtraArgs = stripFlag(opts.ExtraArgs, "--settings")
 	opts.UnsetEnv = append(append([]string(nil), opts.UnsetEnv...), out.UnsetEnv...)
-	return tea.Batch(record, run.msg.Proceed(opts), next)
+	spawn := run.msg.Proceed(opts)
+	if run.pin && run.check != nil && st.checker != nil {
+		// Pin first: the engine manager resolves the binary (honouring the pin) at spawn.
+		checker, ck := st.checker, *run.check
+		pin := func() tea.Msg {
+			if err := checker.Pin(ck.LastGoodBinary, ck.LastGood); err != nil {
+				return gateRecordedMsg{err: fmt.Errorf("pin claude %s: %w", ck.LastGood, err)}
+			}
+			return nil
+		}
+		spawn = tea.Sequence(pin, spawn)
+	}
+	return tea.Batch(record, spawn, next)
 }
 
 func gatePending(run *gateRun, k gates.Kind) bool {

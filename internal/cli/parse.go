@@ -107,6 +107,9 @@ type MantleOpts struct {
 	Prefill string
 	// Safe is mantle --safe: run without user mods.
 	Safe bool
+	// AttachEngineFDs is the hand-off file of an in-place restart
+	// (--attach-engine-fds=<path>): adopt those engines instead of spawning.
+	AttachEngineFDs string
 
 	// Observed: forwarded unchanged and read by mantle too.
 	Verbose              bool
@@ -394,6 +397,8 @@ func (p *Parsed) collect() error {
 			m.Prefill = string(b)
 		case "--safe":
 			m.Safe = true
+		case "--attach-engine-fds":
+			m.AttachEngineFDs = o.Value()
 		case "--verbose":
 			m.Verbose = true
 		case "--debug", "--debug-file", "--debug-to-stderr":

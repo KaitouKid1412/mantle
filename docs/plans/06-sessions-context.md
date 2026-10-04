@@ -229,13 +229,20 @@ Everything about conversations as objects:
   `mantle:rewind`; dialogs `dialog.resume`, `dialog.handoff` (args: `[]string` of extra
   claude args), `dialog.rewind`, `dialog.rewind-options`, `dialog.export`, `dialog.copy`,
   `dialog.usage`, `dialog.diff`, `dialog.btw`, `dialog.resume-summary`; renderer key
-  `system.context_usage`; components `sessions.context` (auto-compact countdown) and
-  `sessions.goal`.
+  `system.context_usage`; components `sessions.context` (auto-compact countdown),
+  `sessions.goal`, and `sessions.diffPanel` (the fullscreen /diff sidebar in
+  `SlotSidebarR`, request 12-06: `/diff` opens it at ≥ 110 columns in fullscreen, it opens
+  on its own at ≥ 144 once a turn edited files, and draws nothing while closed).
 - Unstable requests used only when `Supports()`: `set_cwd` (else hand-off), `side_question`
   (`{question, history}` → `{response}`; else a forked `claude -p`). Not used:
   `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
   (no documented shapes; mantle has its own path for each).
 - Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
+- PARITY rows without a box above, also done: SE-04 (full output of large tool results
+  on resume, read only from the session's `tool-results` dir), SE-14 (picker grouped by
+  date; project shown in all-projects mode), SE-18 (mantle titles its own sessions after
+  the first turn with `generate_session_title`), SE-21 (`/subtask` hands off). Not done:
+  CU-10 cost warnings (M3; Claude Code gates them on the account's org role).
 - Verified (plan 09's pty spike, Claude Code 2.1.289): an interactive `claude "/status"`
   runs the slash command at startup, so `dialog.handoff`'s `claude --resume <sid> /cmd`
   opens the panel directly.

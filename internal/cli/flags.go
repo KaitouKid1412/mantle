@@ -264,6 +264,9 @@ var Flags = []Flag{
 	// mantle's own. The launcher handles --safe first; mantle-ui accepts it too so it
 	// never reaches the engine.
 	{Long: "--safe", Class: Consume, Mantle: true, Parity: "CLI-01"},
+	// The in-place restart (request 10-02): the old mantle-ui execs the new build with
+	// the engines' inherited fds described in this file; the host adopts them.
+	{Long: "--attach-engine-fds", Arity: ArityRequired, Class: Consume, Hidden: true, Mantle: true, Parity: "MT-32"},
 }
 
 // flagIndex maps every spelling to its table entry.

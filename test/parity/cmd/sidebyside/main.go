@@ -1,5 +1,5 @@
-// Command sidebyside runs the parity scenarios against interactive targets (claude,
-// later mantle) with the scripted fakeapi, and writes a side-by-side report.
+// Command sidebyside runs the parity scenarios against interactive targets (claude
+// and mantle) with the scripted fakeapi, and writes a side-by-side report.
 //
 //	go run ./test/parity/cmd/sidebyside -targets claude -run plain
 //
@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -20,7 +21,7 @@ import (
 
 func main() {
 	scenarios := flag.String("scenarios", "test/parity/scenarios", "directory of .scn files")
-	targets := flag.String("targets", "claude", "comma-separated targets; the first is the reference")
+	targets := flag.String("targets", "claude,mantle", "comma-separated targets; the first is the reference")
 	out := flag.String("out", "test/parity/out", "report directory (gitignored)")
 	allow := flag.String("allow", "test/parity/allowlist.txt", "allowlist of intentional differences")
 	runRe := flag.String("run", "", "only scenarios whose name matches this regexp")
@@ -28,15 +29,16 @@ func main() {
 	timeout := flag.Duration("timeout", 2*time.Minute, "per-scenario timeout")
 	strict := flag.Bool("strict", false, "exit 1 when any checkpoint differs or is missing")
 	keep := flag.Bool("keep", false, "keep workspaces for debugging")
+	raw := flag.Bool("raw", false, "save each terminal's raw output under <out>/raw")
 	flag.Parse()
 
-	if err := run(*scenarios, *targets, *out, *allow, *runRe, *claudeBin, *timeout, *strict, *keep); err != nil {
+	if err := run(*scenarios, *targets, *out, *allow, *runRe, *claudeBin, *timeout, *strict, *keep, *raw); err != nil {
 		fmt.Fprintln(os.Stderr, "sidebyside:", err)
 		os.Exit(1)
 	}
 }
 
-func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.Duration, strict, keep bool) error {
+func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.Duration, strict, keep, raw bool) error {
 	scs, err := parity.LoadScenarios(dir)
 	if err != nil {
 		return err
@@ -62,8 +64,14 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 		switch strings.TrimSpace(name) {
 		case "claude":
 			tgs = append(tgs, parity.ClaudeTarget{Bin: claudeBin})
+		case "mantle":
+			bin, err := parity.BuildMantleUI(out + "/.bin")
+			if err != nil {
+				return err
+			}
+			tgs = append(tgs, parity.MantleTarget{Bin: bin})
 		default:
-			return fmt.Errorf("unknown target %q (available: claude)", name)
+			return fmt.Errorf("unknown target %q (available: claude, mantle)", name)
 		}
 	}
 	al, err := parity.LoadAllowlist(allowPath)
@@ -75,10 +83,14 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 		rep.Targets = append(rep.Targets, tg.Name())
 	}
 	logf := func(f string, a ...any) { fmt.Fprintf(os.Stderr, f+"\n", a...) }
+	rawDir := ""
+	if raw {
+		rawDir = filepath.Join(out, "raw")
+	}
 	for _, sc := range scs {
 		run := parity.ScenarioRun{Scenario: sc, Results: map[string]*parity.Result{}}
 		for _, tg := range tgs {
-			res := parity.Run(context.Background(), tg, sc, parity.RunOptions{Timeout: timeout, KeepWorkspace: keep, Logf: logf})
+			res := parity.Run(context.Background(), tg, sc, parity.RunOptions{Timeout: timeout, KeepWorkspace: keep, Logf: logf, RawDir: rawDir})
 			status := "ok"
 			if res.Err != nil {
 				status = res.Err.Error()
