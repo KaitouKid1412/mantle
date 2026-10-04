@@ -402,6 +402,12 @@ func TestRateLimitsInPayload(t *testing.T) {
 	}
 }
 
+// toolOK is the user message carrying a successful result for tool call id.
+func toolOK(id string) *proto.User {
+	return &proto.User{Message: proto.UserMessage{Role: "user", Content: proto.BlockContent(
+		proto.ContentBlock{Type: proto.BlockToolResult, ToolUseID: id, Content: &proto.Content{Text: "ok"}})}}
+}
+
 func todoWrite(id string, todos string) *proto.Assistant {
 	return &proto.Assistant{Message: proto.Message{Content: []proto.ContentBlock{{
 		Type: proto.BlockToolUse, ID: id, Name: "TodoWrite", Input: json.RawMessage(`{"todos":` + todos + `}`)}}}}
@@ -415,6 +421,7 @@ func TestTodoPanel(t *testing.T) {
 		t.Fatal("empty list draws nothing")
 	}
 	p.Update(ctx, ev(todoWrite("t1", `[{"content":"A","status":"in_progress","activeForm":"Doing A"},{"content":"B","status":"pending"}]`)))
+	p.Update(ctx, ev(toolOK("t1")))
 	if got := plainView(p, ctx, 80); got != "Tasks 0/2 done · Doing A (ctrl+t to show)" {
 		t.Errorf("collapsed = %q", got)
 	}
@@ -469,7 +476,8 @@ func TestTodoPanelRebuildsOnResume(t *testing.T) {
 	ctx.TranscriptV = fakeTranscript{items: []*ext.Item{
 		{ID: "c1", Key: "tool.TaskCreate", Data: &proto.ToolUse{ID: "c1", Name: "TaskCreate", Input: json.RawMessage(`{"subject":"Plan"}`)},
 			Result: &proto.ToolResult{ToolUseID: "c1", Content: proto.TextContent("Task #1 created successfully: Plan")}},
-		{ID: "u1", Key: "tool.TaskUpdate", Data: &proto.ToolUse{ID: "u1", Name: "TaskUpdate", Input: json.RawMessage(`{"taskId":"1","status":"completed"}`)}},
+		{ID: "u1", Key: "tool.TaskUpdate", Data: &proto.ToolUse{ID: "u1", Name: "TaskUpdate", Input: json.RawMessage(`{"taskId":"1","status":"completed"}`)},
+			Result: &proto.ToolResult{ToolUseID: "u1", Content: proto.TextContent("Updated task #1")}},
 		{ID: "x", ParentID: "agent", Data: &proto.ToolUse{ID: "x", Name: "TodoWrite", Input: json.RawMessage(`{"todos":[]}`)}},
 	}}
 	p := newTodoPanel()

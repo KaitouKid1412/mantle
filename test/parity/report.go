@@ -231,6 +231,23 @@ func (r *Report) Write(dir string) (string, error) {
 			}
 		}
 	}
+	// A failed run keeps the screen it failed on, for triage.
+	for _, run := range r.Runs {
+		for _, tg := range r.Targets {
+			res := run.Results[tg]
+			if res == nil || res.Err == nil {
+				continue
+			}
+			sdir := filepath.Join(dir, sanitizeName(run.Scenario.Name))
+			if err := os.MkdirAll(sdir, 0o755); err != nil {
+				return "", err
+			}
+			body := res.Err.Error() + "\n\n" + joinLines(r.Normalizer.Frame(res.Final, res.Workspace))
+			if err := os.WriteFile(filepath.Join(sdir, tg+".final.txt"), []byte(body), 0o644); err != nil {
+				return "", err
+			}
+		}
+	}
 	path := filepath.Join(dir, "summary.md")
 	return path, os.WriteFile(path, []byte(r.Summary(diffs)), 0o644)
 }

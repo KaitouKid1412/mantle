@@ -45,6 +45,9 @@ func TestNormalizeLine(t *testing.T) {
 func TestNormalizeFrame(t *testing.T) {
 	f := Frame{Scrollback: []string{"old 1", "old 2", ""}, Screen: []string{"top", "", "bottom", "", ""}}
 	n := DefaultNormalizer()
+	if got := n.Frame(Frame{Screen: []string{"", "", "a", "", "", "b"}}, Workspace{}); !slices.Equal(got, []string{"a", "", "b"}) {
+		t.Errorf("collapse = %q", got)
+	}
 	got := n.Frame(f, Workspace{})
 	want := []string{"old 1", "old 2", ScreenMarker, "top", "", "bottom"}
 	if !slices.Equal(got, want) {
