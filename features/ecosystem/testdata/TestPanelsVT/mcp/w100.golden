@@ -1,0 +1,17 @@
+MCP servers · 2 connected of 6
+
+  Local · this project, only you
+  ❯ ✓ filesystem          connected · 3 tools
+
+  Project · .mcp.json
+    ✗ broken              failed · spawn /usr/local/bin/broken-mcp ENOENT
+    … repo-tools          pending
+
+  User · all projects
+    ○ quiet               disabled
+    ! search              needs sign-in
+
+  claude.ai connectors
+    ✓ claude.ai Example Docs  connected · 1 tool
+
+  enter details · space enable/disable · r reconnect · a sign in · n add · x remove · esc close

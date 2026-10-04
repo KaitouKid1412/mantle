@@ -1,0 +1,17 @@
+Memory
+
+  User
+  ❯ ● ~/.claude/CLAUDE.md
+
+  Project
+    + CLAUDE.md             not created yet
+    ● .claude/rules/api.md  rule · for src/api/**
+
+  Auto memory
+    + ~/memory/MEMORY.md    not created yet
+
+  Settings
+    Auto memory: on       Claude saves what it learns; press enter to turn off
+    Open the auto-memory folder  ~/memory
+
+  enter open · a auto memory on/off · esc close

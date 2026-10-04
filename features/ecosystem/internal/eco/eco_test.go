@@ -254,3 +254,23 @@ func TestHandoffAndRestart(t *testing.T) {
 		t.Errorf("no engine notice = %+v", last)
 	}
 }
+
+// TestDialogInvalidatesOnResults guards the host's render cache: a view that
+// changes state on an async result must be redrawn.
+func TestDialogInvalidatesOnResults(t *testing.T) {
+	ctx := exttest.NewCtx()
+	d := eco.NewDialog("dialog.test", "Test", &recView{})
+	for _, m := range []tea.Msg{eco.ResultMsg{Key: "x"}, eco.ExecDoneMsg{Key: "x"}, ext.ControlResultMsg{Subtype: "x"},
+		ext.SettingsMsg{}, ext.AddressedMsg{To: "dialog.test", Msg: "hi"}} {
+		ctx.Invalidated = nil
+		d.Update(ctx, m)
+		if len(ctx.Invalidated) != 1 || ctx.Invalidated[0] != "dialog.test" {
+			t.Errorf("%T: invalidated %v", m, ctx.Invalidated)
+		}
+	}
+	ctx.Invalidated = nil
+	d.Update(ctx, "unrelated broadcast")
+	if len(ctx.Invalidated) != 0 {
+		t.Errorf("unrelated messages must not invalidate: %v", ctx.Invalidated)
+	}
+}

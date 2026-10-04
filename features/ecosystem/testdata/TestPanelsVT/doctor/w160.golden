@@ -1,0 +1,18 @@
+Doctor
+  Some checks need attention.
+
+  mantle
+  ❯ ✓ Claude Code       2.1.288 (/usr/local/bin/claude)
+    ! Go toolchain      go not found on PATH; mantle runs, but /mantle cannot rebuild it
+    ✓ Terminal          ghostty
+    ! Settings files    1 of 3 file(s) are invalid
+    – mantle install    ~/.mantle does not exist yet
+    ✓ Workspace trust   trusted in Claude Code
+
+  More
+    Run Claude Code's installation check  claude doctor
+    Ask Claude to diagnose  runs the /doctor skill
+    Update Claude Code  claude update
+    Run the checks again
+
+  enter details / run · r re-run · esc close
