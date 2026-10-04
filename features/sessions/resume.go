@@ -159,9 +159,10 @@ func (f *feature) loadCmd(req loadReq) tea.Cmd {
 			return m
 		}
 		m.items = Normalize(tr, NormalizeOptions{
-			EngineID:     req.engineID,
-			Leaf:         req.leaf,
-			SubagentsDir: sessions.SubagentsDir(filepath.Dir(path), sessions.SessionIDFromPath(path)),
+			EngineID:       req.engineID,
+			Leaf:           req.leaf,
+			SubagentsDir:   sessions.SubagentsDir(filepath.Dir(path), sessions.SessionIDFromPath(path)),
+			ToolResultsDir: sessions.ToolResultsDir(filepath.Dir(path), sessions.SessionIDFromPath(path)),
 		})
 		m.title = tr.Title()
 		m.lastActive, m.tokens = branchEnd(tr)

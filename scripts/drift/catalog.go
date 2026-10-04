@@ -27,9 +27,16 @@ type catalogEntry struct {
 	Removed bool   `json:"removed,omitempty"`
 }
 
+// parseCatalog reads `mantle-ui catalog --json`: an object whose "entries" lists the
+// registrations (or, from older builds, the bare list).
 func parseCatalog(data []byte) (*Catalog, error) {
 	var entries []catalogEntry
-	if err := json.Unmarshal(data, &entries); err != nil {
+	var doc struct {
+		Entries []catalogEntry `json:"entries"`
+	}
+	if err := json.Unmarshal(data, &doc); err == nil && doc.Entries != nil {
+		entries = doc.Entries
+	} else if err := json.Unmarshal(data, &entries); err != nil {
 		return nil, fmt.Errorf("catalog: %w", err)
 	}
 	c := &Catalog{Commands: map[string]bool{}, Renderers: map[string]bool{}}

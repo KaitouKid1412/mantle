@@ -25,6 +25,7 @@ const (
 	DialogAPIKey          = "dialog.apiKey"
 	DialogAutoMode        = "dialog.autoMode"
 	DialogUsageLimit      = "dialog.usageLimit"
+	DialogEngineCheck     = "dialog.engineCheck"
 )
 
 // Component IDs.
@@ -74,6 +75,9 @@ type state struct {
 
 	// env locates gate files; tests replace it.
 	env func() (gates.Env, error)
+	// checker runs the engine version check (plan 02's conformance probe) before the
+	// main engine spawns; nil skips that gate.
+	checker engineChecker
 }
 
 func newState() *state {

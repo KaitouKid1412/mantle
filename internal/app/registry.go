@@ -92,7 +92,21 @@ func callerFile() string {
 	return ""
 }
 
+// moduleRoot is the prefix of this module's source paths as runtime.Caller
+// reports them: a directory (checkout, worktree, ~/.mantle/work/<id>) or,
+// with -trimpath, the module path.
+var moduleRoot = func() string {
+	_, self, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSuffix(self, "internal/app/registry.go")
+}()
+
 func relFile(file string) string {
+	if moduleRoot != "" && strings.HasPrefix(file, moduleRoot) {
+		return strings.TrimPrefix(file, moduleRoot)
+	}
 	if i := strings.Index(file, "/mantle/"); i >= 0 {
 		// Trim everything up to the module root (checkout, worktree or ~/.mantle/src).
 		rest := file[i+len("/mantle/"):]

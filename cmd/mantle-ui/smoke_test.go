@@ -14,6 +14,11 @@ import (
 	"github.com/KaitouKid1412/mantle/internal/testkit/enginefake"
 )
 
+// ptyWait bounds every wait in the pty tests. It is generous on purpose: these tests
+// also run inside the /mantle pipeline's fully parallel `go test ./...`, where a boot
+// can take many seconds; a correct run finishes long before it.
+const ptyWait = 60 * time.Second
+
 // buildBinaries builds mantle-ui and fakeclaude into a temp dir.
 func buildBinaries(t *testing.T) (ui, fake string) {
 	t.Helper()
@@ -77,7 +82,22 @@ func smokeEnv(t *testing.T, fake, script, project string) []string {
 	}
 }
 
-const smokeScript = `
+// startupRules answer the control requests mantle may send around startup, in any
+// order relative to the first prompt (the @-completion prefetch, context usage, MCP
+// status, …), as the real engine does. Explicit rules, not a catch-all: end_session
+// must still reach the fake's built-in handler. The steps stay strict about the
+// conversation itself.
+const startupRules = `
+{"on": {"type":"control_request","request":{"subtype":"file_suggestions"}}, "respond": {"suggestions":[]}}
+{"on": {"type":"control_request","request":{"subtype":"get_context_usage"}}, "respond": {"categories":[],"totalTokens":0,"maxTokens":200000,"percentage":0}}
+{"on": {"type":"control_request","request":{"subtype":"mcp_status"}}, "respond": {"mcpServers":[]}}
+{"on": {"type":"control_request","request":{"subtype":"list_models"}}, "respond": {"models":[]}}
+{"on": {"type":"control_request","request":{"subtype":"get_settings"}}, "respond": {}}
+{"on": {"type":"control_request","request":{"subtype":"get_usage"}}, "respond": {}}
+{"on": {"type":"control_request","request":{"subtype":"get_hooks_listing"}}, "respond": {}}
+`
+
+const smokeScript = startupRules + `
 {"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": ` + "INIT" + `}
 {"expect": {"type":"user"}, "timeout": 20000}
 {"emit": {"type":"system","subtype":"init","session_id":"s-smoke","uuid":"i1","cwd":"/tmp","tools":[],"mcp_servers":[],"model":"claude-test","permissionMode":"default","slash_commands":[],"apiKeySource":"none","claude_code_version":"2.1.288","output_style":"default"}}
@@ -100,7 +120,7 @@ func TestSmokeBoot(t *testing.T) {
 	cmd.Env = smokeEnv(t, fake, script, project)
 	p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
 
-	p.WaitFor(func(s string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "pong from the fake engine") }, 20*time.Second)
+	p.WaitFor(func(s string) bool { return strings.Contains(strings.Join(p.All(), "\n"), "pong from the fake engine") }, ptyWait)
 
 	// Spike S16: the engine runs in its own process group (terminal signals such as
 	// ctrl+c inside $EDITOR or ctrl+z reach only mantle-ui's group), recorded for the
@@ -131,7 +151,7 @@ func TestSmokeBoot(t *testing.T) {
 	}
 
 	quitWithCtrlC(t, p)
-	if code := p.ExitCode(10 * time.Second); code != 0 {
+	if code := p.ExitCode(ptyWait); code != 0 {
 		t.Fatalf("exit code %d\n%s", code, strings.Join(p.All(), "\n"))
 	}
 }
@@ -143,7 +163,7 @@ func quitWithCtrlC(t *testing.T, p *testkit.Process) {
 	t.Helper()
 	for range 5 {
 		p.Send("ctrl+c")
-		deadline := time.Now().Add(time.Second)
+		deadline := time.Now().Add(3 * time.Second)
 		for time.Now().Before(deadline) {
 			if strings.Contains(strings.ToLower(p.Screen()), "again to exit") {
 				p.Send("ctrl+c")

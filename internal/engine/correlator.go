@@ -27,6 +27,8 @@ var slowSubtypes = map[string]time.Duration{
 	proto.SubMCPReconnect:         2 * time.Minute,
 	proto.SubReloadPlugins:        2 * time.Minute,
 	proto.SubEndSession:           10 * time.Second,
+	SubSideQuestion:               2 * time.Minute,
+	SubGetWorkspaceDiff:           time.Minute,
 }
 
 // TimeoutFor returns the timeout used for a control request subtype.
@@ -58,7 +60,8 @@ type call struct {
 
 // correlator matches control responses to our requests by request_id.
 type correlator struct {
-	send sender
+	send    sender
+	sendNow sender // bypasses the transport's hold (handshake); nil = send
 
 	mu      sync.Mutex
 	n       uint64
@@ -87,6 +90,19 @@ func (c *correlator) Request(ctx context.Context, req proto.Request, timeout tim
 // RequestBody is Request returning the whole response body (initialize also carries
 // pending_permission_requests and pending_user_dialog_requests there).
 func (c *correlator) RequestBody(ctx context.Context, req proto.Request, timeout time.Duration) (string, proto.ControlResponseBody, error) {
+	return c.request(ctx, req, timeout, c.send)
+}
+
+// RequestBodyNow is RequestBody sent ahead of held lines (the initialize handshake).
+func (c *correlator) RequestBodyNow(ctx context.Context, req proto.Request, timeout time.Duration) (string, proto.ControlResponseBody, error) {
+	send := c.sendNow
+	if send == nil {
+		send = c.send
+	}
+	return c.request(ctx, req, timeout, send)
+}
+
+func (c *correlator) request(ctx context.Context, req proto.Request, timeout time.Duration, send sender) (string, proto.ControlResponseBody, error) {
 	var none proto.ControlResponseBody
 	c.mu.Lock()
 	if c.closed != nil {
@@ -102,7 +118,7 @@ func (c *correlator) RequestBody(ctx context.Context, req proto.Request, timeout
 
 	line, err := proto.MarshalControlRequest(id, req)
 	if err == nil {
-		err = c.send(line)
+		err = send(line)
 	}
 	if err != nil {
 		c.drop(id)
@@ -140,6 +156,17 @@ func (c *correlator) Complete(body proto.ControlResponseBody) bool {
 		cl.ch <- result{body: body}
 	}
 	return true
+}
+
+// Fail completes a pending request with err (its line was never sent).
+func (c *correlator) Fail(id string, err error) {
+	c.mu.Lock()
+	cl, ok := c.pending[id]
+	delete(c.pending, id)
+	c.mu.Unlock()
+	if ok {
+		cl.ch <- result{err: err}
+	}
 }
 
 // Subtype returns the subtype of a pending request.
