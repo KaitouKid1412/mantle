@@ -128,14 +128,9 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		CustomThemes:  config.ThemeMap(themes),
 		Session:       st.Session,
 		MainSpawn:     st.MainSpawn(),
-		Spawn: func(id string, o ext.SpawnOpts) error {
-			_, err := mgr.Start(id, o)
-			return err
-		},
-		Stop: func(id string) error {
-			mgr.Remove(context.Background(), id)
-			return nil
-		},
+		Spawn:         mgr.Spawn,
+		Stop:          mgr.StopEngine,
+		Adopt:         adoptHook(mgr, st.AttachEngineFDs),
 		OnDisable: func(feature, reason string) {
 			logger.Error("feature disabled", "feature", feature, "reason", reason)
 			if err := config.RecordDisabled(paths, feature, reason, time.Now()); err != nil {
@@ -168,6 +163,20 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		fmt.Fprintln(stdout, reason)
 	}
 	return root.ExitCode()
+}
+
+// adoptHook returns the host's Adopt hook for an in-place restart (request 10-02):
+// with --attach-engine-fds, the engines the previous mantle-ui handed over are adopted
+// instead of spawning a new one (the file is deleted by AdoptFile). nil without the
+// flag. If adopting fails, the host falls back to MainSpawn, which carries --resume.
+func adoptHook(mgr *engine.Manager, handoff string) func() error {
+	if handoff == "" {
+		return nil
+	}
+	return func() error {
+		_, err := mgr.AdoptFile(handoff)
+		return err
+	}
 }
 
 // ix is shared so the index cache is saved on exit.
