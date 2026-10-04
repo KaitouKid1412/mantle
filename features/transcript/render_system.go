@@ -33,6 +33,7 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	switch {
 	case r.Interrupted():
 		lines = append(lines, result(rc, st.err, "Interrupted by user")...)
+	case r.IsError && f.store.ErrorShown(r.UUID):
 	case r.IsError:
 		msg := strings.TrimSpace(r.Result)
 		if len(r.Errors) > 0 {
@@ -52,7 +53,7 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 		lines = append(lines, truncLines(render.WrapWith(st.dim.Render(clean(text)), render.WrapOptions{Width: rc.Width, First: st.err.Render(glyphDot) + " ", Rest: dotIndent}), rc.Width)...)
 	}
-	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() {
+	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() && !r.IsError {
 		line := glyphThought + " " + pickVerb(r.UUID+it.ID) + " for " + formatDuration(msToDuration(r.DurationMS))
 		if t := f.clockTime(it.End); t != "" {
 			line += " · done " + t
@@ -69,17 +70,21 @@ func (f *Feature) clockTime(t time.Time) string {
 	if t.IsZero() || (!f.cfg.showTimestamps && f.cfg.timeFormat == "") {
 		return ""
 	}
-	if f.cfg.timeZone != "" {
-		if loc, err := time.LoadLocation(f.cfg.timeZone); err == nil {
-			t = t.In(loc)
-		}
-	} else {
-		t = t.Local()
-	}
+	t = f.zoned(t)
 	if f.cfg.timeFormat == "24h" {
 		return t.Format("15:04")
 	}
 	return t.Format("3:04 PM")
+}
+
+// zoned converts a time to the timeZone setting (local time by default).
+func (f *Feature) zoned(t time.Time) time.Time {
+	if f.cfg.timeZone != "" {
+		if loc, err := time.LoadLocation(f.cfg.timeZone); err == nil {
+			return t.In(loc)
+		}
+	}
+	return t.Local()
 }
 
 var errorText = map[string]string{
@@ -130,6 +135,8 @@ func (f *Feature) renderLocalCommand(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 	case *proto.LocalCommandOutput:
 		text = d.Content
+	case *proto.User:
+		text = d.Message.Content.PlainText()
 	case string:
 		text = d
 	}
@@ -139,11 +146,29 @@ func (f *Feature) renderLocalCommand(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		return ext.Block{}
 	}
 	width := max(rc.Width-len(resultHang), 1)
+	if looksLikeMarkdown(text) {
+		md := render.Markdown(render.Strip(text), f.mdOptions(rc, width))
+		return ext.Block{Lines: indentLines(md, true)}
+	}
 	var lines []string
 	for _, l := range strings.Split(render.ExpandTabs(text, 4), "\n") {
 		lines = append(lines, render.WrapWith(stylesFor(rc).dim.Render(l), render.WrapOptions{Width: width})...)
 	}
 	return ext.Block{Lines: indentLines(lines, true)}
+}
+
+// looksLikeMarkdown reports whether command output is structured markdown
+// (headings, tables, fences) rather than column-aligned plain text, which
+// markdown would reflow.
+func looksLikeMarkdown(text string) bool {
+	for _, l := range strings.Split(text, "\n") {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "#") || strings.HasPrefix(l, "```") ||
+			(strings.HasPrefix(l, "|") && strings.HasSuffix(l, "|")) {
+			return true
+		}
+	}
+	return false
 }
 
 func stripTags(s string, tags ...string) string {
@@ -280,7 +305,7 @@ func (f *Feature) renderRateLimit(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 	}
 	if t := resetTime(info.ResetsAt); !t.IsZero() {
-		text += " · resets " + t.Local().Format("Jan 2 3:04 PM")
+		text += " · resets " + f.zoned(t).Format("Jan 2 3:04 PM")
 	}
 	return ext.Block{Lines: render.WrapWith(style.Render(text), render.WrapOptions{Width: rc.Width, First: style.Render(glyphDot) + " ", Rest: dotIndent})}
 }
@@ -356,7 +381,15 @@ func (f *Feature) renderTaskNotification(rc ext.RenderCtx, it *ext.Item) ext.Blo
 	case "stopped":
 		dot, verb = st.dim, "stopped"
 	}
-	lines := header(rc, st, dot, "Background task "+verb, "")
+	name, args := "Background task "+verb, ""
+	if id := f.store.TaskTool(n.TaskID); id != "" {
+		var in agentInput
+		if it := f.store.Get(id); it != nil && toolUse(it) != nil {
+			decodeInput(toolUse(it).Input, &in)
+			name = "Agent \"" + oneLine(in.Description) + "\" " + verb
+		}
+	}
+	lines := header(rc, st, dot, name, args)
 	if s := firstNonEmpty(n.Summary, n.Reason); s != "" {
 		lines = append(lines, result(rc, st.dim, oneLine(s))...)
 	}
@@ -374,3 +407,38 @@ func (f *Feature) renderNotification(rc ext.RenderCtx, it *ext.Item) ext.Block {
 func msToDuration(ms int64) time.Duration { return time.Duration(ms) * time.Millisecond }
 
 func secondsToDuration(s float64) time.Duration { return time.Duration(s * float64(time.Second)) }
+
+func (f *Feature) renderMemoryRecall(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	st := stylesFor(rc)
+	m, _ := it.Data.(*proto.MemoryRecall)
+	if m == nil {
+		return ext.Block{}
+	}
+	var mems []json.RawMessage
+	_ = json.Unmarshal(m.Memories, &mems)
+	if len(mems) == 0 {
+		return ext.Block{}
+	}
+	lines := render.WrapWith(st.dim.Render("Recalled "+plural(len(mems), "memory", "memories")),
+		render.WrapOptions{Width: rc.Width, First: render.Fg(st.p, "remember").Render(glyphDot) + " ", Rest: dotIndent})
+	if !verbose(rc) {
+		return ext.Block{Lines: lines, Collapsible: true}
+	}
+	for i, raw := range mems {
+		var mem struct {
+			Name, Path, Title, Content string
+		}
+		label := ""
+		if json.Unmarshal(raw, &mem) == nil {
+			label = firstNonEmpty(mem.Title, mem.Name, mem.Path, mem.Content)
+		} else {
+			_ = json.Unmarshal(raw, &label)
+		}
+		first := resultHang
+		if i == 0 {
+			first = resultIndent
+		}
+		lines = append(lines, truncLines(render.WrapWith(st.dim.Render(oneLine(label)), render.WrapOptions{Width: rc.Width, First: first, Rest: resultHang}), rc.Width)[0])
+	}
+	return ext.Block{Lines: lines}
+}

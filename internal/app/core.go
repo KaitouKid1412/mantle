@@ -22,7 +22,7 @@ func CoreFeatures() []ext.Feature {
 	return []ext.Feature{{
 		ID:     "core.app",
 		Order:  -100,
-		Parity: []string{"CORE-01"},
+		Parity: []string{"MT-01", "MT-02", "MT-03", "MT-04", "MT-05", "MT-08", "MT-09", "CF-01", "CF-02", "CF-03", "CF-04", "CF-05", "CF-07", "CF-08", "CF-09", "CF-10", "CF-11", "CF-12", "CF-13", "CF-14", "CF-16", "CF-20"},
 		Setup: func(r ext.Registrar) error {
 			r.AddComponent(ext.SlotAboveInput, &noticesComp{}, ext.SlotOpts{Weight: 1000, MaxHeight: 5})
 			r.AddAction(ext.Action{
@@ -46,7 +46,7 @@ func CoreFeatures() []ext.Feature {
 	}, {
 		ID:     "core.widgets",
 		Order:  -99,
-		Parity: []string{"CORE-02"},
+		Parity: []string{"MT-07"},
 		Setup: func(r ext.Registrar) error {
 			for _, s := range ui.Stories() {
 				r.AddStory(s)

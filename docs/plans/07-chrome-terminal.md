@@ -154,13 +154,19 @@ Status: A1–A7 done (`make test-07`). Notes and intentional differences:
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
-Status (M1): B1–B5 done in `features/chrome` (stories + goldens at 60/100/160, behaviour
-tests with `exttest`), plus the clipboard Cmd helper `internal/term/clipcmd` (CH-28).
+Status: B1–B13 done in `features/chrome` (stories + goldens at 60/100/160, behaviour
+tests with `exttest`, vt-emulator tests in the real host in `vt_test.go`), plus the
+clipboard Cmd helper `internal/term/clipcmd` (CH-28). Features and parity tags:
+`chrome.footer` (CH-05/06/07/14, ED-16), `chrome.promptFrame` (CH-01–04),
+`chrome.statusLine` (CH-18/19), `chrome.todos` (CH-10), `chrome.subagents`
+(CH-11/12/13/14/17), `chrome.welcome` (CH-08/09/20), `chrome.releaseNotes` (CH-21/22),
+`chrome.terminal` (CH-23–26, CH-29, CH-30).
 Notes:
 - Frame: `Wrap("input.editor")` draws a rule above and below the editor (agreed with
   plan 04: the editor draws no border); colour `bashBorder` in `!` mode, `planMode` in
   plan mode, else `promptBorder`; the top rule carries the custom session name
-  (`SessionInfo.Title`). `/color` (CH-02) is still open (M2).
+  (`SessionInfo.Title`). `/color <red|blue|green|yellow|purple|orange|pink|cyan|default>`
+  uses the theme's named colours and also sends `set_color`; bash and plan mode win.
 - Footer: indicator for every mode (default reads "manual approval"); "? for shortcuts"
   only with an empty prompt and no statusLine command (as Claude Code); background-task
   count with a `/tasks` hint; vim indicator from `ext.EditorStateMsg` (not in NORMAL).
@@ -169,14 +175,47 @@ Notes:
 - Status line: runs once a session starts, then on assistant messages, results,
   compaction, mode/vim/model/name changes, settings changes (a new command skips the
   debounce), resizes, `refreshInterval` and rate-limit resets; hidden while a dialog is
-  open. Still missing: `pr`, `workspace.repo`/`git_worktree`, `worktree` (B8), `thinking`,
-  `agent`, `prompt_id`, `prompt_cache` (no source yet; omitted). `total_cost_usd` takes the
-  latest `result.total_cost_usd`; line counts come from Edit/Write `structuredPatch`.
-  `transcript_path` uses a local slug function until plan 06's helper is merged.
+  open. `pr` and `workspace.repo` come from the PR lookup (B8). Omitted (no source yet):
+  `workspace.git_worktree`, `worktree`, `thinking`, `agent`, `prompt_id`, `prompt_cache`.
+  `total_cost_usd` takes the latest `result.total_cost_usd`; line counts come from
+  Edit/Write `structuredPatch`. Hook gates: with `disableAllHooks` (outside managed
+  settings) or managed `allowManagedHooksOnly`, only a managed `statusLine` runs.
+  `transcript_path` uses plan 06's `sessions.DefaultLayout` / `SessionFile` (the engine's
+  slug, long-path hashing, symlinks resolved).
 - Title/progress: `chrome.terminal` implements `ext.TerminalStater`. Progress is only
   sent to terminals that render OSC 9;4; `requires_action` shows the paused state; an
-  error stays until the next turn or until the user types. vt-emulator tests need the
-  host (`internal/app`, plan 01), which isn't in this branch yet.
+  error stays until the next turn or until the user types.
+- Subagents (B6): rows come from `task_*` events (30 s linger, 5 rows, "+N more").
+  Footer navigation: `mantle:footerSelect` focuses the rows (plan 04's editor runs it
+  when ↓ has no newer history); up/down, enter opens `dialog.subagentTranscript`, x
+  stops (`stop_task`) or dismisses a finished row, esc returns to the prompt. The
+  transcript view draws the transcript store's items under the subagent's tool call,
+  deeper levels indented; on resume plan 06's normalizer nests the subagent JSONL there,
+  so no separate read is needed. `subagentStatusLine` runs once per change for all rows.
+- `/tasks` (B7) lists background work from `background_tasks_changed` plus
+  backgrounded subagents; enter polls `get_task_output` every second; x stops.
+- Notifications (B9): spike S4 isn't recorded yet. In `-p` the engine drops hook
+  `terminalSequence` output, so an engine hook can't ring the terminal bell and
+  `EngineRang` stays false; revisit when S4 lands. Key activity comes from an
+  interceptor (`chrome.activity`); focus from `ReportFocus`.
+- Welcome (B10): mantle's own banner; the account line shows plan and organization,
+  never the email. "Engine pinned" has no ext signal: whoever pins the engine (plans
+  02/11) raises that notice through `Ctx.Notify`.
+- Release notes (B11): the first run only records the engine version; after an upgrade
+  a short "what's new" block (≤ 3 versions, ≤ 6 items each) is printed once.
+- Suspend (B12): the host returns `tea.Suspend` on ctrl+z (contracts-v1.1) and Bubble
+  Tea repaints the live area on resume, so no `Reprint` is needed. `app:redraw` is the
+  host core's; chrome registers `chat:clearScreen` (cmd+k). ctrl+l stays
+  `chat:clearInput` (plan 04).
+- Screen reader (B13): with `Ctx.Accessibility().ScreenReader` every chrome component
+  renders plain text with no box drawing, rules, glyph art or colour
+  (`TestScreenReaderStories`); chrome has no animation. The layout switch is the host's.
+- vt tests use `internal/testkit`; its shutdown race under `-race` is fixed by plan 01
+  (commit 5224567, next integration tag).
+- Integration check (integration-1, every feature in one host): the only report is
+  `chrome.promptFrame: input.editor: wrap: no such ID`, because plan 04's `input.editor`
+  isn't wired yet. It clears once plan 04 lands; plan 04 agreed to send
+  `ext.EditorStateMsg` and to run `mantle:footerSelect` on ↓ with no newer history.
 
 - [x] **B1 [M1] Prompt frame.** The box around the input (slot `input` frame, owned
   together with plan 04's editor component): border colour per mode (bash mode border,
@@ -233,11 +272,11 @@ Notes:
 - [x] **B11 [M2] `/release-notes`** (native; Claude Code's is local-jsx). Show Claude Code's
   changelog from `~/.claude/cache/changelog.md` (runtime read) for versions newer than the
   last seen one (stored in mantle state), plus mantle's own changelog.
-- [ ] **B12 [M2] ctrl+z suspend and `app:redraw`.** Suspend via `tea.Suspend`; on resume,
+- [x] **B12 [M2] ctrl+z suspend and `app:redraw`.** Suspend via `tea.Suspend`; on resume,
   redraw with the core `Reprint` when needed. ctrl+l redraw and cmd+k clear screen follow
   Claude Code's `Chat` bindings (`chat:clearInput` is ctrl+l in 2.1.288; check the keymap
   table from plan 01).
-- [ ] **B13 [M2] Screen-reader flat mode.** When enabled, the host switches the
+- [x] **B13 [M2] Screen-reader flat mode.** When enabled, the host switches the
   layout-mode flag: no spinner animation (static "Working…" lines), no borders, linear
   appends, and the footer and status line printed as plain lines. Coordinate the flag
   through ext (plan 01 owns the host switch; you own the chrome behaviour).

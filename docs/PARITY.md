@@ -651,7 +651,7 @@ are **H**. Infeasible features are **X**.
 | CL-21 | `/setup-bedrock`, `/setup-vertex` | | H | M3 | 09 | B | |
 | CL-22 | `/install-github-app` | | H | M3 | 09 | B | |
 | CL-23 | `/install-slack-app` | | H | M3 | 09 | B | local, not headless |
-| CL-24 | `/privacy-settings` | | H | M2 | 08 | B | |
+| CL-24 | `/privacy-settings` | | H | M2 | 09 | B | |
 | CL-25 | `/cloud-plugins` | | H | M3 | 09 | B | |
 | CL-26 | `/daemon` | Background services and routines | H | M3 | 09 | B | |
 | CL-27 | `/pro-trial-expired` (hidden) | | H | M3 | 09 | B | |

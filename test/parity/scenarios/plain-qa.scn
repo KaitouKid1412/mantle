@@ -1,0 +1,12 @@
+# Plain question and answer: markdown headings, lists, emphasis and a code block.
+name: plain-qa
+size: 100x30
+script: scripts/plain-qa.json
+---
+ready
+checkpoint start
+type Explain the plan in markdown
+keys enter
+wait_for 30s Done.
+wait_gone 30s esc to interrupt
+checkpoint answered

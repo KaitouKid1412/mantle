@@ -48,4 +48,5 @@ const sampleSession = `
 {"type":"system","subtype":"compact_boundary","uuid":"c1","compact_metadata":{"trigger":"manual","pre_tokens":48200,"post_tokens":7900}}
 {"type":"assistant","uuid":"a19","error":"rate_limit","message":{"id":"m3","model":"<synthetic>","content":[{"type":"text","text":"API Error: 429 rate limited"}]}}
 {"type":"assistant","uuid":"a20","local_command_run":{"command":"context","args":""},"message":{"id":"m4","model":"<synthetic>","content":[{"type":"text","text":"Context usage: 7.9k / 200k tokens (4%)"}]}}
+{"type":"result","subtype":"success","uuid":"r9","duration_ms":30,"is_error":false,"num_turns":0,"local_command":"context","total_cost_usd":0}
 `

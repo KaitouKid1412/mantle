@@ -1,0 +1,110 @@
+── width 60 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /context                                                  [m
+
+  ⎿  [38;2;139;139;147mContext: 12.4k / 200k tokens (6%)[m
+     [38;2;139;139;147m  System prompt  3.1k[m
+     [38;2;139;139;147m  Messages       9.3k[m
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m Clean the build folder and fix the typo in README.        [m
+
+[38;2;239;122;128m⏺[m [1mPreToolUse:Bash hook failed[m
+  ⎿  [38;2;139;139;147mexit code 2[m
+     [38;2;239;122;128mBlocked: rm -rf is not allowed here[m
+
+[38;2;239;122;128m⏺[m [1mBash[m(rm -rf build)
+  ⎿  [38;2;239;122;128mHook PreToolUse:Bash blocked this command[m
+
+[38;2;239;122;128m⏺[m [1mDenied: Bash[m
+  ⎿  [38;2;139;139;147mDeleting files outside the project is not allowed in[m
+     [38;2;139;139;147mauto mode[m
+
+[38;2;239;122;128m⏺[m [1mUpdate[m(]8;;file:///work/app/README.mdREADME.md]8;;)
+  ⎿  [38;2;139;139;147mRejected[m
+     [48;2;51;32;31m- [m[38;2;139;139;147;48;2;51;32;31mteh build[m[48;2;51;32;31m                                            [m
+     [48;2;26;44;32m+ [m[38;2;139;139;147;48;2;26;44;32mthe build[m[48;2;26;44;32m                                            [m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mApproaching the usage limit (91% used)[m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mThe model declined to respond; retrying with model-b[m
+
+[38;2;230;227;222m⏺[m I was asked not to edit the README, so I'll stop here. The
+  build folder
+
+  ⎿  [38;2;239;122;128mInterrupted by user[m
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Edit(file_path: "/work/app/README.md")[m
+
+[38;2;239;122;128m⏺[m [38;2;239;122;128mThe API is overloaded. Try again shortly.[m
+  ⎿  [38;2;139;139;147mAPI Error: 529 Overloaded[m
+── width 100 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /context                                                                                          [m
+
+  ⎿  [38;2;139;139;147mContext: 12.4k / 200k tokens (6%)[m
+     [38;2;139;139;147m  System prompt  3.1k[m
+     [38;2;139;139;147m  Messages       9.3k[m
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m Clean the build folder and fix the typo in README.                                                [m
+
+[38;2;239;122;128m⏺[m [1mPreToolUse:Bash hook failed[m
+  ⎿  [38;2;139;139;147mexit code 2[m
+     [38;2;239;122;128mBlocked: rm -rf is not allowed here[m
+
+[38;2;239;122;128m⏺[m [1mBash[m(rm -rf build)
+  ⎿  [38;2;239;122;128mHook PreToolUse:Bash blocked this command[m
+
+[38;2;239;122;128m⏺[m [1mDenied: Bash[m
+  ⎿  [38;2;139;139;147mDeleting files outside the project is not allowed in auto mode[m
+
+[38;2;239;122;128m⏺[m [1mUpdate[m(]8;;file:///work/app/README.mdREADME.md]8;;)
+  ⎿  [38;2;139;139;147mRejected[m
+     [48;2;51;32;31m- [m[38;2;139;139;147;48;2;51;32;31mteh build[m[48;2;51;32;31m                                                                                    [m
+     [48;2;26;44;32m+ [m[38;2;139;139;147;48;2;26;44;32mthe build[m[48;2;26;44;32m                                                                                    [m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mApproaching the usage limit (91% used)[m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mThe model declined to respond; retrying with model-b[m
+
+[38;2;230;227;222m⏺[m I was asked not to edit the README, so I'll stop here. The build folder
+
+  ⎿  [38;2;239;122;128mInterrupted by user[m
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Edit(file_path: "/work/app/README.md")[m
+
+[38;2;239;122;128m⏺[m [38;2;239;122;128mThe API is overloaded. Try again shortly.[m
+  ⎿  [38;2;139;139;147mAPI Error: 529 Overloaded[m
+── width 160 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /context                                                                                                                                                      [m
+
+  ⎿  [38;2;139;139;147mContext: 12.4k / 200k tokens (6%)[m
+     [38;2;139;139;147m  System prompt  3.1k[m
+     [38;2;139;139;147m  Messages       9.3k[m
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m Clean the build folder and fix the typo in README.                                                                                                            [m
+
+[38;2;239;122;128m⏺[m [1mPreToolUse:Bash hook failed[m
+  ⎿  [38;2;139;139;147mexit code 2[m
+     [38;2;239;122;128mBlocked: rm -rf is not allowed here[m
+
+[38;2;239;122;128m⏺[m [1mBash[m(rm -rf build)
+  ⎿  [38;2;239;122;128mHook PreToolUse:Bash blocked this command[m
+
+[38;2;239;122;128m⏺[m [1mDenied: Bash[m
+  ⎿  [38;2;139;139;147mDeleting files outside the project is not allowed in auto mode[m
+
+[38;2;239;122;128m⏺[m [1mUpdate[m(]8;;file:///work/app/README.mdREADME.md]8;;)
+  ⎿  [38;2;139;139;147mRejected[m
+     [48;2;51;32;31m- [m[38;2;139;139;147;48;2;51;32;31mteh build[m[48;2;51;32;31m                                                                                                                                                [m
+     [48;2;26;44;32m+ [m[38;2;139;139;147;48;2;26;44;32mthe build[m[48;2;26;44;32m                                                                                                                                                [m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mApproaching the usage limit (91% used)[m
+
+[38;2;231;183;95m⏺[m [38;2;231;183;95mThe model declined to respond; retrying with model-b[m
+
+[38;2;230;227;222m⏺[m I was asked not to edit the README, so I'll stop here. The build folder
+
+  ⎿  [38;2;239;122;128mInterrupted by user[m
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Edit(file_path: "/work/app/README.md")[m
+
+[38;2;239;122;128m⏺[m [38;2;239;122;128mThe API is overloaded. Try again shortly.[m
+  ⎿  [38;2;139;139;147mAPI Error: 529 Overloaded[m

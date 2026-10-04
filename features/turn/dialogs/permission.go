@@ -19,6 +19,11 @@ type PermissionContext struct {
 	OfferAuto bool
 	// Index and Total show "(1 of 3)" when several requests are queued; Total 0 hides it.
 	Index, Total int
+	// Diff renders an edit preview (old → new text of path) at width, capped at
+	// maxLines; nil uses a plain line diff. Part B plugs in pkg/ui/diffview.
+	Diff func(old, new, path string, width, maxLines int) []string
+	// Markdown renders markdown (question previews) at width; nil shows it as text.
+	Markdown func(src string, width int) []string
 }
 
 // Deny messages the model sees. mantle's own wording.
@@ -60,7 +65,7 @@ func NewPermission(req ToolRequest, ctx PermissionContext) *Permission {
 	if p.input == nil {
 		p.input = map[string]any{}
 	}
-	p.view = describeTool(req, p.input, ctx.Cwd)
+	p.view = describeTool(req, p.input, ctx)
 	p.feedback = textField{placeholder: "Tell Claude what to do instead", multiline: true}
 	p.amend = textField{multiline: true}
 

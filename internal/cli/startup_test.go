@@ -289,6 +289,39 @@ func TestFlagSettings(t *testing.T) {
 	}
 }
 
+// RestartArgs round-trips: parsing them again gives the same engine options, resuming
+// the session, in the same worktree, with the UI flags kept and nothing re-submitted.
+func TestRestartArgs(t *testing.T) {
+	old := newWorktreeName
+	newWorktreeName = func() string { return "brisk-comet-3f9a" }
+	t.Cleanup(func() { newWorktreeName = old })
+
+	s := startup(t, "fix it", "-w", "--model", "sonnet", "--add-dir", "../a", "../b", "--settings", "{}", "--ax-screen-reader",
+		"--prompt-suggestions", "off", "-n", "work", "--fork-session", "--session-id", "55555555-5555-4555-8555-555555555555",
+		"--prefill", "x", "--allowed-tools", "Bash", "Edit")
+	args := s.RestartArgs(RestartOpts{SessionID: "66666666-6666-4666-8666-666666666666", PermissionMode: "acceptEdits"})
+
+	p, err := Parse(args)
+	if err != nil {
+		t.Fatalf("%q: %v", args, err)
+	}
+	r, err := p.Startup("/work/repo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := r.Spawn
+	if o.Resume != "66666666-6666-4666-8666-666666666666" || o.Model != "sonnet" || o.PermissionMode != "acceptEdits" ||
+		!slices.Equal(o.AddDirs, []string{"../a", "../b"}) || o.Settings != "{}" || o.Name != "work" || o.ForkSession || o.SessionID != "" {
+		t.Errorf("spawn %+v", o)
+	}
+	if !slices.Equal(o.ExtraArgs, []string{"-w", "brisk-comet-3f9a", "--allowed-tools", "Bash", "Edit"}) || r.Worktree != "brisk-comet-3f9a" {
+		t.Errorf("extra args %q", o.ExtraArgs)
+	}
+	if !r.ScreenReader || r.PromptSuggestions == nil || *r.PromptSuggestions || r.Prompt != "" || r.Prefill != "" {
+		t.Errorf("startup %+v", r)
+	}
+}
+
 func TestCurrent(t *testing.T) {
 	ClearCurrent()
 	if _, ok := Current(); ok {

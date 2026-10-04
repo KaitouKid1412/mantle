@@ -1,6 +1,6 @@
 # 09 → 04: native `/doctor` vs the engine's `/doctor` skill
 
-**Status:** open (2026-10-03).
+**Status:** done (plan 04). `input.slash` runs a command only when `ctx.Command` resolves it to one with a `Run` (native or mod). Engine commands (`Run` nil) and names nothing claims, such as `/checkup`, go to the engine as prompt text.
 
 In 2.1.288, `/doctor` inside a session is a bundled skill (prompt type, alias
 `checkup`). Plan 09 registers a native `/doctor` panel (mantle's checks, `claude doctor`

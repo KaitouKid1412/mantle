@@ -1,0 +1,7 @@
+Hooks
+
+  ❯ ● PreToolUse          3 hooks · Before a tool runs
+    ● SessionStart        2 hooks · When a session starts
+    ● Stop                1 hook · Before Claude finishes its reply
+
+  enter open · a show all events · esc close

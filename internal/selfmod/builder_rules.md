@@ -29,6 +29,9 @@ mantle shows the proposal to the user and applies it; nothing is rebuilt.
   `ext.Feature` from `init()` with `ID: "mod.<mod-id>"` and `Order: ext.ModOrder` or
   higher, and change built-ins through `pkg/ext`: `Replace`, `Wrap`, `Remove`,
   `Alias`, interceptors, new components, commands, renderers and settings.
+- Link the mod into mantle-ui with one file, `mods/link_<mod-id>.go`:
+  `package mods` and `import _ "github.com/KaitouKid1412/mantle/mods/<mod-id>"`.
+  The package name is the id without dashes.
 - Find the IDs to target with `go run ./cmd/mantle-ui catalog --json`.
 - Read `docs/EXTENDING.md` for the API and worked examples.
 - Edit core packages only to add a missing seam, and keep that edit minimal. Never
