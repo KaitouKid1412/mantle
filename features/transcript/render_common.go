@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"net/url"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -94,9 +95,54 @@ func bulletStyle(st sty, state ext.ItemState) render.Style {
 func header(rc ext.RenderCtx, st sty, dot render.Style, name, args string) []string {
 	head := st.bold.Render(clean(name))
 	if args != "" {
-		head += "(" + clean(args) + ")"
+		head += "(" + applyLinks(clean(args)) + ")"
 	}
 	return render.WrapWith(head, render.WrapOptions{Width: rc.Width, First: dot.Render(glyphDot) + " ", Rest: dotIndent})
+}
+
+// Link markers: fileLink wraps a path in private-use runes that header turns
+// into an OSC 8 hyperlink after the args are sanitized.
+const (
+	linkOpen  = "\uE000"
+	linkMid   = "\uE001"
+	linkClose = "\uE002"
+)
+
+// fileLink marks a displayed path as a link to the absolute file.
+func fileLink(display, abs string) string {
+	display = stripLinkMarks(display)
+	if abs == "" || !filepath.IsAbs(abs) {
+		return display
+	}
+	u := url.URL{Scheme: "file", Path: abs}
+	return linkOpen + u.String() + linkMid + display + linkClose
+}
+
+func stripLinkMarks(s string) string {
+	return strings.NewReplacer(linkOpen, "", linkMid, "", linkClose, "").Replace(s)
+}
+
+// applyLinks turns link markers into OSC 8 hyperlinks. Only file:// targets are
+// honoured (args come from untrusted tool input).
+func applyLinks(s string) string {
+	for {
+		i := strings.Index(s, linkOpen)
+		if i < 0 {
+			return s
+		}
+		rest := s[i+len(linkOpen):]
+		j := strings.Index(rest, linkMid)
+		k := strings.Index(rest, linkClose)
+		if j < 0 || k < j {
+			return stripLinkMarks(s)
+		}
+		target, text := rest[:j], rest[j+len(linkMid):k]
+		link := text
+		if strings.HasPrefix(target, "file://") {
+			link = render.Link(target, text)
+		}
+		s = s[:i] + link + rest[k+len(linkClose):]
+	}
 }
 
 // result renders lines under "  ⎿  ", wrapped.

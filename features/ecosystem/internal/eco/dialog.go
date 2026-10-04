@@ -152,15 +152,26 @@ func (d *Dialog) HandleKey(ctx ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
 	return false, nil
 }
 
-// Update forwards messages to every view.
+// Update forwards messages to every view. Views change their state on these
+// results, so the host's cached render is invalidated after them; other
+// broadcast messages (stream deltas, ticks) leave the cache alone.
 func (d *Dialog) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
+	addressed := false
 	if am, ok := msg.(ext.AddressedMsg); ok {
-		msg = am.Msg
+		msg, addressed = am.Msg, true
 	}
 	var cmds []tea.Cmd
 	for _, v := range append([]View(nil), d.views...) {
 		if cmd := v.Update(ctx, d, msg); cmd != nil {
 			cmds = append(cmds, cmd)
+		}
+	}
+	switch msg.(type) {
+	case ResultMsg, ExecDoneMsg, ext.ControlResultMsg, ext.SettingsMsg:
+		ctx.Invalidate(d.id)
+	default:
+		if addressed {
+			ctx.Invalidate(d.id)
 		}
 	}
 	return tea.Batch(cmds...)

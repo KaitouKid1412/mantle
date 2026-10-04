@@ -228,7 +228,7 @@ esac
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	c := &Collector{Claude: bin, Binary: filepath.Join(dir, "nope"), Cache: dir, Offline: true}
+	c := &Collector{Claude: bin, Binary: filepath.Join(dir, "nope"), Cache: dir, Offline: true, NoEngine: true}
 	s := c.Collect(context.Background())
 	if s.ClaudeVersion != "9.9.9" {
 		t.Errorf("version %q", s.ClaudeVersion)
@@ -287,6 +287,19 @@ func TestBaselineIsClassified(t *testing.T) {
 		if (f.Kind == KindFlag || f.Kind == KindSubcommand) && f.Status != StatusNew {
 			t.Errorf("%s %s: %s %s", f.Kind, f.Key(), f.Status, f.Detail)
 		}
+	}
+}
+
+// TestKnownEngineMatchesBaseline: the engine tables mantle embeds for its runtime check
+// are the accepted baseline's (`-accept` writes both).
+func TestKnownEngineMatchesBaseline(t *testing.T) {
+	b, err := loadSnapshot("baseline.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, got := knownEngine(b), cli.Known()
+	if want.ClaudeVersion != got.ClaudeVersion || !slices.Equal(want.Commands, got.Commands) || !slices.Equal(want.Tools, got.Tools) {
+		t.Errorf("internal/cli/known_engine.json is stale; run go run ./scripts/drift -from scripts/drift/baseline.json -accept")
 	}
 }
 
@@ -399,7 +412,7 @@ func TestParseParity(t *testing.T) {
 func TestRunFromSnapshot(t *testing.T) {
 	dir := t.TempDir()
 	md, js := filepath.Join(dir, "drift.md"), filepath.Join(dir, "drift.json")
-	code := run([]string{"-from", fixture, "-baseline", fixture, "-parity", "testdata/parity.md", "-out", md, "-json", js})
+	code := run([]string{"-from", fixture, "-baseline", fixture, "-parity", "testdata/parity.md", "-out", md, "-json", js, "-catalog", "none"})
 	if code != 0 && code != 1 {
 		t.Fatalf("exit %d", code)
 	}

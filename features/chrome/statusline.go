@@ -32,11 +32,23 @@ func statusLineConfig(s ext.Settings) slConfig {
 	return parseSLConfig(s, "statusLine")
 }
 
+// parseSLConfig applies Claude Code's hook gates: with disableAllHooks (outside managed
+// settings) or managed allowManagedHooksOnly, only a statusLine from managed settings
+// runs; disableAllHooks in managed settings turns it off entirely.
 func parseSLConfig(s ext.Settings, key string) slConfig {
-	if ext.ClaudeBool(s, "disableAllHooks", false) {
+	v, ok := s.Claude(key)
+	if ss, scoped := s.(ext.ScopedSettings); scoped {
+		policy := ss.ClaudeScope(ext.ScopePolicy)
+		managedOnly := policy["allowManagedHooksOnly"] == true || ext.ClaudeBool(s, "disableAllHooks", false)
+		switch {
+		case policy["disableAllHooks"] == true:
+			return slConfig{}
+		case managedOnly:
+			v, ok = policy[key]
+		}
+	} else if ext.ClaudeBool(s, "disableAllHooks", false) {
 		return slConfig{}
 	}
-	v, ok := s.Claude(key)
 	if !ok {
 		return slConfig{}
 	}

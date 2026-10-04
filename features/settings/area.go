@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/features/settings/model"
 	"github.com/KaitouKid1412/mantle/features/settings/patch"
-	"github.com/KaitouKid1412/mantle/features/settings/settingsfile"
 	"github.com/KaitouKid1412/mantle/features/settings/termsetup"
+	"github.com/KaitouKid1412/mantle/internal/claudecli"
+	"github.com/KaitouKid1412/mantle/internal/config"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
@@ -31,8 +31,8 @@ type area struct {
 	mantleSpecs []ext.SettingSpec
 
 	// autoModeDefaults lists the auto-mode classifier's built-in rules through plan 09's
-	// safe claude runner; nil until that package is available on this branch.
-	autoModeDefaults func(context.Context) (AutoModeRules, error)
+	// safe claude runner (never hand-built argv); tests replace it.
+	autoModeDefaults func(ctx context.Context, dir string) (AutoModeRules, error)
 
 	// endPreviewPending: a confirmed /theme preview waits for the settings reload.
 	endPreviewPending bool
@@ -50,6 +50,10 @@ type area struct {
 	sessionUltracode *bool
 	sessionFast      *bool
 	sessionThinking  *bool
+
+	// newerOffer is the successor offered for the saved default model (ctrl+y).
+	newerOffer      *model.Row
+	newerOfferedFor string
 }
 
 // engineState caches what the main engine reported, for panels that open before a
@@ -65,7 +69,16 @@ type engineState struct {
 
 func newArea() *area {
 	return &area{env: processEnv, write: writeFile, openEditor: defaultOpenEditor,
-		termLoad: defaultTermLoad, termApply: defaultTermApply}
+		termLoad: defaultTermLoad, termApply: defaultTermApply, autoModeDefaults: claudeAutoModeDefaults}
+}
+
+// claudeAutoModeDefaults runs "claude auto-mode defaults" in dir (it prints config and
+// never calls the model).
+func claudeAutoModeDefaults(ctx context.Context, dir string) (AutoModeRules, error) {
+	r := *claudecli.Default
+	r.Dir = dir
+	rules, err := r.AutoModeDefaults(ctx, "")
+	return AutoModeRules(rules), err
 }
 
 // processEnv reads HOME, CLAUDE_CONFIG_DIR and the session directory.
@@ -81,9 +94,15 @@ func processEnv(c ext.Ctx) patch.Env {
 	return e
 }
 
+// writeFile applies a patch to its scope's file through plan 01's config writer
+// (locked, merge-on-write, order-preserving, never ~/.claude.json).
 func writeFile(env patch.Env, p patch.Patch) (string, error) {
-	w := settingsfile.Writer{Env: env, LockDir: filepath.Join(env.Home, ".mantle", "locks")}
-	return w.Apply(p)
+	path, err := env.Path(p.Scope)
+	if err != nil {
+		return "", err
+	}
+	w := config.Writer{Paths: config.PathsFor(env.Home, env.ProjectRoot, env.ConfigDir, "")}
+	return path, w.Update(path, p.Apply)
 }
 
 // subscribe keeps engineState current. Registered once, by the core settings feature.
@@ -96,6 +115,9 @@ func (a *area) subscribe(r ext.Registrar) {
 			return a.controlFailed(c, m)
 		}
 		a.observeControl(m)
+		if m.Subtype == proto.SubInitialize || m.Subtype == proto.SubListModels {
+			return a.offerNewerModel(c)
+		}
 		return nil
 	})
 	ext.Subscribe(r, "settings.engine-events", func(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {

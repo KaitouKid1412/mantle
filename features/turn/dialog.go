@@ -1,8 +1,7 @@
-//go:build turnwip
-
 package turn
 
 import (
+	"image/color"
 	"os"
 	"os/exec"
 	"runtime"
@@ -13,7 +12,9 @@ import (
 
 	"github.com/KaitouKid1412/mantle/features/turn/dialogs"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/render"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
+	"github.com/KaitouKid1412/mantle/pkg/ui/diffview"
 )
 
 // vmDialog adapts a dialogs.Model view-model to ext.Dialog. The view-model holds all
@@ -170,6 +171,30 @@ func openURL(u string) tea.Cmd {
 		go func() { _ = cmd.Wait() }()
 		return nil
 	}
+}
+
+// palette adapts the theme to pkg/render's token lookup.
+func palette(t *theme.Theme) render.Palette {
+	if t == nil {
+		return render.NoColor
+	}
+	return render.PaletteFunc(func(tok string) color.Color { return t.Color(theme.Token(tok)) })
+}
+
+// renderHooks returns the edit-preview and markdown renderers for dialogs: plan 03's
+// diffview and markdown renderer, in the current theme.
+func renderHooks(c ext.Ctx) (diff func(old, new, path string, width, maxLines int) []string, md func(src string, width int) []string) {
+	pal := palette(c.Theme())
+	noHL, _ := settingValue(c, "syntaxHighlightingDisabled").(bool)
+	diff = func(old, new, path string, width, maxLines int) []string {
+		return diffview.Render(diffview.FromStrings(old, new, 2), diffview.Options{
+			Width: width, Palette: pal, Filename: path, NoHighlight: noHL, MaxLines: maxLines,
+		})
+	}
+	md = func(src string, width int) []string {
+		return render.Markdown(src, render.MarkdownOptions{Width: width, Palette: pal, NoHighlight: noHL})
+	}
+	return diff, md
 }
 
 // stylesFor maps theme tokens onto the dialog styles.

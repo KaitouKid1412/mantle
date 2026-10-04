@@ -1,0 +1,94 @@
+{
+  "mcpServers": [
+    {
+      "name": "filesystem",
+      "status": "connected",
+      "scope": "local",
+      "source": "local",
+      "config": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@example/server-filesystem",
+          "/tmp/work"
+        ]
+      },
+      "serverInfo": {
+        "name": "example-fs",
+        "version": "1.4.0"
+      },
+      "tools": [
+        {
+          "name": "read_file"
+        },
+        {
+          "name": "write_file"
+        },
+        {
+          "name": "list_directory"
+        }
+      ]
+    },
+    {
+      "name": "search",
+      "status": "needs-auth",
+      "scope": "user",
+      "source": "user",
+      "config": {
+        "type": "http",
+        "url": "https://search.example.test/mcp"
+      }
+    },
+    {
+      "name": "broken",
+      "status": "failed",
+      "scope": "project",
+      "source": "project",
+      "config": {
+        "type": "stdio",
+        "command": "/usr/local/bin/broken-mcp"
+      },
+      "error": "spawn /usr/local/bin/broken-mcp ENOENT"
+    },
+    {
+      "name": "repo-tools",
+      "status": "pending",
+      "scope": "project",
+      "source": "project",
+      "config": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "./tools/mcp.js"
+        ]
+      }
+    },
+    {
+      "name": "quiet",
+      "status": "disabled",
+      "scope": "user",
+      "source": "user",
+      "config": {
+        "type": "sse",
+        "url": "https://quiet.example.test/sse"
+      }
+    },
+    {
+      "name": "claude.ai Example Docs",
+      "status": "connected",
+      "scope": "claudeai",
+      "source": "claudeai",
+      "config": {
+        "type": "claudeai-proxy",
+        "url": "https://mcp.example.test/docs",
+        "id": "mcpsrv_example"
+      },
+      "tools": [
+        {
+          "name": "search_docs"
+        }
+      ]
+    }
+  ]
+}

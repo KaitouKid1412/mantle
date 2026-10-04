@@ -117,6 +117,9 @@ func (l Layout) config() string {
 // ProjectsDir is <config>/projects.
 func (l Layout) ProjectsDir() string { return filepath.Join(l.config(), "projects") }
 
+// PlansDir is <config>/plans, where plan mode writes <slug>.md.
+func (l Layout) PlansDir() string { return filepath.Join(l.config(), "plans") }
+
 // FileHistoryDir is <config>/file-history/<sessionID>, the pre-edit backups used by rewind.
 func (l Layout) FileHistoryDir(sessionID string) string {
 	return filepath.Join(l.config(), "file-history", sessionID)

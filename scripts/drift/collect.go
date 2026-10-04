@@ -32,6 +32,11 @@ type Collector struct {
 	HTTP    *http.Client
 	Timeout time.Duration // per claude call
 	Log     io.Writer
+	// NoEngine skips the zero-token engine session (commands, tools, styles, models).
+	NoEngine      bool
+	EngineTimeout time.Duration
+	// SDKDiff runs plan 02's scripts/sdk-diff for protocol drift; nil when unavailable.
+	SDKDiff func(ctx context.Context) ([]Item, error)
 }
 
 // Collect runs every collector. A collector that fails yields a List with Error set;
@@ -61,10 +66,28 @@ func (c *Collector) Collect(ctx context.Context) Snapshot {
 	s.Put(contexts)
 	s.Put(candidates)
 	s.Put(c.collectSettings(ctx))
-	for _, kind := range []string{KindSlash, KindTool, KindOutputStyle, KindModel, KindProtocol} {
-		s.Put(List{Kind: kind, Source: "engine session", Error: "not collected yet: needs a zero-token engine session (plan 11, B3)"})
+	for _, l := range c.collectEngine(ctx) {
+		s.Put(l)
 	}
+	s.Put(c.collectProtocol(ctx))
 	return s
+}
+
+// collectProtocol lists protocol message types and control subtypes that the SDK has
+// and pkg/proto lacks (or the reverse), through plan 02's scripts/sdk-diff.
+func (c *Collector) collectProtocol(ctx context.Context) List {
+	l := List{Kind: KindProtocol, Source: "scripts/sdk-diff (plan 02)"}
+	if c.SDKDiff == nil {
+		l.Error = "scripts/sdk-diff is not in this tree yet (plan 02)"
+		return l
+	}
+	items, err := c.SDKDiff(ctx)
+	if err != nil {
+		l.Error = err.Error()
+		return l
+	}
+	l.Items = items
+	return l
 }
 
 func (c *Collector) logf(format string, args ...any) {

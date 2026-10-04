@@ -193,18 +193,27 @@ or redraw cost.
   `viewMode` default|verbose|focus; `/focus` (prompt, summary and response only); brief
   mode (ctrl+shift+b, `app:toggleBrief`). Each mode is a `RenderCtx.Mode`; switching
   triggers `Reprint`.
-- [ ] **B8 [M2] ctrl+o transcript viewer (`app:toggleTranscript`, `PlaceAltScreen`).**
+- [x] **B8 [M2] ctrl+o transcript viewer (`app:toggleTranscript`, `PlaceAltScreen`).**
   - Full store with timestamps and the model per message; collapsed items expandable;
     ctrl+e show-all.
   - Less-style keys (j/k, ctrl+u/d/b/f, g/G, space, b, arrows, home/end, `/` search, n/N).
   - q, esc or ctrl+c to exit. `v` opens the transcript in `$EDITOR`.
   - Context `Transcript`.
 
-### Part B status (M1)
+### Part B status
 
-- Done: store, commit policy (progressive commit, MCP grouping, "(response replaced)",
-  reprint on `ScreenClearedMsg`, history via `ext.TranscriptHistoryMsg`), live area,
-  renderers for every key above, spinner and turn duration with timestamps.
+- Done (M1): store, commit policy (progressive commit, MCP grouping, "(response
+  replaced)", reprint on `ScreenClearedMsg`, history via `ext.TranscriptHistoryMsg`),
+  live area, renderers for every key above, spinner and turn duration with timestamps.
+- Done (M2): view modes (focus: prompts, answers and "Used N tools"; brief: prompts,
+  answers and `SendUserMessage`; verbose; the engine's `init.view_mode` wins, so
+  `/focus` passthrough works; `--verbose` arrives as the flag-scope `verbose`
+  setting, see request 03-11) and the ctrl+o viewer (`dialog.transcript`).
+- Fixture replays: `testdata/fixtures/03/*.ndjson` plus all 19 of plan 02's recordings
+  of the real 2.1.288 engine (`testdata/fixtures/02/*.ndjson`), goldens at 60/100/160 in
+  `features/transcript/testdata/TestFixtureReplays/`. A new fixture is skipped until its
+  golden is recorded with `go test ./features/transcript -run TestFixtureReplays -update`.
+- `TestEveryToolRenders` covers every 2.1.288 tool name, MCP and an unknown tool.
 - Tests: store and commit unit tests on `exttest`; vt replays through the real host
   (`TestReplayScrollback` at 80×24, 120×40, 61×16; `TestStreamingNoArtifacts`):
   scrollback equals the committed transcript, no ghost lines. Benchmarks: 10k-item

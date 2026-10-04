@@ -3,6 +3,8 @@ package editor
 import (
 	"strings"
 	"time"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 // Editor is a multi-line prompt editor: grapheme-aware buffer with soft
@@ -29,6 +31,9 @@ type Editor struct {
 	Paste PasteConfig
 	// Now is the clock used for undo coalescing. Nil means time.Now.
 	Now func() time.Time
+	// Tick schedules timeouts (vim remaps). Nil means tea.Tick; hosts pass
+	// their clock's Tick so tests can control time.
+	Tick func(time.Duration, func(time.Time) tea.Msg) tea.Cmd
 
 	lines []line
 	cur   Pos
@@ -331,6 +336,41 @@ func (e *Editor) OnFirstRow() bool { vr, _ := e.visualPos(e.cur); return vr == 0
 func (e *Editor) OnLastRow() bool {
 	vr, _ := e.visualPos(e.cur)
 	return vr == len(e.visualRows())-1
+}
+
+// TokenBeforeCursor returns the text from the previous whitespace (or chip,
+// or line start) up to the cursor, and the column where it starts. Menus use
+// it to find "/cmd", "@path" and ":emoji" tokens being typed.
+func (e *Editor) TokenBeforeCursor() (string, int) {
+	l := e.lines[e.cur.Row].cells
+	start := e.cur.Col
+	for start > 0 && !l[start-1].isSpace() && l[start-1].chip == nil {
+		start--
+	}
+	return cellsText(l[start:e.cur.Col]), start
+}
+
+// TokenAtWordStart reports whether the token starting at col is at the start
+// of its line (true) or follows whitespace; it is false after a chip.
+func (e *Editor) TokenAtWordStart(col int) bool {
+	if col == 0 {
+		return true
+	}
+	c := e.lines[e.cur.Row].cells[col-1]
+	return c.isSpace()
+}
+
+// ReplaceBeforeCursor replaces the cells from column start to the cursor on
+// the cursor's line with text, as one undoable edit (accepting a completion).
+func (e *Editor) ReplaceBeforeCursor(start int, text string) {
+	if start < 0 || start > e.cur.Col {
+		return
+	}
+	e.checkpoint(editOther)
+	e.deleteRange(Pos{e.cur.Row, start}, e.cur)
+	e.cur.Col = start
+	e.insertFragment(fragment(splitLines(text)))
+	e.afterEdit()
 }
 
 // ---- word scanning ----

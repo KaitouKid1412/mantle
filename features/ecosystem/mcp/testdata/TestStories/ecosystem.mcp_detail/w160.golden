@@ -1,0 +1,16 @@
+[1;38;2;224;149;110mMCP servers[m[38;2;139;139;147m · filesystem[m
+
+  Status: connected
+  Scope: Local · this project, only you
+  Type: stdio
+  Runs: npx -y @example/server-filesystem /tmp/work
+  Version: 1.4.0
+  Tools (3): read_file, write_file, list_directory
+
+  [38;2;139;139;147m  Disable · Claude isn't running[m
+  [38;2;139;139;147m  Reconnect · Claude isn't running[m
+  [38;2;139;139;147m  Sign in · local servers don't sign in[m
+  [38;2;139;139;147m  Clear sign-in · local servers don't sign in[m
+  [38;2;147;180;251m❯ [m[38;2;147;180;251mRemove[m
+
+  [38;2;139;139;147menter choose · esc back[m

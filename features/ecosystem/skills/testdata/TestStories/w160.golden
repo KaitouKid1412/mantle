@@ -1,0 +1,15 @@
+[1;38;2;224;149;110mSkills[m
+
+  [1;38;2;230;227;222mProject[m
+  [38;2;147;180;251m❯ [m[38;2;182;145;238m●[m [38;2;147;180;251mdeploy          [m  [38;2;139;139;147mDeploy the app[m
+
+  [1;38;2;230;227;222mUser[m
+    [38;2;139;139;147m◐[m [38;2;230;227;222mrelease-notes   [m  [38;2;139;139;147mcommand · [name only] Draft release notes[m
+
+  [1;38;2;230;227;222mPlugins[m
+    [38;2;85;85;92m○[m [38;2;230;227;222mdemo:status     [m  [38;2;139;139;147m[off] (Demo) Show status[m
+
+  [1;38;2;230;227;222mBuilt-in[m
+    [38;2;182;145;238m●[m [38;2;230;227;222msimplify        [m  [38;2;139;139;147mReview changed code for reuse and quality[m
+
+  [38;2;139;139;147menter details · space cycle visibility · e edit · esc close[m

@@ -1,0 +1,10 @@
+[1;38;2;224;149;110mBackground sessions[m
+
+  [1;38;2;230;227;222mBackground[m
+  [38;2;147;180;251m❯ [m[38;2;231;183;95m●[m [38;2;147;180;251mrepo-task         [m  [38;2;139;139;147mbusy · working · repo · started 12m ago[m
+    [38;2;111;194;139m○[m [38;2;230;227;222mdocs-refresh      [m  [38;2;139;139;147midle · docs · started 3h ago[m
+
+  [1;38;2;230;227;222mInteractive · other terminals[m
+    [38;2;111;194;139m○[m [38;2;230;227;222mhome-1            [m  [38;2;139;139;147midle · user · started 26h ago[m
+
+  [38;2;139;139;147menter attach · l logs · x stop · a show finished · r refresh · esc close[m
