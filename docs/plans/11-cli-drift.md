@@ -223,8 +223,10 @@
   output styles and `system/init.tools`. Commands are classified by the catalog (native),
   PARITY.md's slash index (E/N/H) or the baseline; tools by a specific renderer in
   `mantle-ui catalog --json` (`-catalog auto|FILE|none`) or the baseline. The protocol list
-  runs `scripts/sdk-diff -json` when plan 02 adds it (not in the tree yet; the report says
-  so). 2.1.288 baseline: 44 commands, 20 tools, 5 models, 5 styles.
+  runs plan 02's `scripts/sdk-diff -json`: `sdk-only` items (the SDK has them, `pkg/proto`
+  doesn't) fail; `proto-only` ones are reported only when they change. Baseline moved to
+  2.1.289 (checked with sdk-diff from plan 02's branch): no flag, subcommand, keybinding,
+  settings, command or tool changes since 2.1.288; 11 proto-only, 0 sdk-only.
   - Add collectors that use a zero-token engine session (plan 02's conformance probe
     pattern: `initialize`, then `end_session`): `initialize.commands` (vs mantle's routing
     table: native / E / H), `init.tools` (vs plan 03's renderer keys; tools without a
