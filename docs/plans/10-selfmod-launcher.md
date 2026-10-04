@@ -268,7 +268,7 @@ Build the part of mantle that makes it mantle:
     `pkg/`);
   - three worked examples: custom spinner verbs (config only), a custom renderer for one MCP
     tool, a sidebar component (fullscreen).
-- [ ] **B11 [M3] fd-handoff instant restart.** mantle-ui calls `syscall.Exec` on the new
+- [x] **B11 [M3] fd-handoff instant restart.** mantle-ui calls `syscall.Exec` on the new
   binary with `--attach-engine-fds=3,4,5` (plus session state). The PID stays the same, so
   the claude child, its pipes and background tasks survive.
 
@@ -303,16 +303,16 @@ Build the part of mantle that makes it mantle:
   (`internal/selfmod/s16_test.go`): job control through the launcher, ctrl+c inside an
   exec'd editor, crash restore.
 - `docs/EXTENDING.md` examples are compiled by `TestExtendingExamplesCompile`.
-- **B11 (M3):** plan 10's side is done and tested. The launcher accounts probation to
-  the run file's `version` after an in-place exec; `/mantle restart` with
-  `selfmod.instantRestart` calls the engine's `HandoffToFile(path, argv)`, records the
-  new build, and execs it through `tea.Exec` (Bubble Tea releases the terminal first),
-  falling back to exit 75. The engine side (plan 02: `PrepareHandoff`, `AdoptFile`, own
-  file format) and the flag (plan 11: `--attach-engine-fds`) exist on their branches;
-  Plan 02's `Engine.HandoffToFile` now exists on its branch (any error there ends in
-  a normal exit-75 restart here, since the engine may be detached). **Still missing in
-  an integration tag:** that commit, and plan 01's `Adopt` hook in `cmd/mantle-ui`
-  calling `mgr.AdoptFile`. Request:
+- **B11 (M3), done:** `/mantle restart` with `selfmod.instantRestart` calls the main
+  engine's `HandoffToFile(path, argv)` (plan 02; it writes its own hand-off file), records
+  the new build in the run file, and execs `RestartArgs` + `--attach-engine-fds=<file>`
+  through `tea.Exec` (Bubble Tea releases the terminal first). The new process adopts the
+  engine (plan 01's `Adopt` hook → `mgr.AdoptFile`, plan 11's flag). Any failure ends in
+  a normal exit-75 restart (the engine may be detached). The launcher accounts probation
+  to the run file's `version`. `TestInstantRestartAcrossExec` drives a real mantle-ui:
+  same pid, same claude pid, the next turn answered, clean exit. It passed with plan
+  01's hook (6bae51f) applied and skips until that commit is integrated here. The
+  setting stays off by default until the adopt path has soaked; request
   `docs/plans/requests/10-02-engine-fd-handoff.md`.
 
 ## Design notes
