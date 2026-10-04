@@ -1,0 +1,21 @@
+# Rewind: double esc opens the message selector.
+name: rewind
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+script: scripts/rewind.json
+parity: SE-22
+---
+ready
+type first message
+keys enter
+wait_for 30s First reply.
+type second message
+keys enter
+wait_for 30s Second reply.
+settle
+keys esc esc
+settle 3s
+checkpoint selector
+keys esc
+settle

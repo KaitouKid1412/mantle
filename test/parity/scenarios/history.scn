@@ -1,0 +1,25 @@
+# History: up arrow recalls the last prompt; ctrl+r searches.
+name: history
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+script: scripts/history.json
+parity: HI-01, HI-06
+---
+ready
+type alpha prompt
+keys enter
+wait_for 30s First answer.
+type beta prompt
+keys enter
+wait_for 30s Second answer.
+settle
+keys up
+settle
+checkpoint recalled
+keys esc esc
+settle
+keys ctrl+r
+type alp
+settle
+checkpoint search

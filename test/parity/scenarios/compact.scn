@@ -1,0 +1,16 @@
+# /compact after a short exchange.
+name: compact
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+script: scripts/compact-clear.json
+parity: SE-16, TR-31
+---
+ready
+type Say something
+keys enter
+wait_for 30s worth compacting
+type /compact
+keys enter
+settle 10s
+checkpoint compacted

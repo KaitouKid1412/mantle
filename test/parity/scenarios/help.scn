@@ -1,0 +1,15 @@
+# /help.
+name: help
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+parity: ST-28
+---
+ready
+type /help
+keys enter
+settle 4s
+checkpoint shown
+keys esc
+settle
+checkpoint closed

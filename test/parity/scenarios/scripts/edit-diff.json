@@ -1,0 +1,31 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "I'll update the greeting."
+        },
+        {
+          "type": "tool_use",
+          "name": "Edit",
+          "input": {
+            "file_path": "{{work}}/main.go",
+            "old_string": "return \"hello, \" + name",
+            "new_string": "return \"hi there, \" + name"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Updated the greeting in main.go."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

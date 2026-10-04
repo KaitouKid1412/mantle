@@ -1,0 +1,18 @@
+# Edit tool: the diff in the permission prompt and in the transcript.
+name: edit-diff
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+script: scripts/edit-diff.json
+parity: PD-03, TR-12
+---
+ready
+type Make the greeting friendlier
+keys enter
+wait_for 30s hi there
+settle
+checkpoint edit-prompt
+keys enter
+wait_for 30s Updated the greeting in main.go.
+settle
+checkpoint edited

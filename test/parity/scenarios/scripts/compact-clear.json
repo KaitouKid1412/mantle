@@ -1,0 +1,14 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Here is an answer worth compacting."
+        }
+      ]
+    }
+  ],
+  "side_reply": "## Summary\nThe user asked for an answer; it was given.",
+  "default_reply": "OK."
+}

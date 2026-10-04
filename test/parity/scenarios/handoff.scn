@@ -1,0 +1,21 @@
+# H hand-off: /mobile is not native in mantle, so it opens in Claude Code.
+name: handoff
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+script: scripts/handoff.json
+parity: SE-40, AC-22, CL-04
+---
+ready
+type Say hello
+keys enter
+wait_for 30s Hello from the fake model.
+wait_gone 30s esc to interrupt
+type /mobile
+keys enter
+# mantle asks before handing the terminal to Claude Code.
+@mantle wait_for 10s Open in Claude Code
+@mantle keys enter
+wait_for 30s claude.ai/mobile
+settle 3s
+checkpoint panel

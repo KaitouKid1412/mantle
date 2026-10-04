@@ -1,0 +1,18 @@
+# Footer: shift+tab cycles the permission modes.
+name: footer-modes
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+parity: CH-05, PD-19
+---
+ready
+checkpoint mode-0
+keys shift+tab
+settle
+checkpoint mode-1
+keys shift+tab
+settle
+checkpoint mode-2
+keys shift+tab
+settle
+checkpoint mode-3

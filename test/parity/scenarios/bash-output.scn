@@ -1,0 +1,17 @@
+# Bash output: long output collapses in the transcript.
+name: bash-output
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+script: scripts/bash-output.json
+parity: TR-09, TR-55
+---
+ready
+type Print forty numbers
+keys enter
+wait_for 30s seq 1 40
+settle
+keys enter
+wait_for 30s That printed forty numbers.
+settle
+checkpoint collapsed

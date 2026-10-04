@@ -1,0 +1,15 @@
+# The /context grid.
+name: context
+size: 100x30
+args: --permission-mode default
+files: fixtures/app
+parity: CU-01
+---
+ready
+type /context
+keys enter
+settle 4s
+checkpoint shown
+keys esc
+settle
+checkpoint closed
