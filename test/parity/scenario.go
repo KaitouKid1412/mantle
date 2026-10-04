@@ -19,7 +19,7 @@ import (
 //	size: 100x30
 //	script: scripts/plain-qa.json   # fakeapi script, relative to the scenario file
 //	args: --model sonnet "a prompt" # extra command-line arguments ('…' and "…" quote)
-//	files: fixtures/app             # copied into the working directory before start
+//	files: ../../../testdata/fixtures/12/app  # copied into the working directory first
 //	env: CLAUDE_CODE_ENABLE_TODO_TOOLS=1   # extra environment (repeatable)
 //	settings: {"statusLine": {...}}  # written to the isolated CLAUDE_CONFIG_DIR/settings.json;
 //	                                 # "tui" defaults to "default" (the inline renderer)

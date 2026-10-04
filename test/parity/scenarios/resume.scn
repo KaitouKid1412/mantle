@@ -1,14 +1,12 @@
 # Resume: -c continues the last session after a restart.
 name: resume
 size: 100x30
-args: --permission-mode default
-files: fixtures/app
+args: --permission-mode default "Remember a word for me"
+files: ../../../testdata/fixtures/12/app
 script: scripts/resume.json
 parity: SE-07, SE-08
 ---
 ready
-type Remember a word for me
-keys enter
 wait_for 30s kumquat
 settle
 restart -c

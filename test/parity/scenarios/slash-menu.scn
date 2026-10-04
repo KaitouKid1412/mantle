@@ -2,7 +2,7 @@
 name: slash-menu
 size: 100x30
 args: --permission-mode default
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 parity: AC-01, AC-02
 ---
 ready

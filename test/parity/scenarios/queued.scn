@@ -1,14 +1,12 @@
 # Queue: a message typed and sent while the turn runs.
 name: queued
 size: 100x30
-args: --permission-mode default
-files: fixtures/app
+args: --permission-mode default "First request"
+files: ../../../testdata/fixtures/12/app
 script: scripts/queued.json
 parity: TC-05
 ---
 ready
-type First request
-keys enter
 wait_for 30s Working through
 type Second request
 keys enter

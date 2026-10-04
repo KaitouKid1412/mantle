@@ -2,7 +2,7 @@
 name: statusline
 size: 100x30
 args: --permission-mode default
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 script: scripts/statusline.json
 settings: {"statusLine": {"type": "command", "command": "printf 'SL %s' \"$(cat | grep -o '\"session_id\"' | head -1)\""}}
 parity: CH-18, CH-19

@@ -2,7 +2,7 @@
 name: model-picker
 size: 100x30
 args: --permission-mode default
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 parity: ST-01
 ---
 ready

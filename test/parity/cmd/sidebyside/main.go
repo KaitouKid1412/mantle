@@ -61,7 +61,7 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 		return fmt.Errorf("no scenarios in %s", dir)
 	}
 	var tgs []parity.Target
-	notes := []string{firstPromptNote}
+	var notes []string
 	for _, name := range strings.Split(targetList, ",") {
 		switch strings.TrimSpace(name) {
 		case "claude":
@@ -119,11 +119,6 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 	}
 	return nil
 }
-
-// firstPromptNote marks a temporary difference from how a user would start a session.
-const firstPromptNote = "Temporary: scenarios type the first prompt once the target's first frame " +
-	"is up instead of passing it as a positional argument, because mantle-ui can drop a " +
-	"positional prompt at startup. Switch back to `args: \"prompt\"` when that is fixed."
 
 // claudeVersion is `claude --version` (local, no API call), or "".
 func claudeVersion(bin string) string {

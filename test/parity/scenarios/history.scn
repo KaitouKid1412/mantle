@@ -2,7 +2,7 @@
 name: history
 size: 100x30
 args: --permission-mode default
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 script: scripts/history.json
 parity: HI-01, HI-06
 ---

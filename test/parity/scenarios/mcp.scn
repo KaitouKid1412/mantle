@@ -2,7 +2,7 @@
 name: mcp
 size: 100x30
 args: --permission-mode default --mcp-config {"mcpServers":{"broken":{"command":"false"}}}
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 parity: EC-01
 ---
 ready

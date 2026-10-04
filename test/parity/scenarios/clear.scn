@@ -1,14 +1,12 @@
 # /clear after a short exchange.
 name: clear
 size: 100x30
-args: --permission-mode default
-files: fixtures/app
+args: --permission-mode default "Say something"
+files: ../../../testdata/fixtures/12/app
 script: scripts/compact-clear.json
 parity: SE-15, TR-44
 ---
 ready
-type Say something
-keys enter
 wait_for 30s worth compacting
 type /clear
 keys enter

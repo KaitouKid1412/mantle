@@ -1,14 +1,12 @@
 # Subagent: an Agent call with nested output.
 name: subagent
 size: 100x30
-args: --permission-mode default
-files: fixtures/app
+args: --permission-mode default "Find who calls greet"
+files: ../../../testdata/fixtures/12/app
 script: scripts/subagent.json
 parity: TR-15, CH-11
 ---
 ready
-type Find who calls greet
-keys enter
 wait_for 45s The subagent found one caller
 settle
 checkpoint done

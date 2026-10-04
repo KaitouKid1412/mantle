@@ -2,7 +2,7 @@
 name: plan-mode
 size: 100x30
 args: --permission-mode plan
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 script: scripts/plan-mode.json
 parity: PD-21, TR-18
 ---

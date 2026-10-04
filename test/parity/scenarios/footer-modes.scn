@@ -2,7 +2,7 @@
 name: footer-modes
 size: 100x30
 args: --permission-mode default
-files: fixtures/app
+files: ../../../testdata/fixtures/12/app
 parity: CH-05, PD-19
 ---
 ready

@@ -1,14 +1,12 @@
 # AskUserQuestion: the question dialog and the first answer.
 name: ask-user
 size: 100x30
-args: --permission-mode default
-files: fixtures/app
+args: --permission-mode default "Pick a greeting style with me"
+files: ../../../testdata/fixtures/12/app
 script: scripts/ask-user.json
 parity: PD-24, TR-19
 ---
 ready
-type Pick a greeting style with me
-keys enter
 wait_for 30s Which greeting style do you prefer?
 settle
 checkpoint question
