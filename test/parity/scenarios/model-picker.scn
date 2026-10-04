@@ -8,7 +8,9 @@ parity: ST-01
 ready
 type /model
 keys enter
-settle 4s
+# Both list the models once they have loaded them.
+wait_for 20s Haiku
+settle
 checkpoint shown
 keys esc
 settle

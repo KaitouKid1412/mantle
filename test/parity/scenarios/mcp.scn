@@ -1,7 +1,7 @@
 # /mcp with a server that fails to start.
 name: mcp
 size: 100x30
-args: --permission-mode default --mcp-config {"mcpServers":{"broken":{"command":"false"}}}
+args: --permission-mode default --mcp-config '{"mcpServers":{"broken":{"command":"false"}}}'
 files: ../../../testdata/fixtures/12/app
 parity: EC-01
 ---

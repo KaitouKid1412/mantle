@@ -13,6 +13,9 @@ keys enter
 wait_for 30s 1. Yes
 settle
 checkpoint plan-dialog
+# Read the plan for a moment: mantle prints the turn-duration line only for turns of
+# 1 s or more, so a quick approval would make its frame depend on timing.
+sleep 1500ms
 keys enter
 wait_for 30s Plan approved
 settle
