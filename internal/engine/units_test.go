@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -263,6 +264,22 @@ func TestBuildEnv(t *testing.T) {
 	safe := strings.Join(BuildEnv(base, ext.SpawnOpts{SafeMode: true}), " ")
 	if !strings.Contains(safe, "CLAUDE_CODE_SAFE_MODE=1") {
 		t.Errorf("safe mode: %s", safe)
+	}
+}
+
+func TestMantleHomePaths(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("MANTLE_HOME", dir)
+	if got := DefaultEngineStatePath(); got != dir+"/state/engines.json" {
+		t.Errorf("state path %s", got)
+	}
+	if got := NewManager(func(tea.Msg) {}).runDir(); got != dir+"/run" {
+		t.Errorf("run dir %s", got)
+	}
+	t.Setenv("MANTLE_HOME", "")
+	home, _ := os.UserHomeDir()
+	if got := DefaultEngineStatePath(); got != home+"/.mantle/state/engines.json" {
+		t.Errorf("default state path %s", got)
 	}
 }
 

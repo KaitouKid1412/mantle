@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"sort"
 	"time"
+
+	"github.com/KaitouKid1412/mantle/internal/config"
 )
 
 // MinEngineVersion is the oldest claude mantle supports (its protocol baseline).
@@ -38,13 +40,25 @@ type VersionRecord struct {
 	Failed  []string  `json:"failed,omitempty"` // failed check names
 }
 
-// DefaultEngineStatePath is ~/.mantle/state/engines.json.
+// DefaultEngineStatePath is $MANTLE_HOME/state/engines.json (default ~/.mantle).
 func DefaultEngineStatePath() string {
+	dir := MantleDir()
+	if dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, "state", "engines.json")
+}
+
+// MantleDir is $MANTLE_HOME, else ~/.mantle (as internal/config resolves it).
+func MantleDir() string {
+	if v := os.Getenv(config.EnvMantleHome); v != "" {
+		return v
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(home, ".mantle", "state", "engines.json")
+	return filepath.Join(home, ".mantle")
 }
 
 // LoadEngineState reads path; a missing file is an empty state.
