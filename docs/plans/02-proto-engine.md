@@ -483,6 +483,22 @@ TUI in a pty: no onboarding, the prompt reaches fakeapi. Trust is keyed by the r
 (`EvalSymlinks`). Startup probes `HEAD /api/hello`. Side calls carry no tools. With API-key
 auth the engine never emits `rate_limit_event`.
 
+**Undocumented subtypes (B8; re-checked on 2.1.289, 2026-10-04)** All three work in
+headless mode against fakeapi:
+- `get_workspace_diff` returns `{diff: {stats, perFileStats, hunks, skippedLarge,
+  restricted, source}}`.
+- `side_question {question, history}` returns `{response, synthetic}` and emits
+  `system/control_request_progress`.
+- `rewind_conversation {target_message_uuid}` returns `{rewound, targetMessageUuid,
+  prefillText, precedingAssistantUuid}`.
+
+The fallbacks (`git diff`, a forked engine, a restart at `--resume-session-at`) are tested
+against fakeclaude.
+
+**Conformance probe (B9)** The probe sees a project CLAUDE.md, a project hook and a project
+skill on 2.1.289. It makes no model calls, but `get_context_usage` makes ~16 free
+`count_tokens` requests. `scripts/sdk-diff` against SDK 0.3.289 finds no SDK-only names.
+
 **S17 coalescing** Fed by an API that floods deltas, the engine prints ~50,000
 `stream_event` deltas/s. Decoding costs ~1.8 µs per delta. The 16 ms coalescer delivered
 6,600 deltas as 8 messages, so the UI sees at most ~60 delta messages/s per stream.
