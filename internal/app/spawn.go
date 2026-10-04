@@ -22,6 +22,24 @@ type spawnFailedMsg struct {
 // startMain spawns the main engine after OnStart hooks: through the startup gates
 // when a feature subscribes to ext.SpawnGateMsg, else directly.
 func (r *Root) startMain() tea.Cmd {
+	if adopt := r.opts.Adopt; adopt != nil {
+		log := r.log()
+		return func() tea.Msg {
+			if err := adopt(); err != nil {
+				log.Error("engine: adopt failed; spawning instead", "err", err)
+				return adoptFailedMsg{err: err}
+			}
+			log.Debug("engine: adopted handed-over engines")
+			return nil
+		}
+	}
+	return r.spawnMain()
+}
+
+type adoptFailedMsg struct{ err error }
+
+// spawnMain spawns the main engine through the gates (or directly).
+func (r *Root) spawnMain() tea.Cmd {
 	if r.opts.MainSpawn == nil || r.opts.Spawn == nil {
 		return nil
 	}
