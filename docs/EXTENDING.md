@@ -207,9 +207,16 @@ func render(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	}
 	return ext.Block{Lines: []string{line}}
 }
-```
 
-`sample()` returns a fixed `*ext.Item` for the story and the test.
+// sample is a finished call with fixed data, for the story and the test.
+func sample() *ext.Item {
+	return &ext.Item{
+		ID: "toolu_1", Key: key, State: ext.Done,
+		Data:   &proto.ToolUse{Type: "tool_use", ID: "toolu_1", Name: "mcp__weather__forecast", Input: []byte(`{"City":"Lisbon"}`)},
+		Result: &proto.ToolResult{ToolUseID: "toolu_1", Content: proto.TextContent("sunny, 24°C")},
+	}
+}
+```
 
 ### A sidebar component (fullscreen)
 
