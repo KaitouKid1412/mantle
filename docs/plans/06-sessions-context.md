@@ -193,7 +193,7 @@ Everything about conversations as objects:
 - [x] **B9 [M2] Rename and recap.** `/rename [name]` → `rename_session`. `/recap` is
   headless-capable (engine). Away summary: after N minutes away (`awaySummaryEnabled`),
   request a one-line recap and show it (headless has no auto recap).
-- [ ] **B10 [M2] `/btw [question]`.**
+- [x] **B10 [M2] `/btw [question]`.**
   - A side-question overlay that doesn't interrupt.
   - Uses `side_question` if `Supports()`; otherwise a forked one-shot engine
     (`--resume=<sid> --fork-session --no-session-persistence --tools ""`).
@@ -216,6 +216,26 @@ Everything about conversations as objects:
   `get_context_usage` or result usage.
 - [x] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
   as is, or compact first. Mark as H if the engine offers no wire.
+
+**Part B notes (what other plans can rely on):**
+- History reaches the store with `ext.TranscriptHistoryMsg`; startup resume prints the
+  history of `Session().SessionID` from OnStart (the host sets it from plan 11's
+  `Startup.Session`). `/resume <id>` restarts through `ext.EngineStartMsg` with the running
+  engine's own options (`Options()`), or `cli.Current().Spawn` when no engine ran yet.
+- IDs: commands `cmd.resume` (continue), `cmd.clear` (reset, new), `cmd.compact`,
+  `cmd.handoff` (hidden), `cmd.rewind` (checkpoint, undo), `cmd.branch`, `cmd.fork`,
+  `cmd.export`, `cmd.copy`, `cmd.rename`, `cmd.recap`, `cmd.btw`, `cmd.diff`, `cmd.goal`,
+  `cmd.plan`, `cmd.add-dir`, `cmd.cd`, `cmd.context`, `cmd.usage` (cost, stats); action
+  `mantle:rewind`; dialogs `dialog.resume`, `dialog.handoff` (args: `[]string` of extra
+  claude args), `dialog.rewind`, `dialog.rewind-options`, `dialog.export`, `dialog.copy`,
+  `dialog.usage`, `dialog.diff`, `dialog.btw`, `dialog.resume-summary`; renderer key
+  `system.context_usage`; components `sessions.context` (auto-compact countdown) and
+  `sessions.goal`.
+- Unstable requests used only when `Supports()`: `set_cwd` (else hand-off), `side_question`
+  (`{question, history}` → `{response}`; else a forked `claude -p`). Not used:
+  `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
+  (no documented shapes; mantle has its own path for each).
+- Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
 
 ## Design notes
 
