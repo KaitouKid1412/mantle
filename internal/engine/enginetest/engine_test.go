@@ -285,6 +285,45 @@ func TestMultipleEngines(t *testing.T) {
 	}
 }
 
+// TestPendingRequestsFromInitialize: prompts listed in the initialize reply are
+// raised like live ones, once, even when the same request also arrives live (PD-18).
+func TestPendingRequestsFromInitialize(t *testing.T) {
+	pending := `{"type":"control_request","request_id":"cli_9","request":{"subtype":"can_use_tool","tool_name":"Bash","input":{"command":"make"},"tool_use_id":"toolu_9"}}`
+	dialog := `{"type":"control_request","request_id":"cli_10","request":{"subtype":"request_user_dialog","kind":"demo"}}`
+	script := enginefake.New(
+		enginefake.Step{On: json.RawMessage(`{"type":"control_request","request":{"subtype":"initialize"}}`),
+			Emit: json.RawMessage(`{"type":"control_response","response":{"subtype":"success","request_id":"${request_id}","response":{"commands":[]},"pending_permission_requests":[` + pending + `],"pending_user_dialog_requests":[` + dialog + `]}}`)},
+		enginefake.Delay(100),
+		enginefake.Emit(pending), // the same request again, live
+		enginefake.Expect(json.RawMessage(`{"type":"control_response","response":{"request_id":"cli_9","response":{"behavior":"allow"}}}`)),
+		enginefake.Emit(`{"type":"result","subtype":"success","result":"done"}`),
+	)
+	m, sp, rec := setup(t, script)
+	if _, err := m.Start("", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	pm := rec.WaitFor(t, func(msg tea.Msg) bool { p, ok := msg.(ext.PermissionMsg); return ok && p.RequestID == "cli_9" }).(ext.PermissionMsg)
+	rec.WaitFor(t, func(msg tea.Msg) bool { c, ok := msg.(ext.ControlRequestMsg); return ok && c.RequestID == "cli_10" })
+	rec.WaitFor(t, isInitialized)
+	time.Sleep(200 * time.Millisecond) // let the live duplicate arrive
+	pm.Reply(pm.Req.Allow(nil))()
+	rec.WaitFor(t, isResult)
+	n := 0
+	for _, msg := range rec.Msgs() {
+		if p, ok := msg.(ext.PermissionMsg); ok && p.RequestID == "cli_9" {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Errorf("cli_9 raised %d times, want 1", n)
+	}
+	e := m.Engine("")
+	e.Stop(context.Background())
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Errorf("script: %d %v", code, err)
+	}
+}
+
 func TestHandleStartStopAndCommands(t *testing.T) {
 	script := enginefake.New(enginefake.InitializeRule(nil),
 		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))
