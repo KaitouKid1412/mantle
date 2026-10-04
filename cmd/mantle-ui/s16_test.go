@@ -125,7 +125,9 @@ func TestCtrlCInsideEditor(t *testing.T) {
 	p.Send("ctrl+c")
 
 	// mantle-ui comes back (the editor failed, so the prompt is unchanged).
-	p.WaitFor(func(s string) bool { return strings.Contains(s, "for shortcuts") && !strings.Contains(s, "EDITOR RUNNING") }, 10*time.Second)
+	p.WaitFor(func(s string) bool {
+		return strings.Contains(s, "for shortcuts") && !strings.Contains(s, "EDITOR RUNNING")
+	}, 10*time.Second)
 	if strings.HasSuffix(strings.TrimSpace(p.Screen()), "SHELL$") {
 		t.Fatalf("mantle-ui exited on ctrl+c inside the editor:\n%s", p.Screen())
 	}
