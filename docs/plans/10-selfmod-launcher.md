@@ -273,8 +273,18 @@ Build the part of mantle that makes it mantle:
   the claude child, its pipes and background tasks survive.
 
 **Part B notes (as built):**
-- Builders start through `ext.EngineStartMsg` as `builder-<id>` (host-routed, plan 02's
-  Manager); their permission prompts reach plan 05's dialogs with that engine id.
+- Builders start as `builder-<id>` through plan 05's startup gates (`ext.SpawnGateMsg`:
+  auto-trusted, API key/bypass/.mcp.json checks still apply), then `ext.EngineStartMsg`
+  (host-routed to plan 02's Manager). Their permission prompts reach plan 05's dialogs
+  labelled "Builder <id>". (A build without features/turn, `-tags no_turn`, has no gate
+  subscriber, so builders would not start there.) The builder's flags were checked
+  against claude 2.1.288 with a zero-token parse run (variadic tool lists,
+  `--append-system-prompt-file`, `--max-budget-usd` in stream-json mode).
+- The full pipeline was run over this repository plus a small mod
+  (`MANTLE_PIPELINE_E2E=1`, `TestRealPipelineOnThisRepo`): steps 1–6, 8 and 9 (the pty
+  smoke boot against the real mantle-ui and its fakeclaude) pass. Step 7 waits for plan
+  01's pty-test startup-race fix (cd8d6a7, after integration-2); load flakes are re-run
+  once alone.
 - Mods are linked into mantle-ui by `mods/link_<id>.go` (package `mods`) plus
   `features/all/all_mods.go`; archtest lets the root `mods` package import `mods/*`.
 - Restart now refuses while a turn runs (`session_state_changed`), while non-ambient

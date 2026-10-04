@@ -194,6 +194,7 @@ func (c *controller) setup(r ext.Registrar) error {
 	ext.Subscribe(r, "selfmod.tick", c.onTick)
 	ext.Subscribe(r, "selfmod.healthytick", c.onHealthyTick)
 	ext.Subscribe(r, "selfmod.handedoff", c.onHandedOff)
+	ext.Subscribe(r, "selfmod.aborted", c.onBuilderAborted)
 	r.OnStart("selfmod.runfile", c.onStart)
 	return nil
 }

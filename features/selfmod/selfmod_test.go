@@ -56,11 +56,13 @@ type flow struct {
 	dev     string
 	stubDir string
 
-	starts  []ext.EngineStartMsg
-	stops   []string
-	prompts []string
-	exits   []ext.ExitMsg
-	ticks   int
+	starts    []ext.EngineStartMsg
+	gates     []ext.SpawnGateMsg
+	abortGate string // when set, the gates abort with this reason
+	stops     []string
+	prompts   []string
+	exits     []ext.ExitMsg
+	ticks     int
 	// builder plays the builder engine: it gets each prompt (and its round)
 	// and returns the events of the turn.
 	builder func(f *flow, round int, prompt string) []proto.Event
@@ -215,6 +217,14 @@ func (f *flow) run(cmd tea.Cmd) {
 		case nil:
 		case tea.BatchMsg:
 			queue = append(queue, m...)
+		case ext.SpawnGateMsg:
+			// Plan 05's startup gates: approve unless the test says otherwise.
+			f.gates = append(f.gates, m)
+			if f.abortGate != "" {
+				queue = append(queue, m.Abort(f.abortGate))
+			} else {
+				queue = append(queue, m.Proceed(m.Opts))
+			}
 		case ext.EngineStartMsg:
 			f.starts = append(f.starts, m)
 			eng := &fakeEngine{id: m.EngineID, f: f}
@@ -431,6 +441,22 @@ func TestFixLoopThenGiveUp(t *testing.T) {
 	}
 	if len(g.prompts) != 1 || !strings.Contains(g.prompts[0], "A previous attempt") || !strings.Contains(g.prompts[0], "undefined: broken") {
 		t.Errorf("retry prompt = %q", g.prompts)
+	}
+}
+
+func TestBuilderGoesThroughStartupGates(t *testing.T) {
+	f := newFlow(t)
+	f.abortGate = "API key not approved"
+	f.command("gated thing")
+	b := f.build("gated-thing")
+	if len(f.gates) != 1 || f.gates[0].EngineID != "builder-gated-thing" || f.gates[0].Opts.PermissionMode != "acceptEdits" {
+		t.Fatalf("gates = %+v", f.gates)
+	}
+	if len(f.starts) != 0 {
+		t.Error("the builder started although the gates aborted")
+	}
+	if b.phase != PhaseFailed || !strings.Contains(b.err, "API key not approved") {
+		t.Errorf("phase %s err %q", b.phase, b.err)
 	}
 }
 
