@@ -38,6 +38,12 @@ func structured(it *ext.Item, v any) bool {
 // toolFrame renders the shared parts of a tool call: the header, then the error,
 // interruption or running line, or body() for a successful result.
 func (f *Feature) toolFrame(rc ext.RenderCtx, it *ext.Item, name, args string, body func() ([]string, bool)) ext.Block {
+	return f.toolFrameOpts(rc, it, name, args, body, false)
+}
+
+// toolFrameOpts is toolFrame; showRejected also runs body for a rejected call
+// (Edit and Write show the change that was turned down, dimmed).
+func (f *Feature) toolFrameOpts(rc ext.RenderCtx, it *ext.Item, name, args string, body func() ([]string, bool), showRejected bool) ext.Block {
 	st := stylesFor(rc)
 	lines := header(rc, st, bulletStyle(st, it.State), name, args)
 	if !verbose(rc) && len(lines) > 3 {
@@ -49,7 +55,7 @@ func (f *Feature) toolFrame(rc ext.RenderCtx, it *ext.Item, name, args string, b
 		text := strings.TrimSpace(resultText(it))
 		if rejected(text) {
 			lines = append(lines, result(rc, st.dim, "Rejected")...)
-			if body != nil {
+			if body != nil && showRejected {
 				// Some renderers show the rejected change dimmed.
 				if more, hid := body(); len(more) > 0 {
 					lines = append(lines, more...)
@@ -331,7 +337,7 @@ func (f *Feature) renderWrite(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	if out.Type == "update" {
 		name = "Update"
 	}
-	return f.toolFrame(rc, it, name, fileLink(path, in.FilePath), func() ([]string, bool) {
+	return f.toolFrameOpts(rc, it, name, fileLink(path, in.FilePath), func() ([]string, bool) {
 		st := stylesFor(rc)
 		if it.State == ext.Failed { // rejected: show what would have been written
 			hunks := diffview.FromStrings("", in.Content, 0)
@@ -358,7 +364,7 @@ func (f *Feature) renderWrite(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 		preview := f.codePreview(rc, content, in.FilePath, 1, limit)
 		return append(lines, preview...), limit > 0 && n > limit
-	})
+	}, true)
 }
 
 func (f *Feature) renderEdit(rc ext.RenderCtx, it *ext.Item) ext.Block {
@@ -367,7 +373,7 @@ func (f *Feature) renderEdit(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		decodeInput(tu.Input, &in)
 	}
 	path := relPath(f.cwd, in.FilePath)
-	return f.toolFrame(rc, it, "Update", fileLink(path, in.FilePath), func() ([]string, bool) {
+	return f.toolFrameOpts(rc, it, "Update", fileLink(path, in.FilePath), func() ([]string, bool) {
 		st := stylesFor(rc)
 		if it.State == ext.Failed {
 			var hunks []diffview.Hunk
@@ -392,7 +398,7 @@ func (f *Feature) renderEdit(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		lines := result(rc, st.text, changeSummary(path, a, r))
 		d, hid := f.diffLines(rc, hunks, in.FilePath, false, gutter)
 		return append(lines, d...), hid
-	})
+	}, true)
 }
 
 // ---- Glob / Grep ----
@@ -621,6 +627,8 @@ func (f *Feature) renderAgent(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		lines = append(lines, o...)
 	case it.State == ext.Interrupted:
 		lines = append(lines, result(rc, st.dim, "Interrupted")...)
+	case it.State.Finished() && (out.Status == "async_launched" || (info != nil && info.Async && info.Status == "")):
+		lines = append(lines, result(rc, st.dim, "Running in the background")...)
 	case it.State.Finished():
 		lines = append(lines, result(rc, st.dim, "Done ("+agentStats(out, info, len(tools), it)+")")...)
 	case !verbose(rc):

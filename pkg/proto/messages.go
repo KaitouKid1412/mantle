@@ -26,6 +26,8 @@ type Assistant struct {
 	// Since proto-v1 (seen on 2.1.288).
 	ThinkingDurationMS int64           `json:"thinking_duration_ms,omitempty"`
 	IsAPIErrorMessage  bool            `json:"is_api_error_message,omitempty"`
+	TaskDescription    string          `json:"task_description,omitempty"` // subagent messages
+	ToolUseMeta        json.RawMessage `json:"tool_use_meta,omitempty"`    // MCP tool calls
 	WireToolInputs     json.RawMessage `json:"wire_tool_inputs,omitempty"`
 }
 
@@ -129,7 +131,8 @@ func (u *User) ToolResults() []ToolResult {
 
 // Origin says who wrote a user message.
 type Origin struct {
-	Kind string `json:"kind"` // "human", ...
+	Kind     string `json:"kind"`               // "human", ...
+	Producer string `json:"producer,omitempty"` // since proto-v1
 }
 
 // StreamEvent is a raw Messages API stream event (with --include-partial-messages).
@@ -351,6 +354,9 @@ type ConversationReset struct {
 type ActiveGoal struct {
 	Envelope
 	Goal json.RawMessage `json:"goal,omitempty"`
+	// Value is the goal ({condition, iterations, set_at, ...}; null when cleared). The
+	// 2.1.288 schema names it "value" (since proto-v1; Goal is kept for compatibility).
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 // KeepAlive is a no-op frame (both directions).

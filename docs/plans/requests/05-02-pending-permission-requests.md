@@ -1,6 +1,9 @@
 # 05 → 02: surface pending permission requests after initialize
 
-**Status:** open (M2, PARITY PD-18).
+**Status:** resolved by plan 02 (worktree-mantle-02, after 1e8b38e; reaches main at the
+next integration tag). After initialize, every frame in `pending_permission_requests` /
+`pending_user_dialog_requests` goes through the live request handler, and each
+`request_id` is raised once, so a request delivered both ways never shows twice.
 
 Re-sending `initialize` returns `pending_permission_requests` and
 `pending_user_dialog_requests` on the `control_response` envelope

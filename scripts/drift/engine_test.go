@@ -177,6 +177,36 @@ func TestCompareEngineLists(t *testing.T) {
 	}
 }
 
+func TestCompareProtocol(t *testing.T) {
+	l := List{Kind: KindProtocol, Items: []Item{
+		{Name: "system:mirror_error", Scope: "sdk-only"},
+		{Name: "control:get_status", Scope: "proto-only"},
+		{Name: "control:set_cwd", Scope: "proto-only"},
+	}}
+	base := Snapshot{Lists: []List{{Kind: KindProtocol, Items: []Item{
+		{Name: "control:get_status", Scope: "proto-only"},
+		{Name: "control:old", Scope: "proto-only"},
+		{Name: "system:fixed", Scope: "sdk-only"}, // was drift, now decoded: not "gone" noise
+	}}}}
+	got := map[string]string{}
+	for _, f := range compareProtocol(l, base) {
+		got[f.Scope+" "+f.Name] = f.Status
+	}
+	want := map[string]string{
+		"sdk-only system:mirror_error": StatusUnclassified,
+		"proto-only control:set_cwd":   StatusNew,
+		"proto-only control:old":       StatusGone,
+	}
+	if len(got) != len(want) {
+		t.Errorf("findings %v", got)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %q, want %q", k, got[k], v)
+		}
+	}
+}
+
 func TestParseSDKDiff(t *testing.T) {
 	items, err := parseSDKDiff([]byte(`["system/foo","control/bar"]`))
 	if err != nil || len(items) != 2 || items[0].Name != "system/foo" {

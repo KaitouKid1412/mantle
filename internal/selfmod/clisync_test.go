@@ -1,9 +1,3 @@
-//go:build clisync
-
-// This test needs plan 11's internal/cli. It is behind the clisync build tag
-// until internal/cli is merged into this branch; then the tag goes away.
-// Run it with: go test -tags clisync ./internal/selfmod -run CLISync
-
 package selfmod
 
 import (

@@ -99,6 +99,8 @@ func Compare(s Snapshot, k Known) Report {
 				fs = compareSlash(l, k)
 			case KindTool:
 				fs = compareTools(l, k)
+			case KindProtocol:
+				fs = compareProtocol(l, k.Baseline)
 			default:
 				fs = compareBaseline(l, k.Baseline)
 			}
@@ -376,6 +378,40 @@ func compareTools(l List, k Known) []Finding {
 		fs = append(fs, Finding{Kind: l.Kind, Name: it.Name, Status: StatusUnclassified, Detail: detail})
 	}
 	return append(fs, goneSince(l, k.Baseline)...)
+}
+
+// compareProtocol reads plan 02's sdk-diff output. Scope "sdk-only" means the Agent SDK
+// declares a message type or control subtype that pkg/proto doesn't decode (it arrives
+// as raw JSON meanwhile): drift. "proto-only" items are mantle's internal or optional
+// subtypes the SDK unions leave out; they are stable, so only changes to that set are
+// reported.
+func compareProtocol(l List, baseline Snapshot) []Finding {
+	var fs []Finding
+	var protoOnly []Item
+	for _, it := range l.Items {
+		if it.Scope == "sdk-only" {
+			fs = append(fs, Finding{Kind: l.Kind, Scope: it.Scope, Name: it.Name, Status: StatusUnclassified,
+				Detail: "the SDK declares it and pkg/proto (plan 02) doesn't decode it; it is kept as raw JSON meanwhile"})
+			continue
+		}
+		protoOnly = append(protoOnly, it)
+	}
+	return append(fs, compareBaseline(List{Kind: l.Kind, Items: protoOnly}, scopedTo(baseline, l.Kind, "proto-only"))...)
+}
+
+// scopedTo returns a baseline holding only the items of kind with the given scope.
+func scopedTo(b Snapshot, kind, scope string) Snapshot {
+	out := Snapshot{ClaudeVersion: b.ClaudeVersion}
+	if l := b.List(kind); l != nil {
+		nl := List{Kind: kind}
+		for _, it := range l.Items {
+			if it.Scope == scope {
+				nl.Items = append(nl.Items, it)
+			}
+		}
+		out.Lists = []List{nl}
+	}
+	return out
 }
 
 // compareBaseline reports items added or dropped since the accepted baseline.

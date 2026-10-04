@@ -72,18 +72,43 @@ can hold a real conversation (resume, tools with permission prompts, plan mode, 
   Also set `DISABLE_AUTOUPDATER=1`. Spike S14 (plan 02) documents the exact seeding.
 
 ## Part A: start once M1 is reached (A1–A3 may start earlier; they need only plan 02's fakeapi and plan 01's vt harness)
-- [ ] **A1 Scenario format and runner** (`test/parity`).
+
+Status (2026-10-03, taken over by session 07): A1, A2 and A4 done; A3 has the `claude`
+target, and the `mantle` target waits for M1 (mantle-ui isn't wired yet).
+- `test/parity`: `Term` (pty + x/vt, screen + scrollback + alt-screen flag),
+  `.scn` scenarios (`ready`, `type`, `keys`, `paste`, `resize`, `wait_for [timeout]`,
+  `wait_gone`, `settle`, `checkpoint`, `sleep`; header `name`, `size`, `script`, `args`,
+  `files`), `Run` in an isolated workspace (`/tmp/parity-<scenario>-<8 hex>/{work,config,
+  home}`, fixed-length so truncated paths compare equal), fakeapi via httptest,
+  `fakeapi.SeedConfig` + `fakeapi.Env` (enough for interactive claude 2.1.288: no
+  onboarding, key approval or trust dialog; confirmed with plan 02).
+- Normalizer rules (all listed in each report): workspace paths, logo art, spinner line,
+  turn-done verb, temp paths, uuids, tool ids, dates, clock times, costs, token counts,
+  durations, percentages; colour stripping; trailing-space trim; scrollback tail (200).
+- Report: `test/parity/out/` (gitignored) with `summary.md`, per-checkpoint side-by-side
+  + unified diff, and per-target frames; allowlist `test/parity/allowlist.txt`
+  (`scenario | checkpoint | pattern | reason`). `make parity-side-by-side`
+  (`PARITY_ARGS="-run plain -targets claude"`).
+- Self-tests: the runner against a shell target (`make test-12`), and
+  `MANTLE_PARITY_CLAUDE=1 go test ./test/parity -run Claude`, which runs every scenario
+  twice against the installed claude and requires identical normalized frames.
+- Observed in claude 2.1.288 (useful for B1/B2): the prompt is `❯` between two full-width
+  rules; auto mode is the default permission mode, with a one-time notice under the
+  header; the footer reads "⏵⏵ auto mode on (shift+tab to cycle) · ← for agents"; an
+  effort hint ("◐ medium · /effort") sits right-aligned above the prompt; finished turns
+  end with "✻ <verb> for <dur> · done <time>".
+- [x] **A1 Scenario format and runner** (`test/parity`).
   - A scenario is a scripted list of steps: `keys`, `paste`, `resize`, `wait_for <text>`,
     `checkpoint <name>`, `sleep`, plus a fakeapi script reference.
   - The runner starts a program in a pty (`creack/pty`) attached to an x/vt emulator at a
     fixed size, feeds the steps, and captures **screen and scrollback** at each checkpoint.
-- [ ] **A2 Normalization:** strip or collapse volatile content (spinner glyphs and verbs,
+- [x] **A2 Normalization:** strip or collapse volatile content (spinner glyphs and verbs,
   durations, timestamps, costs, token counts, session ids, temp paths), with optional
   colour stripping and line-trailing-space trimming. Every rule is listed in the report.
 - [ ] **A3 Two targets:** `claude` (interactive TUI, isolated config, fakeapi) and
   `mantle` (current build, same fakeapi script, same isolated `CLAUDE_CONFIG_DIR` for its
   engine). The same scenario runs on both.
-- [ ] **A4 Report generator:** per scenario and checkpoint, side-by-side frames (text) and a
+- [x] **A4 Report generator:** per scenario and checkpoint, side-by-side frames (text) and a
   diff summary, written to `test/parity/out/` (gitignored), plus a summary table in
   markdown.
 
