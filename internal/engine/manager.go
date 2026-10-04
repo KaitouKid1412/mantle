@@ -35,7 +35,7 @@ type Manager struct {
 	// Spawner starts processes; nil means ExecSpawner.
 	Spawner Spawner
 	// RunDir holds one <pid>.json per live engine (pid, pgid) for the launcher;
-	// "" means ~/.mantle/run, "-" disables.
+	// "" means $MANTLE_HOME/run (default ~/.mantle/run), "-" disables.
 	RunDir string
 	// DialogKinds is sent as initialize.supportedDialogKinds: only kinds a feature
 	// really implements (plans 05/09).
@@ -220,11 +220,11 @@ func (m *Manager) runDir() string {
 	if m.RunDir != "" {
 		return m.RunDir
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
+	dir := MantleDir()
+	if dir == "" {
 		return "-"
 	}
-	return filepath.Join(home, ".mantle", "run")
+	return filepath.Join(dir, "run")
 }
 
 func (m *Manager) writeRunFile(engineID, bin string, pid int) string {
