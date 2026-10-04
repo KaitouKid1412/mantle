@@ -152,18 +152,18 @@ Everything about conversations as objects:
 - [x] **B1 [M1] Normalizer (`features/sessions/normalize.go`).** JSONL records → `ext.Item`s
   with the same `ContentKey`s plan 03 uses (user.prompt, assistant.text, assistant.thinking,
   tool.<Name> with Result, system.*). Hide meta attachments; nest subagent items.
-- [ ] **B2 [M1] Resume flow.**
+- [x] **B2 [M1] Resume flow.**
   - `mantle -r <id>` / `--continue` / picker choice: normalize history, hand it to the
     transcript store, commit it to scrollback in chunks (`Ctx.Print`), then spawn the
     engine with `--resume=<id>` (`Engine.Restart`).
   - `--fork-session` support.
   - The session name shows in the prompt bar and title (plan 07 renders it).
-- [ ] **B3 [M1] `/clear` and `/compact`.**
+- [x] **B3 [M1] `/clear` and `/compact`.**
   - `/clear` (aliases reset, new): send to the engine; on `conversation_reset`, clear the
     store and `Reprint()` with a fresh header; the session id updates.
   - `/compact [instructions]`: send to the engine; spinner text "Compacting conversation";
     show the boundary item.
-- [ ] **B4 [M1] `/resume` picker (alias `/continue`; `dialog.resume`, alt-screen or
+- [x] **B4 [M1] `/resume` picker (alias `/continue`; `dialog.resume`, alt-screen or
   centered).**
   - Lists current-project sessions by default, including sdk-cli ones.
   - Fuzzy search over title, first/last prompt and branch.
@@ -172,50 +172,73 @@ Everything about conversations as objects:
   - ctrl+a toggles all projects; ctrl+w worktrees; ctrl+b branch filter; search by PR URL
     if a session is PR-linked.
   - Enter resumes (an engine restart).
-- [ ] **B5 [M1] Generic H handoff command** (`ext.Command` helper used by plans 08 and 09
+- [x] **B5 [M1] Generic H handoff command** (`ext.Command` helper used by plans 08 and 09
   for any not-yet-native `local-jsx` command). Procedure as above, with a notice "Opening in
   Claude Code; exit to return to mantle".
-- [ ] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
+- [x] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
   on an empty prompt).**
   - A message selector (context `MessageSelector`) over user turns, with a diff summary from
     `rewind_files` dry-run.
   - Actions: restore code + conversation, conversation only, or code only. Summarize from
     here / up to here: emulate via compact instructions or H.
   - Restore the pre-`/clear` session.
-- [ ] **B7 [M2] `/branch [name]` and `/fork [prompt]`.** Branch = fork at the current point
+- [x] **B7 [M2] `/branch [name]` and `/fork [prompt]`.** Branch = fork at the current point
   (`--fork-session`, restart, keep the old one resumable). `/fork` = spawn a background
   session via `claude --bg` or H (Claude Code sends forks to the background).
-- [ ] **B8 [M2] `/export [filename]` and `/copy [N]`.**
+- [x] **B8 [M2] `/export [filename]` and `/copy [N]`.**
   - `/export`: render the normalized transcript as markdown or plain text to a file or the
     clipboard; use the unstable `export_conversation` if supported.
   - `/copy`: copy the last or Nth-latest response; a code-block picker when several blocks
     exist; `w` writes to a file. Use plan 07's clipboard service.
-- [ ] **B9 [M2] Rename and recap.** `/rename [name]` → `rename_session`. `/recap` is
+- [x] **B9 [M2] Rename and recap.** `/rename [name]` → `rename_session`. `/recap` is
   headless-capable (engine). Away summary: after N minutes away (`awaySummaryEnabled`),
   request a one-line recap and show it (headless has no auto recap).
-- [ ] **B10 [M2] `/btw [question]`.**
+- [x] **B10 [M2] `/btw [question]`.**
   - A side-question overlay that doesn't interrupt.
   - Uses `side_question` if `Supports()`; otherwise a forked one-shot engine
     (`--resume=<sid> --fork-session --no-session-persistence --tools ""`).
   - Keeps about 20 exchanges of history; shift+left/right history; `c` copy, `f` fork,
     `x` clear.
-- [ ] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
+- [x] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
   supported, else `git diff` plus mantle's own tracking of Edit/Write results per turn.
   Alt-screen viewer with a file list (context `DiffDialog`) using `pkg/ui/diffview`.
-- [ ] **B12 [M2] Passthrough commands with native polish.** `/goal [condition|clear]`
+- [x] **B12 [M2] Passthrough commands with native polish.** `/goal [condition|clear]`
   (engine; show the active goal from `active_goal`), `/plan [open|desc]` (enable plan mode
   or open the plan file in `$EDITOR`), `/add-dir <path>` (engine command plus
   `register_repo_root`), `/cd <path>` (unstable `set_cwd` or H).
-- [ ] **B13 [M2] `/context`.** A coloured grid from `get_context_usage` (categories: system
+- [x] **B13 [M2] `/context`.** A coloured grid from `get_context_usage` (categories: system
   prompt, tools, MCP tools, memory files, messages, free space), with percentages and token
   counts; `/context all` for detail.
-- [ ] **B14 [M2] `/usage` (aliases cost, stats).** Session cost and tokens per model
+- [x] **B14 [M2] `/usage` (aliases cost, stats).** Session cost and tokens per model
   (`result.modelUsage`), plan usage bars from `get_usage` (rate limits with
   utilization/resetsAt; `d`/`w` toggles day/week), local stats from the index. Auto-compact
   warning when context is high ("Context left until auto-compact: N%") from
   `get_context_usage` or result usage.
-- [ ] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
+- [x] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
   as is, or compact first. Mark as H if the engine offers no wire.
+
+**Part B notes (what other plans can rely on):**
+- History reaches the store with `ext.TranscriptHistoryMsg`; startup resume prints the
+  history of `Session().SessionID` from OnStart (the host sets it from plan 11's
+  `Startup.Session`). `/resume <id>` restarts through `ext.EngineStartMsg` with the running
+  engine's own options (`Options()`), or `cli.Current().Spawn` when no engine ran yet.
+- IDs: commands `cmd.resume` (continue), `cmd.clear` (reset, new), `cmd.compact`,
+  `cmd.handoff` (hidden), `cmd.rewind` (checkpoint, undo), `cmd.branch`, `cmd.fork`,
+  `cmd.export`, `cmd.copy`, `cmd.rename`, `cmd.recap`, `cmd.btw`, `cmd.diff`, `cmd.goal`,
+  `cmd.plan`, `cmd.add-dir`, `cmd.cd`, `cmd.context`, `cmd.usage` (cost, stats); action
+  `mantle:rewind`; dialogs `dialog.resume`, `dialog.handoff` (args: `[]string` of extra
+  claude args), `dialog.rewind`, `dialog.rewind-options`, `dialog.export`, `dialog.copy`,
+  `dialog.usage`, `dialog.diff`, `dialog.btw`, `dialog.resume-summary`; renderer key
+  `system.context_usage`; components `sessions.context` (auto-compact countdown) and
+  `sessions.goal`.
+- Unstable requests used only when `Supports()`: `set_cwd` (else hand-off), `side_question`
+  (`{question, history}` → `{response}`; else a forked `claude -p`). Not used:
+  `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
+  (no documented shapes; mantle has its own path for each).
+- Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
+- Verified (plan 09's pty spike, Claude Code 2.1.289): an interactive `claude "/status"`
+  runs the slash command at startup, so `dialog.handoff`'s `claude --resume <sid> /cmd`
+  opens the panel directly.
 
 ## Design notes
 

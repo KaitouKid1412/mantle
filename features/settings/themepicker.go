@@ -1,8 +1,6 @@
 package settings
 
 import (
-	"encoding/json"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -10,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/features/settings/themes"
+	"github.com/KaitouKid1412/mantle/internal/config"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
 )
@@ -43,6 +42,27 @@ type themePicker struct {
 	a      *area
 	dir    string
 	picker *themes.Picker
+	custom map[string]config.CustomTheme // by slug
+}
+
+// loadThemes lists the themes, naming custom ones as their files do and marking files
+// the theme loader rejected.
+func loadThemes(dir string) ([]themes.Entry, map[string]config.CustomTheme) {
+	entries := themes.List(dir)
+	custom, _ := config.LoadCustomThemes(dir)
+	for i, e := range entries {
+		if !e.Custom || e.Err != "" {
+			continue
+		}
+		ct, ok := custom[strings.TrimPrefix(e.Name, themes.CustomPrefix)]
+		switch {
+		case !ok:
+			entries[i].Err = "not a valid theme file"
+		case ct.Name != "":
+			entries[i].Label = "Custom: " + ct.Name
+		}
+	}
+	return entries, custom
 }
 
 // themeEditedMsg reports that the editor closed.
@@ -52,7 +72,8 @@ func (a *area) newThemePicker(c ext.Ctx, _ any) (ext.Dialog, error) {
 	dir := a.themesDir(c)
 	cur := ext.ClaudeString(c.Settings(), "theme", "dark")
 	syntaxOff := ext.ClaudeBool(c.Settings(), "syntaxHighlightingDisabled", false)
-	return &themePicker{a: a, dir: dir, picker: themes.NewPicker(themes.List(dir), cur, syntaxOff)}, nil
+	entries, custom := loadThemes(dir)
+	return &themePicker{a: a, dir: dir, custom: custom, picker: themes.NewPicker(entries, cur, syntaxOff)}, nil
 }
 
 func (p *themePicker) ID() string               { return themeID }
@@ -70,7 +91,9 @@ func (p *themePicker) Update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 	if m, ok := msg.(themeEditedMsg); ok {
 		// Pick up a new or changed file and keep the cursor where it was.
 		cur := p.picker.Highlighted().Name
-		p.picker = themes.NewPicker(themes.List(p.dir), p.picker.Original, p.picker.SyntaxOff)
+		entries, custom := loadThemes(p.dir)
+		p.custom = custom
+		p.picker = themes.NewPicker(entries, p.picker.Original, p.picker.SyntaxOff)
 		for i, e := range p.picker.Items {
 			if e.Name == cur {
 				p.picker.Cursor = i
@@ -175,17 +198,8 @@ func (p *themePicker) previewTheme(name string) theme.Theme {
 	if t, ok := theme.Builtin(name); ok {
 		return t
 	}
-	if path, ok := themes.CustomPath(p.dir, name); ok {
-		if b, err := os.ReadFile(path); err == nil {
-			var f struct {
-				Base string `json:"base"`
-			}
-			if json.Unmarshal(b, &f) == nil {
-				if t, ok := theme.Builtin(f.Base); ok {
-					return t
-				}
-			}
-		}
+	if ct, ok := p.custom[strings.TrimPrefix(name, themes.CustomPrefix)]; ok {
+		return ct.Theme
 	}
 	return theme.Default()
 }

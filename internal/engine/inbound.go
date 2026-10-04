@@ -16,9 +16,24 @@ import (
 type inboundSet struct {
 	mu      sync.Mutex
 	pending map[string]string // request id -> subtype
+	seen    map[string]bool   // every request id ever handled (dedupe replays)
 }
 
-func newInboundSet() *inboundSet { return &inboundSet{pending: map[string]string{}} }
+func newInboundSet() *inboundSet {
+	return &inboundSet{pending: map[string]string{}, seen: map[string]bool{}}
+}
+
+// first reports whether id is new, and marks it seen. The engine may deliver one
+// request twice (live, and again in an initialize reply's pending list).
+func (s *inboundSet) first(id string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.seen[id] {
+		return false
+	}
+	s.seen[id] = true
+	return true
+}
 
 func (s *inboundSet) add(id, subtype string) {
 	s.mu.Lock()
@@ -51,6 +66,9 @@ func (s *inboundSet) drain() []string {
 // it directly when mantle has nothing to ask the user.
 func (r *run) handleRequest(cr *proto.ControlRequest) {
 	id := cr.RequestID
+	if !r.inbound.first(id) {
+		return
+	}
 	sub := cr.RequestSubtype()
 	switch sub {
 	case proto.SubCanUseTool:

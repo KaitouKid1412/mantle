@@ -1,0 +1,24 @@
+── width 60 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m wait a bit                                                [m
+
+[38;2;239;122;128m⏺[m [1mBash[m(sleep 5 && touch done.txt)
+  ⎿  [38;2;139;139;147mRejected[m
+
+  ⎿  [38;2;239;122;128mInterrupted by user[m
+── width 100 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m wait a bit                                                                                        [m
+
+[38;2;239;122;128m⏺[m [1mBash[m(sleep 5 && touch done.txt)
+  ⎿  [38;2;139;139;147mRejected[m
+
+  ⎿  [38;2;239;122;128mInterrupted by user[m
+── width 160 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m wait a bit                                                                                                                                                    [m
+
+[38;2;239;122;128m⏺[m [1mBash[m(sleep 5 && touch done.txt)
+  ⎿  [38;2;139;139;147mRejected[m
+
+  ⎿  [38;2;239;122;128mInterrupted by user[m

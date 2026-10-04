@@ -1,0 +1,7 @@
+[1;38;2;224;149;110mHooks[m
+
+  [38;2;147;180;251m❯ [m[38;2;224;149;110m●[m [38;2;147;180;251mPreToolUse        [m  [38;2;139;139;147m3 hooks · Before a tool runs[m
+    [38;2;224;149;110m●[m [38;2;230;227;222mSessionStart      [m  [38;2;139;139;147m1 hook · When a session starts[m
+    [38;2;224;149;110m●[m [38;2;230;227;222mStop              [m  [38;2;139;139;147m1 hook · Before Claude finishes its reply[m
+
+  [38;2;139;139;147menter open · a show all events · esc close[m

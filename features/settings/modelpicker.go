@@ -36,6 +36,7 @@ func (a *area) setupModel(r ext.Registrar) error {
 		ID: ext.ActChatModelPicker, Context: ext.ContextChat, Description: "Open the model picker",
 		Run: func(c ext.Ctx) (bool, tea.Cmd) { return true, c.OpenDialog(dialogModel, nil) },
 	})
+	a.setupNewerModel(r)
 	for _, s := range modelStories() {
 		r.AddStory(s)
 	}

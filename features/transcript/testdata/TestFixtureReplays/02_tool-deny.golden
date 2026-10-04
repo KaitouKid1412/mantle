@@ -1,0 +1,31 @@
+── width 60 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m clean the build                                           [m
+
+[38;2;239;122;128m⏺[m [1mBash[m(rm -rf build)
+  ⎿  [38;2;239;122;128mDon't delete build/[m
+
+[38;2;230;227;222m⏺[m OK, I won't delete it.
+
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build", description: "Run rm[m
+  [38;2;139;139;147m-rf build")[m
+── width 100 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m clean the build                                                                                   [m
+
+[38;2;239;122;128m⏺[m [1mBash[m(rm -rf build)
+  ⎿  [38;2;239;122;128mDon't delete build/[m
+
+[38;2;230;227;222m⏺[m OK, I won't delete it.
+
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build", description: "Run rm -rf build")[m
+── width 160 ──
+
+[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m clean the build                                                                                                                                               [m
+
+[38;2;239;122;128m⏺[m [1mBash[m(rm -rf build)
+  ⎿  [38;2;239;122;128mDon't delete build/[m
+
+[38;2;230;227;222m⏺[m OK, I won't delete it.
+
+[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build", description: "Run rm -rf build")[m

@@ -1526,18 +1526,50 @@
     },
     {
       "kind": "model",
-      "source": "engine session",
-      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+      "source": "zero-token engine session (initialize, system/init)",
+      "items": [
+        {
+          "name": "default"
+        },
+        {
+          "name": "fable"
+        },
+        {
+          "name": "haiku"
+        },
+        {
+          "name": "opus"
+        },
+        {
+          "name": "sonnet"
+        }
+      ]
     },
     {
       "kind": "output-style",
-      "source": "engine session",
-      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+      "source": "zero-token engine session (initialize, system/init)",
+      "items": [
+        {
+          "name": "Concise"
+        },
+        {
+          "name": "Explanatory"
+        },
+        {
+          "name": "Learning"
+        },
+        {
+          "name": "Proactive"
+        },
+        {
+          "name": "default"
+        }
+      ]
     },
     {
       "kind": "protocol",
-      "source": "engine session",
-      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+      "source": "scripts/sdk-diff (plan 02)",
+      "error": "scripts/sdk-diff is not in this tree yet (plan 02)"
     },
     {
       "kind": "setting",
@@ -3248,8 +3280,165 @@
     },
     {
       "kind": "slash-command",
-      "source": "engine session",
-      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+      "source": "zero-token engine session (initialize, system/init)",
+      "items": [
+        {
+          "name": "__remote-workflow"
+        },
+        {
+          "name": "agents"
+        },
+        {
+          "name": "auto-mode-setup"
+        },
+        {
+          "name": "autocompact"
+        },
+        {
+          "name": "batch"
+        },
+        {
+          "name": "claude-api"
+        },
+        {
+          "name": "clear",
+          "attrs": {
+            "aliases": "reset,new"
+          }
+        },
+        {
+          "name": "code-review",
+          "attrs": {
+            "aliases": "review"
+          }
+        },
+        {
+          "name": "color"
+        },
+        {
+          "name": "compact"
+        },
+        {
+          "name": "config",
+          "attrs": {
+            "aliases": "settings"
+          }
+        },
+        {
+          "name": "context"
+        },
+        {
+          "name": "dataviz"
+        },
+        {
+          "name": "debug"
+        },
+        {
+          "name": "deep-research"
+        },
+        {
+          "name": "doctor",
+          "attrs": {
+            "aliases": "checkup"
+          }
+        },
+        {
+          "name": "effort"
+        },
+        {
+          "name": "fast"
+        },
+        {
+          "name": "fewer-permission-prompts"
+        },
+        {
+          "name": "focus"
+        },
+        {
+          "name": "goal"
+        },
+        {
+          "name": "heapdump"
+        },
+        {
+          "name": "init"
+        },
+        {
+          "name": "insights"
+        },
+        {
+          "name": "list-agents",
+          "attrs": {
+            "aliases": "peers"
+          }
+        },
+        {
+          "name": "loop",
+          "attrs": {
+            "aliases": "proactive"
+          }
+        },
+        {
+          "name": "mcp"
+        },
+        {
+          "name": "model"
+        },
+        {
+          "name": "output-style"
+        },
+        {
+          "name": "plugin-authoring"
+        },
+        {
+          "name": "recap"
+        },
+        {
+          "name": "reload-plugins"
+        },
+        {
+          "name": "reload-skills"
+        },
+        {
+          "name": "rename",
+          "attrs": {
+            "aliases": "name"
+          }
+        },
+        {
+          "name": "run"
+        },
+        {
+          "name": "run-skill-generator"
+        },
+        {
+          "name": "security-review"
+        },
+        {
+          "name": "simplify"
+        },
+        {
+          "name": "team-onboarding"
+        },
+        {
+          "name": "update-config"
+        },
+        {
+          "name": "usage",
+          "attrs": {
+            "aliases": "cost,stats"
+          }
+        },
+        {
+          "name": "verify"
+        },
+        {
+          "name": "workflow-authoring"
+        },
+        {
+          "name": "workflow-launch-exec"
+        }
+      ]
     },
     {
       "kind": "subcommand",
@@ -3566,8 +3755,69 @@
     },
     {
       "kind": "tool",
-      "source": "engine session",
-      "error": "not collected yet: needs a zero-token engine session (plan 11, B3)"
+      "source": "zero-token engine session (initialize, system/init)",
+      "items": [
+        {
+          "name": "Bash"
+        },
+        {
+          "name": "CronCreate"
+        },
+        {
+          "name": "CronDelete"
+        },
+        {
+          "name": "CronList"
+        },
+        {
+          "name": "Edit"
+        },
+        {
+          "name": "EnterWorktree"
+        },
+        {
+          "name": "ExitWorktree"
+        },
+        {
+          "name": "ListAgents"
+        },
+        {
+          "name": "NotebookEdit"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "ReportFindings"
+        },
+        {
+          "name": "ScheduleWakeup"
+        },
+        {
+          "name": "SendMessage"
+        },
+        {
+          "name": "Skill"
+        },
+        {
+          "name": "Task"
+        },
+        {
+          "name": "TaskStop"
+        },
+        {
+          "name": "WebFetch"
+        },
+        {
+          "name": "WebSearch"
+        },
+        {
+          "name": "Workflow"
+        },
+        {
+          "name": "Write"
+        }
+      ]
     }
   ]
 }

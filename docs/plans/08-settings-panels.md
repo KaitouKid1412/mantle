@@ -156,7 +156,7 @@ and `claude` is seamless.
 - [x] **B2 [M1] `/help`.** Native help dialog from A7: commands (native registry plus
   `initialize.commands` plus `commands_changed`) and shortcuts, searchable. (`?` on an empty
   prompt is plan 04's shortcut panel; it may reuse your component by ID.)
-- [ ] **B3 [M2] `/effort`, `/fast` and thinking.**
+- [x] **B3 [M2] `/effort`, `/fast` and thinking.**
   - `/effort` slider with Tab for ultracode, `s` for session only, persisted via
     `update_settings`.
   - `/fast [on|off]` and `chat:fastMode` (meta+o), hidden when the model doesn't support it
@@ -178,7 +178,7 @@ and `claude` is seamless.
 - [x] **B7 [M2] `/output-style`.** Picker over `available_output_styles` with descriptions;
   apply with `update_settings` (localSettings), then `reload_output_styles`. `/output-style
   <name>` with an argument goes to the engine (E).
-- [ ] **B8 [M2] `/permissions` (alias `/allowed-tools`).**
+- [x] **B8 [M2] `/permissions` (alias `/allowed-tools`).**
   - Tabs: Allow, Ask, Deny, Workspace directories, Auto-mode rules.
   - Add and remove per scope through the config writer; refresh from
     `list_permission_rules`.
@@ -193,7 +193,7 @@ and `claude` is seamless.
   - `/terminal-setup` runs the A4 installer with a confirmation dialog.
   - `/vim` toggles `editorMode` between `normal` and `vim` (in 2.1.288 it is a "moved to
     /config" stub; mantle keeps it as a convenience).
-- [ ] **B10 [M2] Small commands.**
+- [x] **B10 [M2] Small commands.**
   - ~~`/focus`~~ and ~~`/scroll-speed`~~: dropped from plan 08 by the coordinator
     (2026-10-03). Plan 03 owns `/focus` (VW-10) and plan 12 owns `/scroll-speed` (VW-21);
     registering them here too would make the host report a command conflict.
@@ -201,10 +201,11 @@ and `claude` is seamless.
     show a notice.
   - `/advisor [model|off]` and `/autocompact [auto|tokens]`: E passthrough plus a small
     picker when called without arguments.
-  - `/privacy-settings`: H (hand off via plan 06's generic handoff action).
-  - Ownership: PARITY.md CU-08 (`/autocompact`) and CL-24 (`/privacy-settings`) moved to
-    plan 08 by the coordinator (2026-10-03); neither 06's nor 09's plan file listed them.
-- [ ] **B11 [M2] Read-back test harness.** In a temp HOME / `CLAUDE_CONFIG_DIR`, perform
+  - ~~`/privacy-settings`~~: plan 09 already registers it in its hand-off table
+    (`features/ecosystem/handoff`, CL-24), so plan 08 does not.
+  - Ownership: PARITY.md CU-08 (`/autocompact`) moved to plan 08 by the coordinator
+    (2026-10-03); plan 06's file did not list it.
+- [x] **B11 [M2] Read-back test harness.** In a temp HOME / `CLAUDE_CONFIG_DIR`, perform
   every write path, then read effective settings back through real `claude` with a
   zero-token `initialize` + `get_settings` (the probe pattern from plan 02). Values must
   match.
@@ -232,6 +233,20 @@ and `claude` is seamless.
 - `set_model` resets with `"default"` (as typed in `pkg/proto`). `unavailable_models`
   entries are `ModelInfo` plus `disabled: true`.
 
+## Facts verified by the B11 read-back harness (real 2.1.288 against fakeapi)
+- Every `/config` key mantle writes to settings files, plus the `/model`, `/theme`,
+  `/permissions`, `/sandbox`, `/fast`, `ultracode` and `/tui` writes, passes the engine's
+  strict schema and is read back unchanged per source.
+- On startup the engine **migrates `model: "opus"` to `"opus[1m]"`** and rewrites the user
+  settings file in its own key order (it also adds `env` entries from the environment).
+- `update_settings {source: userSettings, settings: {effortLevel}}` stores the effort on
+  the **session model's `modelSettings` entry**, not as top-level `effortLevel`.
+- After `/config row=value` the engine answers at once but writes `~/.claude.json`
+  **lazily** (by the time it exits). The panel shows its own value meanwhile.
+- `/config autoInstallIdeExtension=…` exists only inside an IDE terminal; `/config
+  chrome=…` is refused (it needs the panel's consent flow), so the Chrome row is not in
+  mantle's table (plan 09's `/chrome` hand-off covers it).
+
 ## Design notes
 - **Structure.** One feature per panel (`settings.model`, `settings.config`,
   `settings.theme`, …) inside the `features/settings` area package. Heavy pure logic lives
@@ -251,12 +266,19 @@ and `claude` is seamless.
 
 ## Interfaces you provide / consume
 - **Provide:**
-  - commands `/model`, `/effort`, `/fast`, `/config`, `/status`, `/theme`, `/output-style`,
-    `/permissions` (`/allowed-tools`), `/keybindings`, `/terminal-setup`, `/vim`, `/focus`,
-    `/tui`, `/scroll-speed`, `/advisor`, `/autocompact`, `/help`;
+  - commands `/model`, `/effort`, `/fast`, `/config` (`/settings`), `/status`, `/version`,
+    `/theme`, `/output-style`, `/permissions` (`/allowed-tools`), `/keybindings`,
+    `/terminal-setup`, `/vim`, `/tui`, `/advisor`, `/autocompact`, `/sandbox`, `/restart`,
+    `/help` (`/focus` and `/scroll-speed` belong to plans 03 and 12; `/privacy-settings`
+    to plan 09);
   - actions `chat:modelPicker`, `chat:fastMode`, `chat:thinkingToggle`,
-    `chat:increaseEffort`, `chat:decreaseEffort`, `chat:defaultToNewerModel`;
-  - the `settings.help` component (reusable by plan 04's `?` panel).
+    `chat:increaseEffort`, `chat:decreaseEffort`, `chat:defaultToNewerModel`, `app:help`;
+  - dialogs by ID: `dialog.help` (argument `"shortcuts"` opens on the shortcuts tab; plan
+    04's `?` panel can use it), `dialog.model`, `dialog.effort`, `dialog.config`
+    (argument `1` opens the Status tab), `dialog.status`, `dialog.theme`,
+    `dialog.outputStyle`, `dialog.permissions`, `dialog.terminalSetup`, `dialog.tui`,
+    `dialog.advisor`, `dialog.autocompact`, `dialog.sandbox`;
+  - mantle setting `settings.modelSwitchWarning` (bool, default true).
 - **Consume:**
   - `pkg/ext` (dialogs, settings API, SettingSpec registry, keymap table);
   - `pkg/proto` (ModelInfo, control request types);

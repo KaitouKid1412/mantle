@@ -112,6 +112,7 @@ const (
 	FullscreenOnly
 	IDEConnected
 	NotInIDE
+	InIDETerminal // running inside an IDE's integrated terminal
 )
 
 // Option is one setting.

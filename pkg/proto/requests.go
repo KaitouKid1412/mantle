@@ -55,6 +55,18 @@ const (
 	SubHostAuthTokenRefresh = "host_auth_token_refresh"
 )
 
+// KnownCLIRequestSubtypes lists the CLI → client subtypes (for drift checks).
+func KnownCLIRequestSubtypes() []string {
+	return []string{SubCanUseTool, SubHookCallback, SubMCPMessage, SubElicitation,
+		SubRequestUserDialog, SubOAuthTokenRefresh, SubHostAuthTokenRefresh}
+}
+
+// KnownResultSubtypes lists the result subtypes (for drift checks).
+func KnownResultSubtypes() []string {
+	return []string{ResultSuccess, ResultErrorDuringExecution, ResultErrorMaxTurns,
+		ResultErrorMaxBudgetUSD, ResultErrorMaxStructuredOutputRetries}
+}
+
 // KnownRequestSubtypes lists the documented client → CLI subtypes (for drift checks).
 func KnownRequestSubtypes() []string {
 	return []string{

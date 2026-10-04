@@ -80,6 +80,7 @@ var (
 	isMetaMarker   = []byte(`"isMeta":true`)
 	compactMarker  = []byte(`"isCompactSummary":true`)
 	turnDurMarker  = []byte(`"subtype":"turn_duration"`)
+	usageMarker    = []byte(`"usage":`)
 	maxMetaLineLen = 16 << 10
 )
 
@@ -123,8 +124,11 @@ type SessionMeta struct {
 
 	// MessageCount is the message count from the last turn_duration record (0 if none in
 	// the tail).
-	MessageCount int         `json:"messageCount,omitempty"`
-	Cost         *CostTotals `json:"cost,omitempty"`
+	MessageCount int `json:"messageCount,omitempty"`
+	// ContextTokens is the context size at the last main-thread response (its input,
+	// cache and output tokens), 0 if the tail has none.
+	ContextTokens int64       `json:"contextTokens,omitempty"`
+	Cost          *CostTotals `json:"cost,omitempty"`
 	// HasMessages is false for files holding only metadata.
 	HasMessages bool `json:"hasMessages"`
 	// Hidden marks SDK and daemon sessions, which Claude Code's own picker hides.
@@ -225,10 +229,11 @@ func metaFrom(path string, ht headTail) SessionMeta {
 		}
 	}
 	var last *Entry
-	for i := len(lines) - 1; i >= 0 && (last == nil || m.MessageCount == 0); i-- {
+	for i := len(lines) - 1; i >= 0 && (last == nil || m.MessageCount == 0 || m.ContextTokens == 0); i-- {
 		l := lines[i]
 		isTurn := m.MessageCount == 0 && bytes.Contains(l, turnDurMarker)
-		if (last != nil && !isTurn) || isMetaLine(l) || len(trimLine(l)) == 0 {
+		isUsage := m.ContextTokens == 0 && bytes.Contains(l, assistMarker) && bytes.Contains(l, usageMarker)
+		if (last != nil && !isTurn && !isUsage) || isMetaLine(l) || len(trimLine(l)) == 0 {
 			continue
 		}
 		r, err := Decode(l, Pos{})
@@ -244,6 +249,11 @@ func metaFrom(path string, ht headTail) SessionMeta {
 		}
 		if e.Subtype == "turn_duration" && m.MessageCount == 0 {
 			m.MessageCount = e.MessageCount
+		}
+		if m.ContextTokens == 0 && e.Kind() == KindAssistant && !e.IsAPIErrorMessage &&
+			e.Message != nil && e.Message.Usage != nil && e.Message.Model != "<synthetic>" {
+			u := e.Message.Usage
+			m.ContextTokens = u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens + u.OutputTokens
 		}
 	}
 	if last != nil {

@@ -3,6 +3,7 @@ package chrome
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/KaitouKid1412/mantle/internal/sessions"
 	"github.com/KaitouKid1412/mantle/internal/term/statusline"
 	"github.com/KaitouKid1412/mantle/internal/term/terminal"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -163,8 +165,9 @@ func TestPromptFrameColourAndInvalidate(t *testing.T) {
 	if !slices.Contains(ctx.Invalidated, EditorID) {
 		t.Error("mode change must invalidate the editor's ID")
 	}
-	if frameToken("bash", ModePlan) != "bashBorder" || frameToken("prompt", ModePlan) != "planMode" ||
-		frameToken("prompt", ModeDefault) != "promptBorder" {
+	if frameToken("bash", ModePlan, "red") != "bashBorder" || frameToken("prompt", ModePlan, "red") != "planMode" ||
+		frameToken("prompt", ModeDefault, "") != "promptBorder" || frameToken("prompt", ModeDefault, "red") != "red_FOR_SUBAGENTS_ONLY" ||
+		frameToken("prompt", ModeDefault, "mauve") != "promptBorder" {
 		t.Error("frame tokens")
 	}
 }
@@ -376,6 +379,10 @@ func TestTranscriptPath(t *testing.T) {
 	if got := transcriptPath("/c", "/Users/me/my.app/x y", "abc"); got != "/c/projects/-Users-me-my-app-x-y/abc.jsonl" {
 		t.Errorf("path = %q", got)
 	}
+	long := "/" + strings.Repeat("deep/", 60) + "proj"
+	if got, want := transcriptPath("/c", long, "id"), sessions.SessionFile(sessions.Layout{ConfigDir: "/c"}.ProjectDir(long), "id"); got != want || len(filepath.Base(filepath.Dir(got))) > 220 {
+		t.Errorf("long path = %q, want %q", got, want)
+	}
 	if transcriptPath("/c", "", "abc") != "" || transcriptPath("/c", "/w", "") != "" {
 		t.Error("unknown parts give no path")
 	}
@@ -531,7 +538,7 @@ func TestTerminalState(t *testing.T) {
 }
 
 func TestActionsRegistered(t *testing.T) {
-	want := map[ext.ActionID]bool{ext.ActAppToggleTodos: false, ext.ActAppRedraw: false, ext.ActChatClearScreen: false}
+	want := map[ext.ActionID]bool{ext.ActAppToggleTodos: false, ext.ActChatClearScreen: false, ActFooterSelect: false}
 	for _, f := range ext.Pending() {
 		if !strings.HasPrefix(f.ID, "chrome.") {
 			continue
@@ -555,18 +562,14 @@ func TestActionsRegistered(t *testing.T) {
 			t.Errorf("action %s not registered", id)
 		}
 	}
-	ctx := exttest.NewCtx()
 	for _, f := range ext.Pending() {
-		if f.ID != TerminalID {
+		if !strings.HasPrefix(f.ID, "chrome.") {
 			continue
 		}
 		r, _ := exttest.Setup(f)
 		for _, a := range r.Actions {
 			if a.ID == ext.ActAppRedraw {
-				a.Run(ctx)
-				if ctx.Reprints != 1 {
-					t.Error("app:redraw reprints")
-				}
+				t.Errorf("%s registers app:redraw; the host core owns it", f.ID)
 			}
 		}
 	}

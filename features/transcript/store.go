@@ -17,6 +17,7 @@ const (
 	KeyToolUseSummary   ext.ContentKey = "system.tool_use_summary"  // Data *proto.ToolUseSummary
 	KeyTaskNotification ext.ContentKey = "system.task_notification" // Data *proto.TaskNotification
 	KeyNotification     ext.ContentKey = "system.notification"      // Data *proto.Notification
+	KeyMemoryRecall     ext.ContentKey = "system.memory_recall"     // Data *proto.MemoryRecall
 )
 
 // Store is the transcript: ordered items with stable IDs and revisions. It is the
@@ -47,6 +48,8 @@ type Store struct {
 	hooks      map[string]*ext.Item        // hook_id → item
 	notes      []string                    // pending markers for the commit policy
 	rateStatus string                      // last rate_limit_event status
+	models     map[string]string           // item ID → model that wrote it
+	shown      map[string]bool             // result uuid → its error is already on screen
 	_          struct{}
 }
 
@@ -65,6 +68,7 @@ type ToolInfo struct {
 	Summary  string           // task_progress summary or last tool
 	Status   string           // task_notification status
 	LastTool string
+	Async    bool // a background agent: its call returned right away
 }
 
 // NewStore returns an empty store for one engine's events. now is the clock.
@@ -90,6 +94,8 @@ func (s *Store) reset() {
 	s.tools = map[string]*ToolInfo{}
 	s.tasks = map[string]string{}
 	s.hooks = map[string]*ext.Item{}
+	s.models = map[string]string{}
+	s.shown = map[string]bool{}
 	s.retry = nil
 	s.rev++
 }
@@ -113,6 +119,13 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// ErrorShown reports whether a failed result's error is already shown by the
+// item before it.
+func (s *Store) ErrorShown(resultUUID string) bool { return s.shown[resultUUID] }
+
+// Model returns the model that produced an assistant item ("" if unknown).
+func (s *Store) Model(id string) string { return s.models[id] }
 
 // Rev is bumped on every change to the store.
 func (s *Store) Rev() int { return s.rev }
@@ -164,6 +177,12 @@ func (s *Store) Update(id string) {
 }
 
 func (s *Store) add(it *ext.Item) {
+	if s.byID[it.ID] != nil { // e.g. sanitized recordings reuse one uuid
+		base := it.ID
+		for n := 2; s.byID[it.ID] != nil; n++ {
+			it.ID = base + "~" + itoa(n)
+		}
+	}
 	if it.EngineID == "" {
 		it.EngineID = s.engineID
 	}
@@ -278,12 +297,18 @@ func (s *Store) Apply(ev proto.Event) bool {
 				s.add(&ext.Item{ID: id, Key: ext.KeySystemRateLimit, Data: e, State: ext.Done})
 			}
 		}
+	case *proto.MemoryRecall:
+		s.add(&ext.Item{ID: "mem:" + e.UUID, Key: KeyMemoryRecall, Data: e, State: ext.Done})
 	case *proto.ToolUseSummary:
 		s.add(&ext.Item{ID: "summary:" + e.UUID, Key: KeyToolUseSummary, Data: e, State: ext.Done})
 	case *proto.ConversationReset:
 		s.reset()
 	case *proto.CompactBoundary:
-		s.add(&ext.Item{ID: "sys:" + e.UUID, Key: ext.KeySystemCompactBoundary, Data: e, State: ext.Done})
+		st := ext.Done
+		if e.CompactMetadata.Trigger == "manual" {
+			st = ext.Running // waits for the /compact echo; done at the result
+		}
+		s.add(&ext.Item{ID: "sys:" + e.UUID, Key: ext.KeySystemCompactBoundary, Data: e, State: st})
 	case *proto.APIRetry:
 		if s.retry != nil {
 			s.retry.Data = e
@@ -336,6 +361,10 @@ func (s *Store) Apply(ev proto.Event) bool {
 				info.Summary = e.Summary
 			}
 			s.touch(s.byID[id])
+			if info.Async {
+				// A background agent's call ended long ago: say it finished.
+				s.add(&ext.Item{ID: "task:" + e.TaskID + ":" + e.UUID, Key: KeyTaskNotification, Data: e, State: ext.Done})
+			}
 		} else {
 			s.add(&ext.Item{ID: "task:" + e.TaskID + ":" + e.UUID, Key: KeyTaskNotification, Data: e, State: ext.Done})
 		}
@@ -470,11 +499,18 @@ func (s *Store) applyAssistant(e *proto.Assistant) {
 	}
 	parent := e.ParentToolUseID
 	msg := e.Message.ID
+	defer func() {
+		if m := e.Message.Model; m != "" && m != proto.SyntheticModel {
+			for _, id := range s.uuids[e.UUID] {
+				s.models[id] = m
+			}
+		}
+	}()
 
 	// Synthetic messages: local command output and API errors.
 	if e.LocalCommandRun != nil || e.LocalCommandSource != "" ||
 		(e.Message.Model == proto.SyntheticModel && e.Error == "") {
-		s.addFor(e, &ext.Item{ID: "local:" + e.UUID, ParentID: parent, Key: ext.KeySystemLocalCommand, Data: e, State: ext.Done})
+		s.addFor(e, &ext.Item{ID: "local:" + e.UUID, ParentID: parent, Key: ext.KeySystemLocalCommand, Data: e, State: ext.Running})
 		return
 	}
 	if e.Error != "" {
@@ -566,9 +602,6 @@ func (s *Store) match(parent, msg string, b proto.ContentBlock) *ext.Item {
 }
 
 func (s *Store) addFor(e *proto.Assistant, it *ext.Item) {
-	if s.byID[it.ID] != nil {
-		return
-	}
 	s.add(it)
 	if e.UUID != "" {
 		s.uuids[e.UUID] = append(s.uuids[e.UUID], it.ID)
@@ -596,6 +629,13 @@ func (s *Store) applyUser(e *proto.User) {
 		}
 		res := r
 		it.Result = &res
+		var async struct {
+			IsAsync bool   `json:"isAsync"`
+			Status  string `json:"status"`
+		}
+		if json.Unmarshal(r.Structured, &async) == nil && (async.IsAsync || async.Status == "async_launched") {
+			s.tool(r.ToolUseID).Async = true
+		}
 		st := ext.Done
 		if r.IsError {
 			st = ext.Failed
@@ -614,9 +654,17 @@ func (s *Store) applyUser(e *proto.User) {
 	switch {
 	case trimmed == "" && !hasImage(e.Message.Content):
 		return
-	case strings.HasPrefix(trimmed, "<local-command-stdout>"), strings.HasPrefix(trimmed, "<local-command-stderr>"),
-		strings.HasPrefix(trimmed, "<local-command-caveat>"):
+	case strings.HasPrefix(trimmed, "<local-command-caveat>"):
 		return
+	case strings.HasPrefix(trimmed, "<local-command-stdout>"), strings.HasPrefix(trimmed, "<local-command-stderr>"):
+		// Output of a local command the engine did not send as a synthetic
+		// message (compaction): show it unless the command's output is here.
+		if s.pendingEcho(true) == len(s.items) {
+			s.add(&ext.Item{ID: "local:" + e.UUID, Key: ext.KeySystemLocalCommand, Data: e, State: ext.Running})
+		}
+		return
+	case isClearEcho(trimmed):
+		return // the screen was just cleared; don't start the new transcript with it
 	case strings.HasPrefix(trimmed, "<bash-stdout>"), strings.HasPrefix(trimmed, "<bash-stderr>"):
 		// Output of the preceding `!` command: attach it to that item.
 		if n := len(s.items); n > 0 && s.items[n-1].Key == ext.KeyUserBash {
@@ -638,8 +686,52 @@ func (s *Store) applyUser(e *proto.User) {
 	if e.UUID == "" {
 		id = "user:" + itoa(s.rev)
 	}
-	s.add(&ext.Item{ID: id, Key: key, Data: e, State: ext.Done, End: s.now()})
+	it := &ext.Item{ID: id, Key: key, Data: e, State: ext.Done, End: s.now()}
+	// The engine echoes a slash command after its output: put the prompt back
+	// above the output that is still waiting for it.
+	at := s.pendingEcho(false)
+	s.add(it)
+	if at < len(s.items)-1 {
+		copy(s.items[at+1:], s.items[at:len(s.items)-1])
+		s.items[at] = it
+	}
 }
+
+// waitsForEcho reports whether an item is local command output (or a manual
+// compaction) still waiting for the engine to echo its slash command.
+func waitsForEcho(it *ext.Item) bool {
+	return !it.State.Finished() && (it.Key == ext.KeySystemLocalCommand || it.Key == ext.KeySystemCompactBoundary)
+}
+
+// pendingEcho returns where the trailing items waiting for an echo start
+// (len(items) when there are none). With localOnly, only local command output
+// counts.
+func (s *Store) pendingEcho(localOnly bool) int {
+	at := len(s.items)
+	for at > s.committed && waitsForEcho(s.items[at-1]) {
+		if localOnly && s.items[at-1].Key != ext.KeySystemLocalCommand {
+			break
+		}
+		at--
+	}
+	return at
+}
+
+// isClearEcho recognises the engine's echo of /clear (and its aliases).
+func isClearEcho(text string) bool {
+	m := reCommandName.FindStringSubmatch(text)
+	if m == nil {
+		return false
+	}
+	switch strings.TrimPrefix(strings.TrimSpace(m[1]), "/") {
+	case "clear", "reset", "new":
+		return true
+	}
+	return false
+}
+
+// TaskTool returns the tool call that started a task ("" if unknown).
+func (s *Store) TaskTool(taskID string) string { return s.tasks[taskID] }
 
 func hasImage(c proto.Content) bool {
 	for _, b := range c.Blocks {
@@ -674,9 +766,19 @@ func (s *Store) applyHook(e *proto.Hook) {
 }
 
 func (s *Store) applyResult(e *proto.Result) {
+	// An API failure already shown as an error item needs no second copy.
+	if n := len(s.items); n > 0 && e.IsError && !e.Interrupted() && s.items[n-1].Key == ext.KeySystemError {
+		s.shown[e.UUID] = true
+	}
 	st := ext.Done
 	if e.Interrupted() {
 		st = ext.Interrupted
+	}
+	// Local command output is complete once its turn ends.
+	for _, it := range s.items[s.committed:] {
+		if waitsForEcho(it) {
+			s.finish(it, ext.Done)
+		}
 	}
 	// Nothing still running survives the end of a turn.
 	var walk func(items []*ext.Item)

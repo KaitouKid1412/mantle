@@ -1,6 +1,8 @@
 package fixture
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/user"
@@ -103,7 +105,60 @@ func (s *Sanitizer) Line(line []byte) []byte {
 		kind := id[:strings.IndexByte(id, '_')]
 		return s.remap(kind, id)
 	})
-	return []byte(t)
+	return redactDescriptions([]byte(t))
+}
+
+// redactDescriptions replaces the engine's own prose (descriptions of built-in
+// commands, skills, agents and models) with placeholders, so fixtures don't carry
+// strings from the Claude Code binary. Names and every other field stay.
+func redactDescriptions(line []byte) []byte {
+	if !bytes.Contains(line, []byte(`"description"`)) {
+		return line
+	}
+	var v any
+	if json.Unmarshal(line, &v) != nil {
+		return line
+	}
+	changed := false
+	var walk func(any, string)
+	walk = func(x any, key string) {
+		switch n := x.(type) {
+		case map[string]any:
+			for k, c := range n {
+				walk(c, k)
+			}
+		case []any:
+			if key != "commands" && key != "agents" && key != "models" && key != "skills" {
+				for _, c := range n {
+					walk(c, "")
+				}
+				return
+			}
+			for _, c := range n {
+				if m, ok := c.(map[string]any); ok {
+					if d, ok := m["description"].(string); ok && d != "" {
+						name, _ := m["name"].(string)
+						if name == "" {
+							name, _ = m["value"].(string)
+						}
+						m["description"] = "Description of " + name + "."
+						changed = true
+					}
+				}
+			}
+		}
+	}
+	walk(v, "")
+	if !changed {
+		return line
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if enc.Encode(v) != nil {
+		return line
+	}
+	return bytes.TrimRight(buf.Bytes(), "\n")
 }
 
 func (s *Sanitizer) remap(kind, v string) string {

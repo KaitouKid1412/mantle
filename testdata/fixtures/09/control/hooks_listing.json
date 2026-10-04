@@ -1,0 +1,112 @@
+{
+  "events": [
+    {
+      "name": "PreToolUse",
+      "summary": "Before a tool runs",
+      "supportsMatcher": true,
+      "hookCount": 3
+    },
+    {
+      "name": "SessionStart",
+      "summary": "When a session starts",
+      "supportsMatcher": true,
+      "hookCount": 2
+    },
+    {
+      "name": "Stop",
+      "summary": "Before Claude finishes its reply",
+      "supportsMatcher": false,
+      "hookCount": 1
+    }
+  ],
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "source": "userSettings",
+      "sourceLabel": "User settings",
+      "type": "command",
+      "displayText": "~/.claude/hooks/check-bash.sh",
+      "commandText": "~/.claude/hooks/check-bash.sh",
+      "contentLabel": "Command",
+      "timeout": 10
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "source": "projectSettings",
+      "sourceLabel": "Project settings",
+      "type": "command",
+      "displayText": "./scripts/fmt.sh --fix",
+      "commandText": "./scripts/fmt.sh --fix",
+      "contentLabel": "Command"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "source": "pluginHook",
+      "sourceLabel": "Plugin hooks",
+      "pluginName": "demo@example-market",
+      "type": "command",
+      "displayText": "${CLAUDE_PLUGIN_ROOT}/bin/guard pre-edit",
+      "commandText": "${CLAUDE_PLUGIN_ROOT}/bin/guard pre-edit",
+      "contentLabel": "Command",
+      "timeout": 10
+    },
+    {
+      "event": "SessionStart",
+      "source": "policySettings",
+      "sourceLabel": "Managed settings",
+      "type": "http",
+      "displayText": "https://hooks.example.test/start",
+      "contentLabel": "URL"
+    },
+    {
+      "event": "SessionStart",
+      "matcher": "startup",
+      "source": "localSettings",
+      "sourceLabel": "Local settings",
+      "type": "command",
+      "displayText": "echo hello",
+      "commandText": "echo hello",
+      "contentLabel": "Command"
+    },
+    {
+      "event": "Stop",
+      "source": "userSettings",
+      "sourceLabel": "User settings",
+      "type": "prompt",
+      "displayText": "Check the goal is met",
+      "contentLabel": "Prompt"
+    }
+  ],
+  "eventCatalog": [
+    {
+      "name": "PreToolUse",
+      "summary": "Before a tool runs",
+      "supportsMatcher": true
+    },
+    {
+      "name": "PostToolUse",
+      "summary": "After a tool runs",
+      "supportsMatcher": true
+    },
+    {
+      "name": "SessionStart",
+      "summary": "When a session starts",
+      "supportsMatcher": true
+    },
+    {
+      "name": "Stop",
+      "summary": "Before Claude finishes its reply",
+      "supportsMatcher": false
+    }
+  ],
+  "policy": {
+    "disabledByPolicy": false,
+    "managedOnly": false,
+    "pluginOnly": false,
+    "allDisabled": false,
+    "policyHookCount": 1
+  }
+}
