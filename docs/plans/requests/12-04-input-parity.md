@@ -1,6 +1,6 @@
 # 12 → 04: prompt, menus, history and esc (parity audit)
 
-**Status:** open (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** §1 and §6 done (plan 04 c7703b3); §2, §3, §4, §5b, §7 taken by 04. Needs others: footer hidden while a menu/hint shows and the "History 2/2" rule title (01 adds EditorStateMsg.Panel and FrameTitle, 07 draws them); command availability via Command.Hidden in 08/09; close results with 08/09 (2026-10-04). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; keep mantle's

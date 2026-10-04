@@ -1,6 +1,6 @@
 # 12 → 05: permission dialogs, plan approval, esc and auto mode (parity audit)
 
-**Status:** open (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** §1 done (plan 05); §2-5 taken by 05; the "Denied: …" row, "Waiting…" row, "Exited plan mode" row and §6 routed to 03 (12-03 §8-11) (2026-10-04). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate any frame below with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"`; the report is in
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; write mantle's

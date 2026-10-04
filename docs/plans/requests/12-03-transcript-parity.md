@@ -1,6 +1,6 @@
 # 12 → 03: transcript rendering differences (parity audit)
 
-**Status:** open (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** partly done (§2-3, plan 03 e13a386), rest taken by 03; §9-11 routed from 05 (2026-10-04). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; keep mantle's
@@ -68,3 +68,20 @@ ctrl+o for history ══════" rule and "⎿  Compacted".
 
 See request 12-05 §1: the "⏺ Denied: Bash(…)" row from `result.permission_denials`
 repeats a denial the tool row already shows.
+
+## 9. "Waiting…" under a pending tool (from 12-05 §2)
+
+`tool-approval` / `permission-prompt`: while claude's permission prompt is open, the tool
+row has "⎿  Waiting…" under it; mantle shows nothing there. Plan 05 routed the row to
+plan 03.
+
+## 10. "Exited plan mode" row (from 12-05 §3)
+
+`plan-mode` / `approved`: after approval claude adds "⏺ Exited plan mode" (mantle's own
+wording is fine); mantle adds no row.
+
+## 11. Interrupt line layout (from 12-05 §6)
+
+`interrupt` / `interrupted`: claude puts the interrupt line directly under the partial
+answer with a "what should Claude do instead" hint; mantle leaves a blank line and has no
+hint.
