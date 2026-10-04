@@ -108,6 +108,9 @@ type Root struct {
 	heights []heightAt // recent frame heights, for print chunking
 	th      themeState
 
+	frameShown int // height of the last inline frame
+	shrink     shrinkState
+
 	exitCode   int
 	exitReason string
 	quitting   bool
@@ -360,21 +363,30 @@ type firstFrameMsg struct{}
 func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if c := r.shrinkCmd(); c != nil {
+		cmds = append(cmds, c)
+	}
+
 	// Host-internal messages first: they are not part of the feature bus.
 	switch m := msg.(type) {
+	case shrinkReleaseMsg:
+		if m.seq == r.shrink.seq {
+			r.shrink.active = false
+		}
+		return r, tea.Batch(cmds...)
 	case panicMsg:
 		r.panicked(m.feature, m.where, m.value, m.stack)
-		return r, nil
+		return r, tea.Batch(cmds...)
 	case printStepMsg, printDoneMsg, clearedMsg:
-		return r, r.printerUpdate(msg)
+		return r, tea.Batch(append(cmds, r.printerUpdate(msg))...)
 	case noticeExpireMsg:
 		r.expireNotice(m)
-		return r, nil
+		return r, tea.Batch(cmds...)
 	case spawnFailedMsg:
-		return r, r.spawnFailed(m)
+		return r, tea.Batch(append(cmds, r.spawnFailed(m))...)
 	case firstFrameMsg:
 		if r.firstFrame {
-			return r, nil
+			return r, tea.Batch(cmds...)
 		}
 		r.firstFrame = true
 		msg = ext.FirstFrameMsg{}

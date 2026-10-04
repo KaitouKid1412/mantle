@@ -45,6 +45,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return cmdCatalog(args[1:], stdout, stderr)
 		case "selftest":
 			return cmdSelftest(args[1:], stdout, stderr)
+		case "keyprobe":
+			return cmdKeyprobe(args[1:], stdout, stderr)
 		}
 	}
 
@@ -119,6 +121,7 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 	var prog *tea.Program
 	mgr := engine.NewManager(func(m tea.Msg) { prog.Send(m) })
 	mgr.Logf = func(format string, args ...any) { logger.Debug(fmt.Sprintf(format, args...)) }
+	mgr.RunDir = filepath.Join(paths.MantleDir, "run") // honours MANTLE_HOME; the launcher reads it
 
 	root := app.New(app.Options{
 		Host:          host,
