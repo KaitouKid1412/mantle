@@ -1,7 +1,8 @@
 # H hand-off: /mobile is not native in mantle, so it opens in Claude Code.
 name: handoff
 size: 100x30
-args: --permission-mode default "Say hello"
+args: --permission-mode default
+prompt: Say hello
 files: ../../../testdata/fixtures/12/app
 script: scripts/handoff.json
 parity: SE-40, AC-22, CL-04

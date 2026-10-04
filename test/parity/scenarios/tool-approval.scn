@@ -3,7 +3,8 @@
 # completes when a target continues the turn after a denial.
 name: tool-approval
 size: 100x30
-args: --permission-mode default "Create the marker file"
+args: --permission-mode default
+prompt: Create the marker file
 files: ../../../testdata/fixtures/12/app
 script: scripts/tool-approval.json
 parity: PD-01, PD-02, PD-08, PD-10, PD-13, TR-09, TR-27

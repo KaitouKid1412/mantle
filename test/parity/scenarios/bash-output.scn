@@ -1,7 +1,8 @@
 # Bash output: long output collapses in the transcript.
 name: bash-output
 size: 100x30
-args: --permission-mode default "Print forty numbers"
+args: --permission-mode default
+prompt: Print forty numbers
 files: ../../../testdata/fixtures/12/app
 script: scripts/bash-output.json
 parity: TR-09, TR-55

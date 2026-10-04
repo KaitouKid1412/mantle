@@ -1,7 +1,8 @@
 # Edit tool: the diff in the permission prompt and in the transcript.
 name: edit-diff
 size: 100x30
-args: --permission-mode default "Make the greeting friendlier"
+args: --permission-mode default
+prompt: Make the greeting friendlier
 files: ../../../testdata/fixtures/12/app
 script: scripts/edit-diff.json
 parity: PD-03, TR-12

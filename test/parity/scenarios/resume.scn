@@ -1,7 +1,8 @@
 # Resume: -c continues the last session after a restart.
 name: resume
 size: 100x30
-args: --permission-mode default "Remember a word for me"
+args: --permission-mode default
+prompt: Remember a word for me
 files: ../../../testdata/fixtures/12/app
 script: scripts/resume.json
 parity: SE-07, SE-08

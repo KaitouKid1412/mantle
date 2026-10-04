@@ -1,7 +1,8 @@
 # Todo list: TaskCreate/TaskUpdate items and the ctrl+t toggle.
 name: todos
 size: 100x30
-args: --permission-mode default "Make a todo list for the rename"
+args: --permission-mode default
+prompt: Make a todo list for the rename
 files: ../../../testdata/fixtures/12/app
 script: scripts/todos.json
 env: CLAUDE_CODE_ENABLE_TODO_TOOLS=1

@@ -128,7 +128,11 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		}
 		return t, err
 	}
-	t, err := start1(sc.Args)
+	first := append([]string{}, sc.Args...)
+	if sc.Prompt != "" {
+		first = append(first, sc.Prompt)
+	}
+	t, err := start1(first)
 	if err != nil {
 		res.Err = err
 		return res

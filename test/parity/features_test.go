@@ -29,6 +29,7 @@ func TestEnvSettingsRestart(t *testing.T) {
 	sc := mustParse(t, `name: feat
 size: 60x12
 args: -a
+prompt: hi there
 env: PARITY_X=42
 settings: {"statusLine": {"type": "command", "command": "true"}}
 ---
@@ -44,7 +45,7 @@ checkpoint second
 		t.Fatalf("run: %v\n%s", res.Err, strings.Join(res.Final.Screen, "\n"))
 	}
 	first, _ := res.Checkpoint("first")
-	if !slices.Contains(first.Frame.Screen, "args=[-a] x=42") {
+	if !slices.Contains(first.Frame.Screen, "args=[-a hi there] x=42") {
 		t.Errorf("first = %q", first.Frame.Screen)
 	}
 	second, _ := res.Checkpoint("second")

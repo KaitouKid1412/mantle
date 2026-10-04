@@ -1,7 +1,8 @@
 # /clear after a short exchange.
 name: clear
 size: 100x30
-args: --permission-mode default "Say something"
+args: --permission-mode default
+prompt: Say something
 files: ../../../testdata/fixtures/12/app
 script: scripts/compact-clear.json
 parity: SE-15, TR-44

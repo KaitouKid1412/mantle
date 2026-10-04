@@ -1,7 +1,8 @@
 # Queue: a message typed and sent while the turn runs.
 name: queued
 size: 100x30
-args: --permission-mode default "First request"
+args: --permission-mode default
+prompt: First request
 files: ../../../testdata/fixtures/12/app
 script: scripts/queued.json
 parity: TC-05

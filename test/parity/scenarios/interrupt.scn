@@ -2,7 +2,8 @@
 # 1.5 s gap, so esc always lands between chunks and the frame is deterministic.
 name: interrupt
 size: 100x30
-args: --permission-mode default "Give me a long answer"
+args: --permission-mode default
+prompt: Give me a long answer
 files: ../../../testdata/fixtures/12/app
 script: scripts/interrupt.json
 parity: TC-01, TC-14, TR-28

@@ -1,7 +1,8 @@
 # Rewind: double esc opens the message selector.
 name: rewind
 size: 100x30
-args: --permission-mode default "first message"
+args: --permission-mode default
+prompt: first message
 files: ../../../testdata/fixtures/12/app
 script: scripts/rewind.json
 parity: SE-22
