@@ -39,6 +39,7 @@ type ContentBlock struct {
 	Name       string          `json:"name,omitempty"`
 	Input      json.RawMessage `json:"input,omitempty"`
 	ServerName string          `json:"server_name,omitempty"`
+	Caller     json.RawMessage `json:"caller,omitempty"` // who issued a tool call (since proto-v1)
 
 	// tool_result (and the server *_tool_result blocks)
 	ToolUseID string   `json:"tool_use_id,omitempty"`
@@ -161,8 +162,9 @@ func (b ContentBlock) MarshalJSON() ([]byte, error) {
 			Name         string          `json:"name"`
 			Input        json.RawMessage `json:"input"`
 			ServerName   string          `json:"server_name,omitempty"`
+			Caller       json.RawMessage `json:"caller,omitempty"`
 			CacheControl json.RawMessage `json:"cache_control,omitempty"`
-		}{b.Type, b.ID, b.Name, input, b.ServerName, b.CacheControl})
+		}{b.Type, b.ID, b.Name, input, b.ServerName, b.Caller, b.CacheControl})
 	case BlockToolResult:
 		return json.Marshal(struct {
 			Type         string          `json:"type"`
