@@ -17,6 +17,7 @@ const (
 	KeyToolUseSummary   ext.ContentKey = "system.tool_use_summary"  // Data *proto.ToolUseSummary
 	KeyTaskNotification ext.ContentKey = "system.task_notification" // Data *proto.TaskNotification
 	KeyNotification     ext.ContentKey = "system.notification"      // Data *proto.Notification
+	KeyMemoryRecall     ext.ContentKey = "system.memory_recall"     // Data *proto.MemoryRecall
 )
 
 // Store is the transcript: ordered items with stable IDs and revisions. It is the
@@ -47,6 +48,8 @@ type Store struct {
 	hooks      map[string]*ext.Item        // hook_id → item
 	notes      []string                    // pending markers for the commit policy
 	rateStatus string                      // last rate_limit_event status
+	models     map[string]string           // item ID → model that wrote it
+	shown      map[string]bool             // result uuid → its error is already on screen
 	_          struct{}
 }
 
@@ -90,6 +93,8 @@ func (s *Store) reset() {
 	s.tools = map[string]*ToolInfo{}
 	s.tasks = map[string]string{}
 	s.hooks = map[string]*ext.Item{}
+	s.models = map[string]string{}
+	s.shown = map[string]bool{}
 	s.retry = nil
 	s.rev++
 }
@@ -113,6 +118,13 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// ErrorShown reports whether a failed result's error is already shown by the
+// item before it.
+func (s *Store) ErrorShown(resultUUID string) bool { return s.shown[resultUUID] }
+
+// Model returns the model that produced an assistant item ("" if unknown).
+func (s *Store) Model(id string) string { return s.models[id] }
 
 // Rev is bumped on every change to the store.
 func (s *Store) Rev() int { return s.rev }
@@ -278,6 +290,8 @@ func (s *Store) Apply(ev proto.Event) bool {
 				s.add(&ext.Item{ID: id, Key: ext.KeySystemRateLimit, Data: e, State: ext.Done})
 			}
 		}
+	case *proto.MemoryRecall:
+		s.add(&ext.Item{ID: "mem:" + e.UUID, Key: KeyMemoryRecall, Data: e, State: ext.Done})
 	case *proto.ToolUseSummary:
 		s.add(&ext.Item{ID: "summary:" + e.UUID, Key: KeyToolUseSummary, Data: e, State: ext.Done})
 	case *proto.ConversationReset:
@@ -470,6 +484,13 @@ func (s *Store) applyAssistant(e *proto.Assistant) {
 	}
 	parent := e.ParentToolUseID
 	msg := e.Message.ID
+	defer func() {
+		if m := e.Message.Model; m != "" && m != proto.SyntheticModel {
+			for _, id := range s.uuids[e.UUID] {
+				s.models[id] = m
+			}
+		}
+	}()
 
 	// Synthetic messages: local command output and API errors.
 	if e.LocalCommandRun != nil || e.LocalCommandSource != "" ||
@@ -674,6 +695,10 @@ func (s *Store) applyHook(e *proto.Hook) {
 }
 
 func (s *Store) applyResult(e *proto.Result) {
+	// An API failure already shown as an error item needs no second copy.
+	if n := len(s.items); n > 0 && e.IsError && !e.Interrupted() && s.items[n-1].Key == ext.KeySystemError {
+		s.shown[e.UUID] = true
+	}
 	st := ext.Done
 	if e.Interrupted() {
 		st = ext.Interrupted

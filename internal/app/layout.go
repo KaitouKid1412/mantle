@@ -56,14 +56,72 @@ func (r *Root) View() tea.View {
 	if r.quitting {
 		return v
 	}
+	alt := false
 	if d := r.topDialog(); d != nil && d.d.Placement() == ext.PlaceAltScreen {
-		v = r.altView(d)
+		v, alt = r.altView(d), true
+	} else if r.opts.Layout == ext.Fullscreen {
+		v, alt = r.fullscreenView(), true
 	} else {
 		v = r.inlineView()
 	}
 	r.terminalState(&v)
-	r.noteHeight(strings.Count(v.Content, "\n") + 1)
+	h := strings.Count(v.Content, "\n") + 1
+	if !alt {
+		h = r.holdHeight(&v, h)
+		r.frameShown = h
+	} else {
+		r.frameShown, r.shrink.active = 0, false
+	}
+	r.noteHeight(h)
 	return v
+}
+
+// Shrinking inline frames. Bubble Tea v2.0.10 redraws a shorter inline frame at the
+// cursor's current row ("\r ESC[J" + frame) without first moving up to the old frame's
+// top, so the old frame's upper rows stay on screen (verified in the vt emulator; real
+// terminals receive the same bytes). Workaround: when the frame would shrink, keep the
+// old height for a few frame intervals with the freed rows blank at the top, then
+// shrink. What stays behind is blank rows, not stale content.
+type shrinkState struct {
+	active   bool
+	target   int  // height to hold
+	seq      int  // release token
+	needTick bool // Update must schedule the release tick
+}
+
+type shrinkReleaseMsg struct{ seq int }
+
+// holdHeight pads v to the held height while a shrink is pending; it returns the frame
+// height actually shown.
+func (r *Root) holdHeight(v *tea.View, h int) int {
+	switch {
+	case r.shrink.active && h >= r.shrink.target:
+		r.shrink.active = false // grew back: nothing to hold
+	case !r.shrink.active && r.frameShown > h:
+		r.shrink = shrinkState{active: true, target: r.frameShown, seq: r.shrink.seq + 1, needTick: true}
+	}
+	if !r.shrink.active || h >= r.shrink.target {
+		return h
+	}
+	pad := r.shrink.target - h
+	v.Content = strings.Repeat(" \n", pad) + v.Content
+	if v.Cursor != nil {
+		cur := *v.Cursor
+		cur.Y += pad
+		v.Cursor = &cur
+	}
+	return r.shrink.target
+}
+
+// shrinkCmd schedules the release of a held frame height (called from Update, since
+// View cannot return Cmds).
+func (r *Root) shrinkCmd() tea.Cmd {
+	if !r.shrink.needTick {
+		return nil
+	}
+	r.shrink.needTick = false
+	seq := r.shrink.seq
+	return tea.Tick(4*r.opts.FrameInterval, func(time.Time) tea.Msg { return shrinkReleaseMsg{seq: seq} })
 }
 
 func (r *Root) altView(d *openDialog) tea.View {
@@ -146,6 +204,11 @@ func (r *Root) inlineView() tea.View {
 			out = append(out, b.lines...)
 		}
 	}
+	// Never an empty frame: Bubble Tea treats empty content as a zero-height frame and
+	// leaves the previous frame's lines on screen.
+	if len(out) == 0 || (len(out) == 1 && out[0] == "") {
+		out = []string{" "}
+	}
 	v := tea.NewView(strings.Join(out, "\n"))
 	v.Cursor = cursor
 	return v
@@ -171,7 +234,7 @@ func (r *Root) terminalState(v *tea.View) {
 		if !r.safe(c.feature, c.m.comp.ID()+".TerminalState", func() { s = ts.TerminalState(r.ctx) }) {
 			continue
 		}
-		if v.WindowTitle == "" {
+		if v.WindowTitle == "" && !r.opts.NoTitle {
 			v.WindowTitle = s.WindowTitle
 		}
 		if v.ProgressBar == nil {

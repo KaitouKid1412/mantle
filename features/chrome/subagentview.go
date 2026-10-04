@@ -127,21 +127,29 @@ func (v *subagentView) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	return ext.Rendered{Text: strings.Join(truncateLines(lines, a.Width, 0), "\n")}
 }
 
-// bodyLines renders the items nested under the subagent's tool call.
+// bodyLines renders the items nested under the subagent's tool call (live items, or
+// the subagent transcript plan 06 nests there on resume), indenting deeper levels
+// (subagents of the subagent).
 func (v *subagentView) bodyLines(ctx ext.Ctx, w int) []string {
 	tr := ctx.Transcript()
 	if tr == nil || v.args.ToolUseID == "" {
 		return []string{dim(ctx.Theme(), ctx.Accessibility().ScreenReader, "No transcript for this subagent yet.")}
 	}
+	depth := map[string]int{v.args.ToolUseID: 0}
 	var lines []string
 	for _, it := range tr.Items() {
-		if it.ParentID != v.args.ToolUseID {
+		d, ok := depth[it.ParentID]
+		if !ok {
 			continue
 		}
+		depth[it.ID] = d + 1
+		indent := strings.Repeat("  ", d)
 		r := ctx.Renderer(it.Key)
-		b := r(ext.RenderCtx{Width: w, Mode: ext.FullTranscript, Theme: ctx.Theme(),
+		b := r(ext.RenderCtx{Width: max(10, w-len(indent)), Mode: ext.FullTranscript, Theme: ctx.Theme(),
 			Expanded: true, Now: ctx.Clock().Now()}, it)
-		lines = append(lines, b.Lines...)
+		for _, l := range b.Lines {
+			lines = append(lines, indent+l)
+		}
 		lines = append(lines, "")
 	}
 	if len(lines) == 0 {

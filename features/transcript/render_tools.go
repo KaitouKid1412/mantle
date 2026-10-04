@@ -192,7 +192,7 @@ func (f *Feature) renderRead(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	if tu := toolUse(it); tu != nil {
 		decodeInput(tu.Input, &in)
 	}
-	args := relPath(f.cwd, in.FilePath)
+	args := fileLink(relPath(f.cwd, in.FilePath), in.FilePath)
 	switch {
 	case in.Pages != "":
 		args += " · pages " + in.Pages
@@ -331,7 +331,7 @@ func (f *Feature) renderWrite(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	if out.Type == "update" {
 		name = "Update"
 	}
-	return f.toolFrame(rc, it, name, path, func() ([]string, bool) {
+	return f.toolFrame(rc, it, name, fileLink(path, in.FilePath), func() ([]string, bool) {
 		st := stylesFor(rc)
 		if it.State == ext.Failed { // rejected: show what would have been written
 			hunks := diffview.FromStrings("", in.Content, 0)
@@ -367,7 +367,7 @@ func (f *Feature) renderEdit(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		decodeInput(tu.Input, &in)
 	}
 	path := relPath(f.cwd, in.FilePath)
-	return f.toolFrame(rc, it, "Update", path, func() ([]string, bool) {
+	return f.toolFrame(rc, it, "Update", fileLink(path, in.FilePath), func() ([]string, bool) {
 		st := stylesFor(rc)
 		if it.State == ext.Failed {
 			var hunks []diffview.Hunk
@@ -899,7 +899,7 @@ func (f *Feature) renderNotebook(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		Language  string `json:"language"`
 	}
 	structured(it, &out)
-	return f.toolFrame(rc, it, "Edit Notebook", relPath(f.cwd, in.NotebookPath), func() ([]string, bool) {
+	return f.toolFrame(rc, it, "Edit Notebook", fileLink(relPath(f.cwd, in.NotebookPath), in.NotebookPath), func() ([]string, bool) {
 		st := stylesFor(rc)
 		cell := in.CellID
 		if cell == "" {

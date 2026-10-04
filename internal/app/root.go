@@ -48,6 +48,12 @@ type Options struct {
 	Stop func(engineID string) error
 	// NoBackgroundQuery skips asking the terminal for its background colour (tests).
 	NoBackgroundQuery bool
+	// NoAltScreen refuses the fullscreen layout (CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN).
+	NoAltScreen bool
+	// NoMouse keeps the mouse off in fullscreen (CLAUDE_CODE_DISABLE_MOUSE).
+	NoMouse bool
+	// NoTitle never sets the terminal window title (CLAUDE_CODE_DISABLE_TERMINAL_TITLE).
+	NoTitle bool
 }
 
 // comp is a mounted component with its render cache.
@@ -107,6 +113,11 @@ type Root struct {
 	printer printer
 	heights []heightAt // recent frame heights, for print chunking
 	th      themeState
+
+	frameShown int // height of the last inline frame
+	shrink     shrinkState
+
+	sidebarDelta map[ext.Slot]int // fullscreen sidebar width adjustments
 
 	exitCode   int
 	exitReason string
@@ -269,23 +280,23 @@ func (r *Root) compFeature(id string) string {
 	return ""
 }
 
-// pickFocus focuses the first Focusable in the input slot, else the first anywhere.
+// pickFocus keeps a valid focus, else focuses the first Focusable in the input slot.
+// Components elsewhere (footer, panes) take focus only through Ctx.Focus; with no
+// input component nothing is focused and keys reach only keymap actions.
 func (r *Root) pickFocus() {
-	if c := r.byID[r.focus]; c != nil {
+	if c := r.byID[r.focus]; c != nil && !r.host.Disabled(c.feature) {
 		if _, ok := c.m.comp.(ext.Focusable); ok {
 			return
 		}
 	}
 	r.focus = ""
-	for _, pass := range []bool{true, false} {
-		for _, c := range r.comps {
-			if pass && c.m.slot != ext.SlotInput {
-				continue
-			}
-			if _, ok := c.m.comp.(ext.Focusable); ok && r.modeOK(c) {
-				r.focus = c.m.comp.ID()
-				return
-			}
+	for _, c := range r.comps {
+		if c.m.slot != ext.SlotInput {
+			continue
+		}
+		if _, ok := c.m.comp.(ext.Focusable); ok && r.modeOK(c) {
+			r.focus = c.m.comp.ID()
+			return
 		}
 	}
 }
@@ -360,21 +371,30 @@ type firstFrameMsg struct{}
 func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if c := r.shrinkCmd(); c != nil {
+		cmds = append(cmds, c)
+	}
+
 	// Host-internal messages first: they are not part of the feature bus.
 	switch m := msg.(type) {
+	case shrinkReleaseMsg:
+		if m.seq == r.shrink.seq {
+			r.shrink.active = false
+		}
+		return r, tea.Batch(cmds...)
 	case panicMsg:
 		r.panicked(m.feature, m.where, m.value, m.stack)
-		return r, nil
+		return r, tea.Batch(cmds...)
 	case printStepMsg, printDoneMsg, clearedMsg:
-		return r, r.printerUpdate(msg)
+		return r, tea.Batch(append(cmds, r.printerUpdate(msg))...)
 	case noticeExpireMsg:
 		r.expireNotice(m)
-		return r, nil
+		return r, tea.Batch(cmds...)
 	case spawnFailedMsg:
-		return r, r.spawnFailed(m)
+		return r, tea.Batch(append(cmds, r.spawnFailed(m))...)
 	case firstFrameMsg:
 		if r.firstFrame {
-			return r, nil
+			return r, tea.Batch(cmds...)
 		}
 		r.firstFrame = true
 		msg = ext.FirstFrameMsg{}
@@ -420,6 +440,7 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.quitting = true
 		cmds = append(cmds, r.broadcast(msg), tea.Quit)
 	case ext.EngineAttachMsg:
+		r.log().Debug("engine: attached", "id", m.EngineID)
 		r.engines[m.EngineID] = m.Engine
 		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineStartMsg:
@@ -428,6 +449,17 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if r.opts.Spawn != nil {
 			cmds = append(cmds, r.spawnCmd(m.EngineID, m.Opts))
 		}
+		cmds = append(cmds, r.broadcast(msg))
+	case ext.LayoutRequestMsg:
+		cmds = append(cmds, r.layoutRequest(m))
+	case ext.SidebarResizeMsg:
+		if r.sidebarDelta == nil {
+			r.sidebarDelta = map[ext.Slot]int{}
+		}
+		// Keep the stored delta within what sidebarWidth can show.
+		base := SidebarWidth(r.w)
+		r.sidebarDelta[m.Slot] = min(max(r.sidebarDelta[m.Slot]+m.Delta, 12-base), max(12, r.w/2)-base)
+		r.invalidateAll()
 		cmds = append(cmds, r.broadcast(msg))
 	case ext.EngineStopMsg:
 		if stop := r.opts.Stop; stop != nil {

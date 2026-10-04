@@ -1,8 +1,3 @@
-//go:build turnwip
-
-// Part B work in progress (plan 05): excluded from normal builds until the remaining
-// pieces (modes.go, control.go, queue.go, gateflow.go, stories.go) exist.
-
 package turn
 
 import (

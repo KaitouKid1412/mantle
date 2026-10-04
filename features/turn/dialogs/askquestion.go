@@ -457,8 +457,15 @@ func (a *AskQuestion) View(width int, st Styles) string {
 	}
 	if cur < n && q.Options[cur].Preview != "" {
 		body = append(body, "", render(st.Dim, "Preview"))
+		src := strings.TrimRight(Sanitize(string(q.Options[cur].Preview)), "\n")
+		var lines []string
+		if a.ctx.Markdown != nil {
+			lines = a.ctx.Markdown(src, w-2)
+		} else {
+			lines = wrap(src, w-2)
+		}
 		var prev []string
-		for _, l := range wrap(strings.TrimRight(Sanitize(string(q.Options[cur].Preview)), "\n"), w-2) {
+		for _, l := range lines {
 			prev = append(prev, "│ "+l)
 		}
 		body = append(body, styleLines(st.Code, truncateLines(prev, 12, st))...)

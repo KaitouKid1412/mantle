@@ -22,6 +22,11 @@ type Assistant struct {
 	LocalCommandSource  string           `json:"local_command_source,omitempty"`
 	LocalCommandRun     *LocalCommandRun `json:"local_command_run,omitempty"`
 	LocalCommandOutcome json.RawMessage  `json:"local_command_outcome,omitempty"`
+
+	// Since proto-v1 (seen on 2.1.288).
+	ThinkingDurationMS int64           `json:"thinking_duration_ms,omitempty"`
+	IsAPIErrorMessage  bool            `json:"is_api_error_message,omitempty"`
+	WireToolInputs     json.RawMessage `json:"wire_tool_inputs,omitempty"`
 }
 
 // LocalCommandRun names the local slash command that produced a synthetic message.
@@ -71,6 +76,8 @@ type Usage struct {
 	CacheCreation            *CacheCreation      `json:"cache_creation,omitempty"`
 	OutputTokensDetails      json.RawMessage     `json:"output_tokens_details,omitempty"`
 	Speed                    string              `json:"speed,omitempty"`
+	InferenceGeo             string              `json:"inference_geo,omitempty"`
+	Iterations               json.RawMessage     `json:"iterations,omitempty"`
 }
 
 // ServerToolUseUsage counts server-side tool requests.
@@ -97,6 +104,7 @@ type User struct {
 	Timestamp       string          `json:"timestamp,omitempty"`
 	Priority        string          `json:"priority,omitempty"`
 	Origin          *Origin         `json:"origin,omitempty"`
+	ToolResultMeta  json.RawMessage `json:"tool_result_meta,omitempty"`
 }
 
 // UserMessage is a user message param.
@@ -128,10 +136,12 @@ type Origin struct {
 // The finished Assistant message still follows.
 type StreamEvent struct {
 	Envelope
-	Event           StreamPayload `json:"event"`
-	ParentToolUseID string        `json:"parent_tool_use_id,omitempty"`
-	TTFTMS          int64         `json:"ttft_ms,omitempty"`
-	UserMessageUUID string        `json:"user_message_uuid,omitempty"`
+	Event            StreamPayload `json:"event"`
+	ParentToolUseID  string        `json:"parent_tool_use_id,omitempty"`
+	TTFTMS           int64         `json:"ttft_ms,omitempty"`
+	UserMessageUUID  string        `json:"user_message_uuid,omitempty"`
+	UserMessageUUIDs []string      `json:"user_message_uuids,omitempty"`
+	ThinkingDisplay  string        `json:"thinking_display,omitempty"`
 }
 
 // Stream event types (StreamPayload.Type).
@@ -167,12 +177,13 @@ type StreamPayload struct {
 
 // Delta is a content_block_delta delta or a message_delta delta.
 type Delta struct {
-	Type        string          `json:"type,omitempty"`
-	Text        string          `json:"text,omitempty"`
-	Thinking    string          `json:"thinking,omitempty"`
-	PartialJSON string          `json:"partial_json,omitempty"`
-	Signature   string          `json:"signature,omitempty"`
-	Citation    json.RawMessage `json:"citation,omitempty"`
+	Type            string          `json:"type,omitempty"`
+	Text            string          `json:"text,omitempty"`
+	Thinking        string          `json:"thinking,omitempty"`
+	PartialJSON     string          `json:"partial_json,omitempty"`
+	Signature       string          `json:"signature,omitempty"`
+	Citation        json.RawMessage `json:"citation,omitempty"`
+	EstimatedTokens *int64          `json:"estimated_tokens,omitempty"` // thinking_delta
 
 	// message_delta
 	StopReason   string `json:"stop_reason,omitempty"`
@@ -214,6 +225,14 @@ type Result struct {
 	// subtype error_*
 	Errors               []string `json:"errors,omitempty"`
 	StartupFailureReason string   `json:"startup_failure_reason,omitempty"`
+
+	// Since proto-v1 (seen on 2.1.288): timing and fast mode.
+	FastModeDisabledReason  string `json:"fast_mode_disabled_reason,omitempty"`
+	FirstContentFrameMS     int64  `json:"first_content_frame_ms,omitempty"`
+	FirstRequestInputTokens int64  `json:"first_request_input_tokens,omitempty"`
+	RequestSentWallMS       int64  `json:"request_sent_wall_ms,omitempty"`
+	TimeToRequestMS         int64  `json:"time_to_request_ms,omitempty"`
+	TTFTStreamMS            int64  `json:"ttft_stream_ms,omitempty"`
 }
 
 // Result subtypes.
@@ -251,6 +270,10 @@ type ModelUsage struct {
 	CostUSD                  float64 `json:"costUSD"`
 	ContextWindow            int64   `json:"contextWindow"`
 	MaxOutputTokens          int64   `json:"maxOutputTokens"`
+	ThinkingTokens           int64   `json:"thinkingTokens,omitempty"`
+	CanonicalModel           string  `json:"canonicalModel,omitempty"`
+	CostBasis                string  `json:"costBasis,omitempty"`
+	Provider                 string  `json:"provider,omitempty"`
 }
 
 // PermissionDenial is a tool call that was denied during the turn.
@@ -300,6 +323,13 @@ type RateLimitInfo struct {
 	ResetsAt      json.RawMessage `json:"resetsAt,omitempty"`
 	RateLimitType string          `json:"rateLimitType,omitempty"`
 	Utilization   float64         `json:"utilization,omitempty"`
+
+	// Since proto-v1 (seen on 2.1.288).
+	OverageStatus         string          `json:"overageStatus,omitempty"`
+	OverageDisabledReason string          `json:"overageDisabledReason,omitempty"`
+	IsUsingOverage        bool            `json:"isUsingOverage,omitempty"`
+	SurpassedThreshold    json.RawMessage `json:"surpassedThreshold,omitempty"`
+	UnifiedWindows        json.RawMessage `json:"unifiedWindows,omitempty"`
 }
 
 // PromptSuggestion is a suggested next prompt (ghost text).
@@ -314,6 +344,7 @@ type ConversationReset struct {
 	NewConversationID string `json:"new_conversation_id"`
 	Trigger           string `json:"trigger,omitempty"` // clear | plan_mode_exit | fresh_session | onboarding
 	UserMessageUUID   string `json:"user_message_uuid,omitempty"`
+	Timestamp         string `json:"timestamp,omitempty"`
 }
 
 // ActiveGoal reports the active /goal (shape not documented; see Raw).

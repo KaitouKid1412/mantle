@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -39,8 +40,18 @@ func drain(cmd tea.Cmd) []tea.Msg {
 	return []tea.Msg{msg}
 }
 
+// fakeDrift replaces the runtime drift check for a test (no claude, no ~/.mantle).
+func fakeDrift(t *testing.T, s icli.DriftState, ran bool) {
+	t.Helper()
+	t.Setenv("MANTLE_HOME", t.TempDir())
+	old := runtimeDrift
+	runtimeDrift = func(context.Context, string) (icli.DriftState, bool, error) { return s, ran, nil }
+	t.Cleanup(func() { runtimeDrift = old })
+}
+
 func withStartup(t *testing.T, argv ...string) {
 	t.Helper()
+	fakeDrift(t, icli.DriftState{}, false)
 	p, err := icli.Parse(argv)
 	if err != nil {
 		t.Fatal(err)
@@ -120,6 +131,35 @@ func TestResumePickerOpensFirst(t *testing.T) {
 	drain(r.Dispatch(c, ext.EngineAttachMsg{EngineID: ext.MainEngine}))
 	if len(c.Submitted) != 2 || c.Submitted[1].Text != "then fix it" {
 		t.Errorf("submitted %+v", c.Submitted)
+	}
+}
+
+func TestDriftNotice(t *testing.T) {
+	withStartup(t)
+	fakeDrift(t, icli.DriftState{EngineVersion: "2.1.290", NewCommands: []string{"a", "b"}, NewFlags: []icli.HelpFlag{{Long: "--zap"}}}, true)
+	r, _ := exttest.Setup(feature())
+	c := exttest.NewCtx()
+	var msgs []tea.Msg
+	for _, s := range r.Starts {
+		msgs = append(msgs, drain(s.Value.(func(ext.Ctx) tea.Cmd)(c))...)
+	}
+	for _, m := range msgs {
+		drain(r.Dispatch(c, m))
+	}
+	if len(c.Notices) != 1 || c.Notices[0].Text != "Claude Code 2.1.290 adds 2 commands and 1 flag mantle doesn't know yet; they work as engine passthrough" {
+		t.Errorf("notices %+v", c.Notices)
+	}
+
+	// Same version as last time (ran == false): no notice.
+	fakeDrift(t, icli.DriftState{EngineVersion: "2.1.290", NewCommands: []string{"a"}}, false)
+	c = exttest.NewCtx()
+	for _, s := range r.Starts {
+		for _, m := range drain(s.Value.(func(ext.Ctx) tea.Cmd)(c)) {
+			drain(r.Dispatch(c, m))
+		}
+	}
+	if len(c.Notices) != 0 {
+		t.Errorf("notices %+v", c.Notices)
 	}
 }
 
