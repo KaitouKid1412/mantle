@@ -1,0 +1,11 @@
+╭─ Engine check failed ────────────────────────────────────────────────────────────────────────────╮
+│ claude 2.1.300 did not pass mantle's startup checks.                                             │
+│ Failed: skills, hooks                                                                            │
+│                                                                                                  │
+│ Hooks, skills, CLAUDE.md or other features may not work with it.                                 │
+│                                                                                                  │
+│ ❯ 1. Use claude 2.1.288 instead (it passed before)                                               │
+│   2. Continue with 2.1.300 anyway                                                                │
+│   3. Exit                                                                                        │
+│ enter to confirm · esc to exit                                                                   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

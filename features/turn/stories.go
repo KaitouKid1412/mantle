@@ -96,6 +96,9 @@ var storyDialogs = []struct {
 	{DialogAPIKey + "/default", func() dialogs.Model { return dialogs.NewAPIKeyPrompt("0123456789abcdefABCD") }},
 	{DialogAutoMode + "/default", func() dialogs.Model { return dialogs.NewAutoModePrompt() }},
 	{DialogUsageLimit + "/default", func() dialogs.Model { return dialogs.NewUsageLimit("3:00 PM") }},
+	{DialogEngineCheck + "/pin", func() dialogs.Model {
+		return dialogs.NewEngineCheck("2.1.300", []string{"skills", "hooks"}, "2.1.288")
+	}},
 }
 
 func (st *state) setupStories(r ext.Registrar) {
