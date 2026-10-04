@@ -108,23 +108,43 @@ func missingNote(r *Result) string {
 	return "checkpoint not reached"
 }
 
-// changedLines counts positions where the two frames differ (the longer frame's extra
-// lines count too).
+// changedLines counts the lines a line diff marks as changed: a changed line counts
+// once, an inserted or deleted line once, so an extra line near the top doesn't count
+// everything below it.
 func changedLines(a, b []string) int {
-	n := 0
-	for i := range max(len(a), len(b)) {
-		var x, y string
-		if i < len(a) {
-			x = a[i]
-		}
-		if i < len(b) {
-			y = b[i]
-		}
-		if x != y {
-			n++
+	onlyA, onlyB := diffLines(a, b)
+	return max(len(onlyA), len(onlyB))
+}
+
+// diffLines returns the lines of a and of b that are not part of their longest common
+// subsequence. Frames are at most a few hundred lines, so the quadratic table is fine.
+func diffLines(a, b []string) (onlyA, onlyB []string) {
+	n, m := len(a), len(b)
+	lcs := make([][]int, n+1)
+	for i := range lcs {
+		lcs[i] = make([]int, m+1)
+	}
+	for i := n - 1; i >= 0; i-- {
+		for j := m - 1; j >= 0; j-- {
+			if a[i] == b[j] {
+				lcs[i][j] = lcs[i+1][j+1] + 1
+			} else {
+				lcs[i][j] = max(lcs[i+1][j], lcs[i][j+1])
+			}
 		}
 	}
-	return n
+	i, j := 0, 0
+	for i < n && j < m {
+		switch {
+		case a[i] == b[j]:
+			i, j = i+1, j+1
+		case lcs[i+1][j] >= lcs[i][j+1]:
+			onlyA, i = append(onlyA, a[i]), i+1
+		default:
+			onlyB, j = append(onlyB, b[j]), j+1
+		}
+	}
+	return append(onlyA, a[i:]...), append(onlyB, b[j:]...)
 }
 
 func joinLines(l []string) string {
