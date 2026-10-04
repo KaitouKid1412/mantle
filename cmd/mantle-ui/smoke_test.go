@@ -77,7 +77,22 @@ func smokeEnv(t *testing.T, fake, script, project string) []string {
 	}
 }
 
-const smokeScript = `
+// startupRules answer the control requests mantle may send around startup, in any
+// order relative to the first prompt (the @-completion prefetch, context usage, MCP
+// status, …), as the real engine does. Explicit rules, not a catch-all: end_session
+// must still reach the fake's built-in handler. The steps stay strict about the
+// conversation itself.
+const startupRules = `
+{"on": {"type":"control_request","request":{"subtype":"file_suggestions"}}, "respond": {"suggestions":[]}}
+{"on": {"type":"control_request","request":{"subtype":"get_context_usage"}}, "respond": {"categories":[],"totalTokens":0,"maxTokens":200000,"percentage":0}}
+{"on": {"type":"control_request","request":{"subtype":"mcp_status"}}, "respond": {"mcpServers":[]}}
+{"on": {"type":"control_request","request":{"subtype":"list_models"}}, "respond": {"models":[]}}
+{"on": {"type":"control_request","request":{"subtype":"get_settings"}}, "respond": {}}
+{"on": {"type":"control_request","request":{"subtype":"get_usage"}}, "respond": {}}
+{"on": {"type":"control_request","request":{"subtype":"get_hooks_listing"}}, "respond": {}}
+`
+
+const smokeScript = startupRules + `
 {"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": ` + "INIT" + `}
 {"expect": {"type":"user"}, "timeout": 20000}
 {"emit": {"type":"system","subtype":"init","session_id":"s-smoke","uuid":"i1","cwd":"/tmp","tools":[],"mcp_servers":[],"model":"claude-test","permissionMode":"default","slash_commands":[],"apiKeySource":"none","claude_code_version":"2.1.288","output_style":"default"}}

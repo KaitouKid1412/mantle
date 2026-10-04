@@ -37,7 +37,7 @@ func TestSuspendResumeUnderShell(t *testing.T) {
 {"emit": {"type":"result","subtype":"success","is_error":false,"result":"reply ` + n + `","duration_ms":1,"duration_api_ms":1,"num_turns":1,"session_id":"s16","uuid":"r` + n + `","total_cost_usd":0,"usage":{"input_tokens":1,"output_tokens":1}}}
 `
 	}
-	body := `{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": ` + string(enginefake.DefaultInitializeResponse) + "}\n" + turn("1")
+	body := startupRules + `{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": ` + string(enginefake.DefaultInitializeResponse) + "}\n" + turn("1")
 	os.WriteFile(script, []byte(body), 0o644)
 
 	cmd := exec.Command(bash, "--norc", "--noprofile", "-i")
@@ -107,7 +107,7 @@ func TestCtrlCInsideEditor(t *testing.T) {
 	ui, fake := buildBinaries(t)
 	project, _ := filepath.EvalSymlinks(t.TempDir())
 	script := filepath.Join(t.TempDir(), "editor.jsonl")
-	os.WriteFile(script, []byte(`{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": `+string(enginefake.DefaultInitializeResponse)+"}\n"), 0o644)
+	os.WriteFile(script, []byte(startupRules+`{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": `+string(enginefake.DefaultInitializeResponse)+"}\n"), 0o644)
 	editor := filepath.Join(t.TempDir(), "slow-editor")
 	os.WriteFile(editor, []byte("#!/bin/sh\necho EDITOR RUNNING\nsleep 60\n"), 0o755)
 
