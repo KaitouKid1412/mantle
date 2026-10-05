@@ -59,10 +59,14 @@ filed as requests to the owning plans in two rounds.
 | [12-07](plans/requests/12-07-chrome-parity.md) banner, footer, status line, task panel | 07 | done |
 | [12-08](plans/requests/12-08-panels-parity.md) /model, /help, closing lines | 08 | done |
 | [12-09](plans/requests/12-09-ecosystem-parity.md) /mcp closing line, hand-off | 09 | done |
-| [12-01 fullscreen print](plans/requests/12-01-fullscreen-print.md) printed output in fullscreen | 01 | open |
-| [12-03 round 2](plans/requests/12-03-transcript-parity-2.md) line breaks, Waiting rows, notices, fullscreen rows | 03 | open |
-| [12-04 round 2](plans/requests/12-04-input-parity-2.md) history numbering, VW-22 dialog, esc, /clear echo, menu entries | 04 | open |
-| [12-06 round 2](plans/requests/12-06-sessions-parity-2.md) hand-off screen, resumed turn lines | 06 | open |
+| [12-01 fullscreen print](plans/requests/12-01-fullscreen-print.md) printed output in fullscreen | 01, 12 | done (contracts-v1.10, viewport) |
+| [12-03 round 2](plans/requests/12-03-transcript-parity-2.md) line breaks, Waiting rows, notices, fullscreen rows | 03 | done except §4 (resumed turn lines, with 06) |
+| [12-04 round 2](plans/requests/12-04-input-parity-2.md) history numbering, VW-22 dialog, esc, /clear echo, menu entries | 04 | done except §5 (menu entries) |
+| [12-06 round 2](plans/requests/12-06-sessions-parity-2.md) hand-off screen, resumed turn lines | 06 | §1 done; §2 open (with 03) |
+
+Also fixed along the way: in fullscreen, `Reprint` never delivered `ScreenClearedMsg`, so a
+session picked in `/resume` never showed (plan 01, 1baa21a); the startup banner prints
+before any input can be echoed above it (plan 07, fd729c0).
 
 Plan 12's own fullscreen work after the comparison: the sticky prompt header shows only
 while scrolled up, and a jump-to-bottom hint sits on the last visible line whenever the
@@ -84,8 +88,9 @@ From `make parity` (generated `docs/parity-status.md`), 572 rows:
 |---|---:|---|
 | compared | 58 | tagged registration, exercised side by side against Claude Code |
 | tagged | 340 | a registration names the row (owner's claim, unit and vt tests) |
+| evidenced | 1 | no registration can name it; `docs/parity-evidence/NN.md` points at its tests |
 | scenario only | 2 | a scenario covers it, no registration tag |
-| untagged | 123 | no tag: engine plumbing (plan 02, 59 rows, not registrations), launcher and self-mod internals (10), drift rows (11), and rows to confirm with their owners (04, 05, 06, 07, 09) |
+| untagged | 122 | no tag or evidence yet: engine plumbing (plan 02, 59 rows), launcher and self-mod internals (10), drift rows (11), and rows to confirm with their owners (04, 05, 06, 09); each owner is adding tags or evidence (`docs/parity-evidence/NN.md`) |
 | hand-off | 36 | H: opens real Claude Code (the generic path is verified by the `handoff` scenario, `/mobile`) |
 | gap | 13 | X, below |
 
@@ -139,9 +144,10 @@ recorded there.
 
 ## Open items
 
-- The round-2 requests above (01, 03, 04, 06).
-- Untagged rows to confirm with their owners (list in `docs/parity-status.md`, state
-  "untagged").
+- Round 2: resumed turn lines (03 §4 / 06 §2) and the menu entries claude hides
+  (04 §5).
+- Untagged rows: each owner adds a `Parity:` tag or evidence in
+  `docs/parity-evidence/NN.md` (list in `docs/parity-status.md`, state "untagged").
 - B5 results.
 - Re-run `make parity-side-by-side` on each integration tag; `make parity` regenerates
   the status.
