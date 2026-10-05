@@ -127,25 +127,35 @@ func runs() int {
 	return 5
 }
 
-// TestPerfStartup: cold launch to the first prompt, median of N, and peak RSS.
+// TestPerfStartup: cold launch to the first prompt and to a working engine (mantle
+// draws its prompt before the engine answers initialize and holds input until then; its
+// startup banner prints at initialize), median of N, and memory.
 func TestPerfStartup(t *testing.T) {
 	skipUnlessPerf(t)
-	sc := scenario(t, "name: startup\nsize: 100x30\n---\nready 60s\n", "")
+	const banner = "/help for commands"
+	sc := scenario(t, "name: startup\nsize: 100x30\n---\nready 60s\n@mantle wait_for 60s "+banner+"\n", "")
 	med := map[string]time.Duration{}
 	var rows [][]string
 	for _, tg := range targets(t) {
-		var times []time.Duration
-		var rss int64
+		var times, engine []time.Duration
+		var peak, own int64
 		for range runs() {
 			res := run(t, tg, sc, parity.RunOptions{})
 			times = append(times, res.ReadyAfter)
-			rss = max(rss, res.MaxRSS)
+			up := res.ReadyAfter // claude's prompt is up when its engine is
+			if d, ok := res.Marks[banner]; ok {
+				up = d
+			}
+			engine = append(engine, up)
+			peak, own = max(peak, res.MaxRSS), max(own, res.RSS)
 		}
-		med[tg.Name()] = median(times)
-		rows = append(rows, []string{tg.Name(), med[tg.Name()].Round(time.Millisecond).String(),
-			slices.Min(times).Round(time.Millisecond).String(), slices.Max(times).Round(time.Millisecond).String(), mb(rss)})
+		med[tg.Name()] = median(engine)
+		rows = append(rows, []string{tg.Name(), median(times).Round(time.Millisecond).String(),
+			med[tg.Name()].Round(time.Millisecond).String(), slices.Max(engine).Round(time.Millisecond).String(),
+			mb(own), mb(peak)})
 	}
-	report(t, "Startup to first prompt", []string{"Target", "Median", "Min", "Max", "Peak RSS"}, rows)
+	report(t, "Startup", []string{"Target", "First prompt (median)", "Engine ready (median)", "Engine ready (max)",
+		"RSS (own process)", "Peak RSS (with engine)"}, rows)
 	if m, c := med["mantle"], med["claude"]; m > 2*c+time.Second {
 		t.Errorf("mantle starts in %v, claude in %v: more than twice as slow", m, c)
 	}
@@ -209,12 +219,12 @@ func TestPerfStreaming(t *testing.T) {
 			}
 		}
 		rows = append(rows, []string{tg.Name(), (cp.At - res.ReadyAfter).Round(time.Millisecond).String(),
-			fmt.Sprint(missing), fmt.Sprint(repeated), res.CPU.Round(time.Millisecond).String(), mb(res.MaxRSS)})
+			fmt.Sprint(missing), fmt.Sprint(repeated), res.CPU.Round(time.Millisecond).String(), mb(res.RSS), mb(res.MaxRSS)})
 		if tg.Name() == "mantle" && (missing > 0 || repeated > 0) {
 			t.Errorf("mantle scrollback: %d lines missing, %d repeated (ghost lines)", missing, repeated)
 		}
 	}
-	report(t, "Streaming a 250-line answer", []string{"Target", "Prompt to end", "Missing", "Repeated", "CPU", "Peak RSS"}, rows)
+	report(t, "Streaming a 250-line answer", []string{"Target", "Prompt to end", "Missing", "Repeated", "CPU", "RSS (own)", "Peak RSS (with engine)"}, rows)
 }
 
 // TestPerfLargeOutput: a multi-megabyte Bash output and a 200,000-character line.
@@ -233,9 +243,9 @@ func TestPerfLargeOutput(t *testing.T) {
 		res := run(t, tg, sc, parity.RunOptions{Timeout: 5 * time.Minute})
 		cp, _ := res.Checkpoint("done")
 		rows = append(rows, []string{tg.Name(), (cp.At - res.ReadyAfter).Round(time.Millisecond).String(),
-			res.CPU.Round(time.Millisecond).String(), mb(res.MaxRSS)})
+			res.CPU.Round(time.Millisecond).String(), mb(res.RSS), mb(res.MaxRSS)})
 	}
-	report(t, "2 MB of Bash output and a 200k-character line", []string{"Target", "Prompt to done", "CPU", "Peak RSS"}, rows)
+	report(t, "2 MB of Bash output and a 200k-character line", []string{"Target", "Prompt to done", "CPU", "RSS (own)", "Peak RSS (with engine)"}, rows)
 }
 
 // TestPerfWideCharacters: CJK, emoji and a table render with the same cells as claude.
@@ -295,9 +305,9 @@ func TestPerfLongResume(t *testing.T) {
 		}})
 		cp, _ := res.Checkpoint("resumed")
 		rows = append(rows, []string{tg.Name(), cp.At.Round(time.Millisecond).String(),
-			res.ReadyAfter.Round(time.Millisecond).String(), res.CPU.Round(time.Millisecond).String(), mb(res.MaxRSS)})
+			res.ReadyAfter.Round(time.Millisecond).String(), res.CPU.Round(time.Millisecond).String(), mb(res.RSS), mb(res.MaxRSS)})
 	}
-	report(t, "Resume a 10,000-item session", []string{"Target", "Start to last answer", "Start to prompt", "CPU", "Peak RSS"}, rows)
+	report(t, "Resume a 10,000-item session", []string{"Target", "Start to last answer", "Start to prompt", "CPU", "RSS (own)", "Peak RSS (with engine)"}, rows)
 }
 
 // sessionTemplate records one real exchange with claude (fakeapi) and returns its user

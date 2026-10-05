@@ -38,10 +38,14 @@ type Result struct {
 	Workspace   Workspace
 	Duration    time.Duration
 	// ReadyAfter is the time from starting the target to its prompt (the first ready
-	// step); CPU and MaxRSS are the last started process's usage (perf suite).
+	// step); Marks the time to each wait_for text (first time). CPU and MaxRSS are the
+	// last started process's usage including the children it waited for (mantle's
+	// engine); RSS is its own resident size just before it quit (perf suite).
 	ReadyAfter time.Duration
+	Marks      map[string]time.Duration
 	CPU        time.Duration
 	MaxRSS     int64
+	RSS        int64
 }
 
 // Checkpoint returns a checkpoint by name.
@@ -171,6 +175,7 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		runs++
 	}
 	defer func() {
+		res.RSS = t.RSS()
 		tg.Quit(t)
 		_ = t.Close()
 		res.CPU, res.MaxRSS = t.Usage()
@@ -243,6 +248,12 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 		err := t.WaitFor(func(f Frame) bool { return strings.Contains(strings.Join(f.Screen, "\n"), st.Text) }, timeout)
 		if err != nil {
 			return fmt.Errorf("%q never appeared: %w", st.Text, err)
+		}
+		if res.Marks == nil {
+			res.Marks = map[string]time.Duration{}
+		}
+		if _, ok := res.Marks[st.Text]; !ok {
+			res.Marks[st.Text] = time.Since(t.Started())
 		}
 	case StepWaitGone:
 		err := t.WaitFor(func(f Frame) bool { return !strings.Contains(strings.Join(f.Screen, "\n"), st.Text) }, timeout)

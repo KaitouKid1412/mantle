@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -286,4 +287,22 @@ func (t *Term) Usage() (cpu time.Duration, maxRSS int64) {
 		}
 	}
 	return cpu, maxRSS
+}
+
+// RSS is the program's current resident set size in bytes (its own process only, not
+// its children), or 0 when it can't be read.
+func (t *Term) RSS() int64 {
+	pid := t.Pid()
+	if pid == 0 {
+		return 0
+	}
+	out, err := exec.Command("ps", "-o", "rss=", "-p", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return 0
+	}
+	kb, err := strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return kb * 1024
 }
