@@ -1,8 +1,7 @@
 ── width 60 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /context                                                  [m
-
-  ⎿  [1mContext Usage[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /context                                                  [m
+  ⎿  [1mContext Usage[m
 
      [1mModel:[m claude-sonnet-4-5
      [1mTokens:[m 28.2k / 200k (14%)
@@ -39,28 +38,25 @@
      [38;2;85;85;92m│[m security-review          [38;2;85;85;92m│[m Built-in [38;2;85;85;92m│[m ~20    [38;2;85;85;92m│[m
      [38;2;85;85;92m└──────────────────────────┴──────────┴────────┘[m
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /usage                                                    [m
-
-  ⎿  [38;2;139;139;147mTotal cost:            $0.0000[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /usage                                                    [m
+  ⎿  [38;2;139;139;147mTotal cost:            $0.0000[m
      [38;2;139;139;147mTotal duration (API):  0s[m
      [38;2;139;139;147mTotal duration (wall): 0s[m
      [38;2;139;139;147mTotal code changes:    0 lines added, 0 lines removed[m
      [38;2;139;139;147mUsage:                 0 input, 0 output, 0 cache read,[m
      [38;2;139;139;147m0 cache write[m
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /model                                                    [m
-
-  ⎿  [38;2;139;139;147mCurrent model: `Sonnet 4.5`[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /model                                                    [m
+  ⎿  [38;2;139;139;147mCurrent model: `Sonnet 4.5`[m
      [38;2;139;139;147mUsage: /model <name>. Available: sonnet, opus, haiku,[m
      [38;2;139;139;147mfable, best, sonnet[1m], opus[1m], fable[1m], opusplan,[m
      [38;2;139;139;147mdefault, or a full model ID.[m
 
-  ⎿  [38;2;139;139;147m/help isn't available in this environment.[m
+  ⎿  [38;2;139;139;147m/help isn't available in this environment.[m
 ── width 100 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /context                                                                                          [m
-
-  ⎿  [1mContext Usage[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /context                                                                                          [m
+  ⎿  [1mContext Usage[m
 
      [1mModel:[m claude-sonnet-4-5
      [1mTokens:[m 28.2k / 200k (14%)
@@ -97,26 +93,23 @@
      [38;2;85;85;92m│[m security-review          [38;2;85;85;92m│[m Built-in [38;2;85;85;92m│[m ~20    [38;2;85;85;92m│[m
      [38;2;85;85;92m└──────────────────────────┴──────────┴────────┘[m
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /usage                                                                                            [m
-
-  ⎿  [38;2;139;139;147mTotal cost:            $0.0000[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /usage                                                                                            [m
+  ⎿  [38;2;139;139;147mTotal cost:            $0.0000[m
      [38;2;139;139;147mTotal duration (API):  0s[m
      [38;2;139;139;147mTotal duration (wall): 0s[m
      [38;2;139;139;147mTotal code changes:    0 lines added, 0 lines removed[m
      [38;2;139;139;147mUsage:                 0 input, 0 output, 0 cache read, 0 cache write[m
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /model                                                                                            [m
-
-  ⎿  [38;2;139;139;147mCurrent model: `Sonnet 4.5`[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /model                                                                                            [m
+  ⎿  [38;2;139;139;147mCurrent model: `Sonnet 4.5`[m
      [38;2;139;139;147mUsage: /model <name>. Available: sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m],[m
      [38;2;139;139;147mfable[1m], opusplan, default, or a full model ID.[m
 
-  ⎿  [38;2;139;139;147m/help isn't available in this environment.[m
+  ⎿  [38;2;139;139;147m/help isn't available in this environment.[m
 ── width 160 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /context                                                                                                                                                      [m
-
-  ⎿  [1mContext Usage[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /context                                                                                                                                                      [m
+  ⎿  [1mContext Usage[m
 
      [1mModel:[m claude-sonnet-4-5
      [1mTokens:[m 28.2k / 200k (14%)
@@ -153,17 +146,15 @@
      [38;2;85;85;92m│[m security-review          [38;2;85;85;92m│[m Built-in [38;2;85;85;92m│[m ~20    [38;2;85;85;92m│[m
      [38;2;85;85;92m└──────────────────────────┴──────────┴────────┘[m
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /usage                                                                                                                                                        [m
-
-  ⎿  [38;2;139;139;147mTotal cost:            $0.0000[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /usage                                                                                                                                                        [m
+  ⎿  [38;2;139;139;147mTotal cost:            $0.0000[m
      [38;2;139;139;147mTotal duration (API):  0s[m
      [38;2;139;139;147mTotal duration (wall): 0s[m
      [38;2;139;139;147mTotal code changes:    0 lines added, 0 lines removed[m
      [38;2;139;139;147mUsage:                 0 input, 0 output, 0 cache read, 0 cache write[m
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /model                                                                                                                                                        [m
-
-  ⎿  [38;2;139;139;147mCurrent model: `Sonnet 4.5`[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /model                                                                                                                                                        [m
+  ⎿  [38;2;139;139;147mCurrent model: `Sonnet 4.5`[m
      [38;2;139;139;147mUsage: /model <name>. Available: sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m], opusplan, default, or a full model ID.[m
 
-  ⎿  [38;2;139;139;147m/help isn't available in this environment.[m
+  ⎿  [38;2;139;139;147m/help isn't available in this environment.[m

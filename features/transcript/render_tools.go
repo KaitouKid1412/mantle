@@ -629,8 +629,8 @@ func (f *Feature) renderAgent(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		lines = append(lines, o...)
 	case it.State == ext.Interrupted:
 		lines = append(lines, result(rc, st.dim, "Interrupted")...)
-	case it.State.Finished() && (out.Status == "async_launched" || (info != nil && info.Async && info.Status == "")):
-		lines = append(lines, result(rc, st.dim, "Running in the background")...)
+	case it.State.Finished() && (out.Status == "async_launched" || (info != nil && info.Async)):
+		lines = append(lines, result(rc, st.dim, "Backgrounded agent (ctrl+o to expand)")...)
 	case it.State.Finished():
 		lines = append(lines, result(rc, st.dim, "Done ("+agentStats(out, info, len(tools), it)+")")...)
 	case !verbose(rc):

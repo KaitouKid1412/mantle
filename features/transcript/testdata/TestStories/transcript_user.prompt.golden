@@ -1,7 +1,7 @@
 ── width 60 ──
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at              [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m The worker retries too fast. Can you look at              [m
 [48;2;38;38;44m  internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m            [m
 ── width 100 ──
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m       [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m       [m
 ── width 160 ──
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m                                                                   [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m The worker retries too fast. Can you look at internal/queue and fix the backoff? [38;2;158;166;243m[Image #1][m[48;2;38;38;44m                                                                   [m

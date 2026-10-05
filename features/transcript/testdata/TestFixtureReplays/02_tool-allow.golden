@@ -1,35 +1,35 @@
 ── width 60 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m create out.txt                                            [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m create out.txt                                            [m
 
 [38;2;230;227;222m⏺[m I'll create the file.
 
 [38;2;111;194;139m⏺[m [1mBash[m(echo hi > out.txt)
-  ⎿  [38;2;139;139;147mDone[m
+  ⎿  [38;2;139;139;147mDone[m
 
 [38;2;230;227;222m⏺[m Created out.txt.
 
 [38;2;139;139;147m✻ Churned for 107ms · done 3:04 PM[m
 ── width 100 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m create out.txt                                                                                    [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m create out.txt                                                                                    [m
 
 [38;2;230;227;222m⏺[m I'll create the file.
 
 [38;2;111;194;139m⏺[m [1mBash[m(echo hi > out.txt)
-  ⎿  [38;2;139;139;147mDone[m
+  ⎿  [38;2;139;139;147mDone[m
 
 [38;2;230;227;222m⏺[m Created out.txt.
 
 [38;2;139;139;147m✻ Churned for 107ms · done 3:04 PM[m
 ── width 160 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m create out.txt                                                                                                                                                [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m create out.txt                                                                                                                                                [m
 
 [38;2;230;227;222m⏺[m I'll create the file.
 
 [38;2;111;194;139m⏺[m [1mBash[m(echo hi > out.txt)
-  ⎿  [38;2;139;139;147mDone[m
+  ⎿  [38;2;139;139;147mDone[m
 
 [38;2;230;227;222m⏺[m Created out.txt.
 

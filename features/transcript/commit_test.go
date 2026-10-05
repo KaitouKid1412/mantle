@@ -18,6 +18,8 @@ type rig struct {
 	f *Feature
 	r *exttest.Registrar
 	c *exttest.Ctx
+
+	reprints int // Reprint calls already answered with ScreenClearedMsg
 }
 
 func newRig(t *testing.T, width int) *rig {
@@ -42,7 +44,19 @@ func (g *rig) deliver(msg tea.Msg) tea.Cmd {
 			cmds = append(cmds, s.Fn(g.c, msg))
 		}
 	}
+	g.settle()
 	return tea.Batch(cmds...)
+}
+
+// settle does what the host does after Ctx.Reprint: clear the screen and the
+// scrollback, then deliver ScreenClearedMsg so the commit policy prints again.
+func (g *rig) settle() {
+	if g.c.Reprints == g.reprints {
+		return
+	}
+	g.reprints = g.c.Reprints
+	g.c.Printed = nil
+	g.deliver(ext.ScreenClearedMsg{})
 }
 
 func sameType(a, b tea.Msg) bool { return reflect.TypeOf(a) == reflect.TypeOf(b) }
@@ -60,7 +74,7 @@ func (g *rig) printed() []string {
 	var out []string
 	for _, b := range g.c.Printed {
 		for _, l := range strings.Split(b, "\n") {
-			out = append(out, strings.TrimRight(render.Strip(l), " "))
+			out = append(out, strings.TrimRight(strings.ReplaceAll(render.Strip(l), "\u00a0", " "), " "))
 		}
 	}
 	return out
@@ -74,7 +88,7 @@ func (g *rig) live(height int) []string {
 	}
 	var lines []string
 	for _, l := range strings.Split(out, "\n") {
-		lines = append(lines, strings.TrimRight(render.Strip(l), " "))
+		lines = append(lines, strings.TrimRight(strings.ReplaceAll(render.Strip(l), "\u00a0", " "), " "))
 	}
 	return lines
 }
@@ -90,11 +104,11 @@ const streamTwoParagraphs = `
 func TestCommitProgressive(t *testing.T) {
 	g := newRig(t, 41)
 	g.send(`{"type":"user","uuid":"u1","isReplay":true,"message":{"role":"user","content":"hi"}}`)
-	if got := join(g.printed()); got != "\n> hi" {
+	if got := join(g.printed()); got != "\n❯ hi" {
 		t.Fatalf("prompt not committed: %q", got)
 	}
 	g.send(streamTwoParagraphs)
-	if got := join(g.printed()); got != "\n> hi\n\n⏺ First paragraph." {
+	if got := join(g.printed()); got != "\n❯ hi\n\n⏺ First paragraph." {
 		t.Fatalf("closed block not committed:\n%s", got)
 	}
 	if got := join(g.live(10)); got != "\n  Second" {
@@ -105,7 +119,7 @@ func TestCommitProgressive(t *testing.T) {
 {"type":"stream_event","event":{"type":"content_block_stop","index":0}}
 {"type":"assistant","uuid":"a1","message":{"id":"m1","content":[{"type":"text","text":"First paragraph.\n\nSecond paragraph."}]}}
 `)
-	want := "\n> hi\n\n⏺ First paragraph.\n\n  Second paragraph."
+	want := "\n❯ hi\n\n⏺ First paragraph.\n\n  Second paragraph."
 	if got := join(g.printed()); got != want {
 		t.Fatalf("after finish:\n%q\nwant\n%q", got, want)
 	}
@@ -185,7 +199,7 @@ func TestCommitReprintAndReplace(t *testing.T) {
 	}
 	g.c.Printed = nil
 	g.deliver(ext.ScreenClearedMsg{})
-	if got := join(g.printed()); got != "\n> hi\n\n⏺ New answer." {
+	if got := join(g.printed()); got != "\n❯ hi\n\n⏺ New answer." {
 		t.Fatalf("reprint = %q", got)
 	}
 }
@@ -206,7 +220,7 @@ func TestHistoryMsg(t *testing.T) {
 	g.deliver(ext.TranscriptHistoryMsg{EngineID: ext.MainEngine, Reset: true, Items: []*ext.Item{
 		{ID: "user:h1", Key: ext.KeyUserPrompt, Data: "from history"},
 	}})
-	if got := join(g.printed()); got != "\n> from history" || len(g.f.store.Items()) != 1 {
+	if got := join(g.printed()); got != "\n❯ from history" || len(g.f.store.Items()) != 1 {
 		t.Fatalf("printed %q items %d", got, len(g.f.store.Items()))
 	}
 	g.deliver(ext.TranscriptHistoryMsg{EngineID: "other", Items: []*ext.Item{{ID: "x", Key: ext.KeyUserPrompt, Data: "no"}}})
@@ -238,7 +252,7 @@ func TestCommitSampleSession(t *testing.T) {
 			checkLines(t, strings.Split(b, "\n"), w-1)
 		}
 		got := join(g.printed())
-		for _, want := range []string{"> The worker retries", "Read(internal/queue/worker.go)", "Called tracker 2 times", "Churned for 1m 6s", "Conversation compacted"} {
+		for _, want := range []string{"❯ The worker retries", "Read(internal/queue/worker.go)", "Called tracker 2 times", "Churned for 1m 6s", "Conversation compacted"} {
 			if strings.Count(got, want) != 1 {
 				t.Errorf("width %d: %q appears %d times", w, want, strings.Count(got, want))
 			}
@@ -257,7 +271,7 @@ func TestTimestamps(t *testing.T) {
 {"type":"result","subtype":"success","uuid":"r1","duration_ms":5000,"is_error":false,"num_turns":1,"total_cost_usd":0}
 `)
 	got := g.printed()
-	if len(got) < 2 || !strings.HasPrefix(got[1], "> hi") || !strings.HasSuffix(got[1], "15:04") || render.Width(got[1]) != 60 {
+	if len(got) < 2 || !strings.HasPrefix(got[1], "❯ hi") || !strings.HasSuffix(got[1], "15:04") || render.Width(got[1]) != 60 {
 		t.Fatalf("prompt line = %q", got)
 	}
 	if last := got[len(got)-1]; !strings.HasSuffix(last, "for 5s · done 15:04") {
