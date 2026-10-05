@@ -192,10 +192,11 @@ func TestPromptFrameDelegates(t *testing.T) {
 	}
 	r := w.View(ctx, ext.Area{Width: 20, MaxHeight: 5})
 	lines := strings.Split(ansi.Strip(r.Text), "\n")
-	if len(lines) != 3 || lines[1] != "❯ hi" || lines[0] != strings.Repeat("─", 20) {
+	// A blank row above the frame (Claude Code's spacing), then the rules around the editor.
+	if len(lines) != 4 || lines[0] != "" || lines[2] != "❯ hi" || lines[1] != strings.Repeat("─", 20) {
 		t.Errorf("frame = %q", lines)
 	}
-	if r.Cursor == nil || r.Cursor.Y != 1 || r.Cursor.X != 4 {
+	if r.Cursor == nil || r.Cursor.Y != 2 || r.Cursor.X != 4 {
 		t.Errorf("cursor = %+v", r.Cursor)
 	}
 
@@ -648,8 +649,8 @@ func TestEffortLineFullscreenOnly(t *testing.T) {
 	}
 	ctx.LayoutMode = ext.Fullscreen
 	e.Update(ctx, ext.LayoutChangedMsg{Mode: ext.Fullscreen})
-	if got := plainView(e, ctx, 40); got != strings.Repeat(" ", 23)+"◔ low · /effort" {
-		t.Errorf("fullscreen effort line = %q", got)
+	if got := plainView(e, ctx, 40); got != "\n"+strings.Repeat(" ", 23)+"◔ low · /effort" {
+		t.Errorf("fullscreen effort line (a blank row, then the hint) = %q", got)
 	}
 	if strings.Contains(plainView(f, ctx, 100), "/effort") {
 		t.Error("fullscreen: the footer drops the hint")
