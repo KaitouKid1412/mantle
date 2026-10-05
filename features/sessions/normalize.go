@@ -88,7 +88,58 @@ func Normalize(t *sessions.Transcript, opts NormalizeOptions) []*ext.Item {
 		}
 	}
 	n.entries(branch, "", 0)
-	return n.items
+	return turnResults(n.items, opts.EngineID)
+}
+
+// turnResults ends each answered turn that has no recorded duration with a result
+// item timed from its prompt to its last answer, so the transcript draws the turn line
+// as it did live. Claude Code records turn durations only in interactive sessions;
+// the headless sessions mantle runs have none.
+func turnResults(items []*ext.Item, engineID string) []*ext.Item {
+	out := make([]*ext.Item, 0, len(items)+8)
+	var prompt, answer *ext.Item
+	recorded, cut := false, false
+	flush := func() {
+		if prompt == nil || answer == nil || recorded || cut {
+			return
+		}
+		d := answer.End.Sub(prompt.Start)
+		if d <= 0 {
+			return
+		}
+		id := "result:" + prompt.ID
+		res := &proto.Result{
+			Envelope:   proto.Envelope{Type: proto.TypeResult, Subtype: proto.ResultSuccess, UUID: id},
+			DurationMS: d.Milliseconds(),
+			NumTurns:   1,
+		}
+		out = append(out, &ext.Item{ID: id, EngineID: engineID, Key: keyResult, Data: res, State: ext.Done, Start: prompt.Start, End: answer.End})
+	}
+	for _, it := range items {
+		if it.ParentID == "" {
+			switch {
+			case it.Key == ext.KeyUserPrompt:
+				flush()
+				prompt, answer, recorded, cut = it, nil, false, false
+			case it.Key == ext.KeySystemCompactBoundary:
+				flush()
+				prompt = nil
+			case it.Key == keyResult:
+				recorded = true
+			case it.Key == ext.KeyAssistantText:
+				answer = it
+			case strings.HasPrefix(string(it.Key), "tool.") || it.State == ext.Interrupted || it.State == ext.Failed:
+				answer = nil // the turn went on after the text, or did not finish
+			case it.Key == ext.KeySystemInformational:
+				if in, ok := it.Data.(*proto.Informational); ok && in.Content == interruptedText {
+					cut = true
+				}
+			}
+		}
+		out = append(out, it)
+	}
+	flush()
+	return out
 }
 
 type normalizer struct {
@@ -99,6 +150,9 @@ type normalizer struct {
 	inline map[string][]*sessions.Entry // legacy inline sidechains by agent id
 	nested map[string]bool              // agent ids already nested
 }
+
+// interruptedText marks an interrupted turn in resumed history.
+const interruptedText = "Interrupted by user"
 
 // maxDepth bounds subagent nesting (a subagent can spawn subagents).
 const maxDepth = 4
@@ -282,7 +336,7 @@ func (n *normalizer) user(e *sessions.Entry, parent string, depth int) {
 	case interruptRE.MatchString(text):
 		info := &proto.Informational{
 			Envelope: proto.Envelope{Type: proto.TypeSystem, Subtype: proto.SysInformational, UUID: e.UUID, SessionID: e.SessionID},
-			Content:  "Interrupted by user",
+			Content:  interruptedText,
 			Level:    "info",
 		}
 		n.add(&ext.Item{ID: "sys:" + e.UUID, Key: ext.KeySystemInformational, Data: info, State: ext.Done, Start: e.Timestamp})
@@ -366,8 +420,10 @@ func (n *normalizer) system(e *sessions.Entry) {
 		res := &proto.Result{
 			Envelope:   proto.Envelope{Type: proto.TypeResult, Subtype: proto.ResultSuccess, UUID: e.UUID, SessionID: e.SessionID},
 			DurationMS: e.Duration.Milliseconds(),
+			NumTurns:   1, // the entry marks a finished turn; the renderer skips results with none
 		}
-		n.add(&ext.Item{ID: "result:" + e.UUID, Key: keyResult, Data: res, State: ext.Done, Start: e.Timestamp})
+		start := e.Timestamp.Add(-e.Duration)
+		n.add(&ext.Item{ID: "result:" + e.UUID, Key: keyResult, Data: res, State: ext.Done, Start: start, End: e.Timestamp})
 	case "local_command":
 		content := e.Content
 		if m := localOutRE.FindStringSubmatch(strings.TrimSpace(content)); m != nil {

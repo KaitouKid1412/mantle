@@ -82,8 +82,9 @@ func TestNormalizePlain(t *testing.T) {
 	if b := items[2].Data.(*proto.ContentBlock); b.Text != "The build uses make." {
 		t.Fatalf("text = %+v", b)
 	}
-	if r := items[3].Data.(*proto.Result); r.DurationMS != 1234 {
-		t.Fatalf("result = %+v", r)
+	// A finished turn with its end time, so the transcript draws the turn line.
+	if r := items[3].Data.(*proto.Result); r.DurationMS != 1234 || r.NumTurns == 0 || items[3].End.IsZero() {
+		t.Fatalf("result = %+v (end %v)", r, items[3].End)
 	}
 	if !items[0].Start.Equal(time.Date(2026, 9, 1, 10, 0, 2, 0, time.UTC)) {
 		t.Fatalf("start = %v", items[0].Start)
@@ -126,7 +127,8 @@ func TestNormalizeToolsAndSubagent(t *testing.T) {
 
 func TestNormalizeCompaction(t *testing.T) {
 	items := normalizeFixture(t, sidCompact, NormalizeOptions{})
-	want := []string{"sys:" + u("3c", 1), "user:" + u("3u", 4), "txt:" + u("3b", 3) + ":0"}
+	// Each answered turn ends with a result derived from its timestamps.
+	want := []string{"sys:" + u("3c", 1), "user:" + u("3u", 4), "txt:" + u("3b", 3) + ":0", "result:user:" + u("3u", 4)}
 	if got := ids(items); !slices.Equal(got, want) {
 		t.Fatalf("items = %v", got)
 	}
@@ -135,7 +137,7 @@ func TestNormalizeCompaction(t *testing.T) {
 		t.Fatalf("boundary = %+v", cb)
 	}
 	full := normalizeFixture(t, sidCompact, NormalizeOptions{AcrossCompaction: true})
-	want = append([]string{"user:" + u("3u", 1), "txt:" + u("3b", 1) + ":0", "user:" + u("3u", 2), "txt:" + u("3b", 2) + ":0"}, want...)
+	want = append([]string{"user:" + u("3u", 1), "txt:" + u("3b", 1) + ":0", "result:user:" + u("3u", 1), "user:" + u("3u", 2), "txt:" + u("3b", 2) + ":0", "result:user:" + u("3u", 2)}, want...)
 	if got := ids(full); !slices.Equal(got, want) {
 		t.Fatalf("full = %v", got)
 	}
@@ -143,7 +145,7 @@ func TestNormalizeCompaction(t *testing.T) {
 
 func TestNormalizeBranchAndMessy(t *testing.T) {
 	items := normalizeFixture(t, sidBranch, NormalizeOptions{})
-	want := []string{"user:" + u("4u", 1), "txt:" + u("4b", 1) + ":0", "user:" + u("4u", 22), "txt:" + u("4b", 22) + ":0"}
+	want := []string{"user:" + u("4u", 1), "txt:" + u("4b", 1) + ":0", "result:user:" + u("4u", 1), "user:" + u("4u", 22), "txt:" + u("4b", 22) + ":0", "result:user:" + u("4u", 22)}
 	if got := ids(items); !slices.Equal(got, want) {
 		t.Fatalf("branch items = %v", got)
 	}
