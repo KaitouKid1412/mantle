@@ -130,12 +130,20 @@ func (f *footer) render(ctx ext.Ctx, w int) string {
 	return bar(left, right, w, ctx.Accessibility().ScreenReader)
 }
 
+// defaultEffort is the level Claude Code uses when nothing sets one (the engine's init
+// leaves effort out then).
+const defaultEffort = "medium"
+
 // effortHint is the reasoning-effort hint ("◑ medium · /effort"): the effort the engine
-// reported, else the effortLevel setting; "" while neither is known.
+// reported, else the effortLevel setting, else the default when the model takes an
+// effort level; "" when the model doesn't.
 func effortHint(ctx ext.Ctx, s sessionState) string {
 	e := statusline.NormalizeEffort(s.Effort)
 	if e == "" {
 		e = statusline.NormalizeEffort(ext.ClaudeString(ctx.Settings(), "effortLevel", ""))
+	}
+	if e == "" && s.takesEffort() {
+		e = defaultEffort
 	}
 	if e == "" {
 		return ""

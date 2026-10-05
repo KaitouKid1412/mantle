@@ -93,6 +93,20 @@ func TestFooterLayoutLikeClaudeCode(t *testing.T) {
 	if got := plainView(f2, ctx2, 100); !strings.HasSuffix(got, "◕ high · /effort") {
 		t.Errorf("effort from settings = %q", got)
 	}
+	// Nothing sets it, but the default model takes an effort level: the default shows.
+	ctx3 := exttest.NewCtx()
+	f3 := newFooter()
+	f3.Init(ctx3)
+	resp, _ := json.Marshal(proto.InitializeResponse{Models: []proto.ModelInfo{
+		{Value: "default", SupportsEffort: true}, {Value: "haiku", ResolvedModel: "claude-haiku-4-5"}}})
+	f3.Update(ctx3, ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Resp: resp})
+	if got := plainView(f3, ctx3, 100); !strings.HasSuffix(got, "◑ medium · /effort") {
+		t.Errorf("default effort = %q", got)
+	}
+	f3.Update(ctx3, ev(&proto.SystemInit{Model: "claude-haiku-4-5"}))
+	if got := plainView(f3, ctx3, 100); strings.Contains(got, "/effort") {
+		t.Errorf("a model without effort levels shows no hint: %q", got)
+	}
 }
 
 func TestFooterStatusLineAndHideVim(t *testing.T) {

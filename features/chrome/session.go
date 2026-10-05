@@ -1,6 +1,9 @@
 package chrome
 
 import (
+	"encoding/json"
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -30,6 +33,10 @@ type sessionState struct {
 	EditorEmpty bool
 	Panel       bool   // the editor shows a menu, hint or picker below the prompt
 	FrameTitle  string // the editor's title for the prompt frame ("History 2/2")
+
+	// EffortModels lists (one per line) the model values and resolved ids that take an
+	// effort level, from the engine's initialize response.
+	EffortModels string
 }
 
 func newSessionState() sessionState { return sessionState{EditorEmpty: true} }
@@ -61,6 +68,21 @@ func (s *sessionState) observe(msg tea.Msg) bool {
 			return false
 		}
 		s.observeEvent(m.Event)
+	case ext.ControlResultMsg:
+		if !isMain(m.EngineID) || m.Subtype != proto.SubInitialize || m.Err != nil {
+			return false
+		}
+		var r proto.InitializeResponse
+		if json.Unmarshal(m.Resp, &r) != nil {
+			return false
+		}
+		var models []string
+		for _, mi := range r.Models {
+			if mi.SupportsEffort {
+				models = append(models, mi.Value, mi.ResolvedModel)
+			}
+		}
+		s.EffortModels = strings.Join(models, "\n")
 	default:
 		return false
 	}
@@ -96,7 +118,10 @@ func (s *sessionState) observeEvent(ev proto.Event) {
 	case *proto.SessionTitleChanged:
 		set(&s.AITitle, e.Title)
 	case *proto.ConversationReset:
-		set(&s.SessionID, e.NewConversationID)
+		// new_conversation_id is not the id the engine continues under (the next
+		// system/init and session report carry that), so the session id is unknown
+		// until then.
+		s.SessionID = ""
 		s.Background = 0
 	}
 }
@@ -114,4 +139,19 @@ func set(dst *string, v string) {
 	if v != "" {
 		*dst = v
 	}
+}
+
+// takesEffort reports whether the session's model (before the engine names one, its
+// default model) takes an effort level, per the initialize response.
+func (s *sessionState) takesEffort() bool {
+	model := s.Model
+	if model == "" {
+		model = "default"
+	}
+	for _, v := range strings.Split(s.EffortModels, "\n") {
+		if v != "" && v == model {
+			return true
+		}
+	}
+	return false
 }

@@ -63,6 +63,21 @@ func TestWelcomeOncePerSession(t *testing.T) {
 	}
 }
 
+func TestWelcomeAfterClear(t *testing.T) {
+	// /clear: conversation_reset carries a new_conversation_id the engine never uses;
+	// the real id comes with the next session report. One banner, for the real id.
+	ctx := exttest.NewCtx()
+	w := newWelcome()
+	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "s1"}})
+	w.Update(ctx, mainEv(&proto.ConversationReset{NewConversationID: "phantom"}))
+	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{EngineID: ext.MainEngine}})
+	w.Update(ctx, mainEv(&proto.SystemInit{SessionID: "s2"}))
+	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "s2"}})
+	if len(ctx.Printed) != 2 {
+		t.Errorf("banners = %d, want 2 (startup and after /clear)", len(ctx.Printed))
+	}
+}
+
 func TestWelcomeWithoutInitialize(t *testing.T) {
 	// An engine that never answers initialize still gets a banner with its first session.
 	ctx := exttest.NewCtx()
