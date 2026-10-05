@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -286,18 +287,94 @@ func TestPasteAgainExpands(t *testing.T) {
 
 func TestNativeCommandEcho(t *testing.T) {
 	r := newRig(t, nil)
-	r.c.Renderers[ext.KeyUserPrompt] = func(_ ext.RenderCtx, it *ext.Item) ext.Block {
-		return ext.Block{Lines: []string{"> " + it.Data.(string)}}
+	echoes := func() []string {
+		var out []string
+		for _, m := range r.msgs {
+			if h, ok := m.(ext.TranscriptHistoryMsg); ok {
+				for _, it := range h.Items {
+					out = append(out, it.Data.(string))
+				}
+			}
+		}
+		return out
 	}
-	r.c.CommandList = append(r.c.CommandList, ext.Command{Name: "panel", Source: ext.SourceBuiltin,
-		Run: func(c ext.Ctx, _ string) tea.Cmd { return c.Print("  result") }})
+	r.c.CommandList = append(r.c.CommandList,
+		ext.Command{Name: "panel", Source: ext.SourceBuiltin, Run: func(c ext.Ctx, _ string) tea.Cmd { return c.OpenDialog("dialog.panel", nil) }},
+		ext.Command{Name: "fwd", Source: ext.SourceBuiltin, Run: func(c ext.Ctx, _ string) tea.Cmd { return nil }},
+		ext.Command{Name: "clear", Source: ext.SourceBuiltin, Run: func(c ext.Ctx, _ string) tea.Cmd { return nil }},
+	)
+	// A panel command is echoed once its dialog opens.
 	r.keys("'/panel'", "esc", "enter")
-	if got := strings.Join(r.c.Printed, "|"); got != "> /panel|  result" {
-		t.Fatalf("echo before the panel's result: %q", got)
+	if got := strings.Join(echoes(), "|"); got != "/panel" {
+		t.Fatalf("panel echo: %q", got)
 	}
-	r.keys("'/compact'", "esc", "enter")
-	if got := strings.Join(r.c.Printed, "|"); got != "> /panel|  result" {
-		t.Fatalf("engine commands are echoed by the engine, not here: %q", got)
+	// A command the engine echoes (its replay) is not echoed twice.
+	r.keys("'/fwd x'", "esc", "enter")
+	r.event(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: &proto.User{IsReplay: true,
+		Message: proto.UserMessage{Role: "user", Content: proto.TextContent("/fwd x")}}})
+	r.event(ext.DialogOpenedMsg{ID: "dialog.other"})
+	if got := strings.Join(echoes(), "|"); got != "/panel" {
+		t.Fatalf("forwarded command echoed by us too: %q", got)
+	}
+	// /clear is echoed after the reset, at the top of the new transcript.
+	r.keys("'/clear'", "esc", "enter")
+	if got := strings.Join(echoes(), "|"); got != "/panel" {
+		t.Fatalf("no /clear echo before the reset: %q", got)
+	}
+	r.event(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: &proto.ConversationReset{NewConversationID: "s2"}})
+	if got := strings.Join(echoes(), "|"); got != "/panel|/clear" {
+		t.Fatalf("/clear echo after the reset: %q", got)
+	}
+}
+
+func TestFullscreenSearchDialog(t *testing.T) {
+	r := newRig(t, nil)
+	r.c.LayoutMode = ext.Fullscreen
+	now := r.c.ClockV.Now()
+	r.event(historyLoadedMsg{entries: []history.Entry{
+		{Display: "alpha prompt", Project: "/elsewhere", Timestamp: now.Add(-3 * time.Minute).UnixMilli()},
+		{Display: "beta prompt", Project: "/work/demo", Timestamp: now.Add(-5 * time.Second).UnixMilli()},
+	}})
+	r.keys("ctrl+r")
+	if len(r.c.Opened) == 0 || r.c.Opened[len(r.c.Opened)-1] != DialogHistorySearch || !r.s.searchDialog {
+		t.Fatalf("fullscreen ctrl+r opens the dialog: %v", r.c.Opened)
+	}
+	if v := r.s.viewMenu(r.c, ext.Area{Width: 100}); v.Text != "" {
+		t.Fatalf("no one-line search under the dialog: %q", v.Text)
+	}
+	d := &searchDialog{s: r.s}
+	press := func(k string) {
+		var m tea.KeyPressMsg
+		if len(k) == 1 {
+			m = tea.KeyPressMsg{Code: rune(k[0]), Text: k}
+		} else {
+			m = keyMsg(k)
+		}
+		_, cmd := d.HandleKey(r.c, m)
+		r.run(cmd)
+	}
+	press("a")
+	press("l")
+	view := xansi.Strip(d.View(r.c, ext.Area{Width: 100}).Text)
+	for _, want := range []string{"Search history", "all projects", "3m ago", "alpha prompt", "⌕ al", "esc cancel"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("dialog missing %q:\n%s", want, view)
+		}
+	}
+	// Esc returns to the prompt as it was.
+	press("esc")
+	if r.s.search != nil || r.text() != "" || r.c.Closed[len(r.c.Closed)-1] != DialogHistorySearch {
+		t.Fatalf("esc cancels: %q", r.text())
+	}
+	// Enter uses the match.
+	r.keys("ctrl+r")
+	press("b")
+	press("enter")
+	if r.text() != "beta prompt" || r.s.searchDialog {
+		t.Fatalf("enter uses the match: %q", r.text())
+	}
+	if !strings.Contains(ageString(now, now.Add(-2*time.Hour).UnixMilli()), "2h") {
+		t.Fatal("ages")
 	}
 }
 
@@ -901,11 +978,11 @@ func TestPanelAndFrameTitle(t *testing.T) {
 		{Display: "older", Project: "/work/demo"}, {Display: "newer", Project: "/work/demo"},
 	}})
 	r.keys("up")
-	if got := state().FrameTitle; got != "History 1/2" {
-		t.Fatalf("title %q", got)
+	if got := state().FrameTitle; got != "History 2/2" {
+		t.Fatalf("newest is N/N (oldest first, as claude): %q", got)
 	}
 	r.keys("up")
-	if got := state().FrameTitle; got != "History 2/2" {
+	if got := state().FrameTitle; got != "History 1/2" {
 		t.Fatalf("title %q", got)
 	}
 	r.keys("down", "down")

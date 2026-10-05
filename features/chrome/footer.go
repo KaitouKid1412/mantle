@@ -128,7 +128,17 @@ func (f *footer) render(ctx ext.Ctx, w int) string {
 	if h := effortHint(ctx, f.s); h != "" && !f.statusLine && ctx.Layout() != ext.Fullscreen {
 		right = append(right, seg(t, theme.Inactive, h, 5))
 	}
-	return bar(left, right, w, ctx.Accessibility().ScreenReader)
+	inset, inner := footerInset(w)
+	return inset + bar(left, right, inner, ctx.Accessibility().ScreenReader)
+}
+
+// footerInset is the margin Claude Code leaves on both sides of its footer rows (two
+// columns), and the width left between them; narrow terminals get no margin.
+func footerInset(w int) (string, int) {
+	if w < 20 {
+		return "", w
+	}
+	return "  ", w - 4
 }
 
 // defaultEffort is the level Claude Code uses when nothing sets one (the engine's init

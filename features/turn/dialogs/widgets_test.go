@@ -2,6 +2,7 @@ package dialogs
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
@@ -108,5 +109,26 @@ func TestPermissionResultShapes(t *testing.T) {
 	allow := PermissionResult{Behavior: "allow", UpdatedPermissions: []PermissionUpdate{SetModeUpdate("plan", "session")}}
 	if got := toJSON(t, allow); got != `{"behavior":"allow","updatedPermissions":[{"type":"setMode","mode":"plan","destination":"session"}]}` {
 		t.Fatalf("allow = %s", got)
+	}
+}
+
+func TestWrapKeepsURLsAndIndent(t *testing.T) {
+	got := wrap("see https://example.com/docs/en/auto-mode-classifier-billing now", 40)
+	want := []string{"see", "https://example.com/docs/en/auto-mode-cl", "assifier-billing now"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("long word: %q", got)
+	}
+	got = wrap("visit https://x.test/a-b-c please", 30)
+	if strings.Join(got, "|") != "visit https://x.test/a-b-c|please" {
+		t.Fatalf("hyphenated URL split: %q", got)
+	}
+	got = wrap("  indented line", 40)
+	if got[0] != "  indented line" {
+		t.Fatalf("indent lost: %q", got)
+	}
+	for _, l := range wrap(strings.Repeat("word ", 30), 17) {
+		if ansi.StringWidth(l) > 17 {
+			t.Fatalf("line too wide: %q", l)
+		}
 	}
 }

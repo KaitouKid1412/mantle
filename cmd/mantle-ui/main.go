@@ -25,6 +25,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	_ "github.com/KaitouKid1412/mantle/features/all"
+	"github.com/KaitouKid1412/mantle/features/turn"
 	"github.com/KaitouKid1412/mantle/internal/app"
 	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/internal/config"
@@ -125,6 +126,7 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 	mgr := engine.NewManager(func(m tea.Msg) { prog.Send(m) })
 	mgr.Logf = func(format string, args ...any) { logger.Debug(fmt.Sprintf(format, args...)) }
 	mgr.RunDir = filepath.Join(paths.MantleDir, "run") // honours MANTLE_HOME; the launcher reads it
+	mgr.DialogKinds = turn.DialogKinds()
 
 	root := app.New(app.Options{
 		Host:          host,

@@ -227,6 +227,8 @@ func (s *state) viewMenu(c ext.Ctx, a ext.Area) ext.Rendered {
 	t := c.Theme()
 	var lines []string
 	switch {
+	case s.search != nil && s.searchDialog:
+		// the dialog shows the search
 	case s.search != nil:
 		lines = s.search.view(t, a.Width)
 	case s.comp.open():

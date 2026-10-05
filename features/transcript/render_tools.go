@@ -73,7 +73,7 @@ func (f *Feature) toolFrameOpts(rc ext.RenderCtx, it *ext.Item, name, args strin
 	case it.State == ext.Interrupted:
 		lines = append(lines, result(rc, st.err, interruptHint)...)
 	case it.Result == nil:
-		if f.store.Waiting(it.ID) {
+		if f.store.Waiting(it.ID) && shellTool(it) {
 			lines = append(lines, result(rc, st.dim, "Waiting…")...)
 		} else if run := f.runningLine(rc, it); run != "" {
 			lines = append(lines, result(rc, st.dim, run)...)
@@ -135,6 +135,16 @@ func (f *Feature) renderBashTool(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		if i := strings.IndexByte(cmd, '\n'); i >= 0 {
 			cmd = cmd[:i] + " …"
 		}
+	}
+	if f.fullscreen && !it.State.Finished() && it.Result == nil {
+		// Fullscreen layout: what the command is for, then the command.
+		st := stylesFor(rc)
+		title := oneLine(in.Description)
+		if title == "" {
+			title = oneLine(cmd)
+		}
+		lines := render.WrapWith(st.bold.Render(title), render.WrapOptions{Width: rc.Width, First: dotIndent, Rest: dotIndent})
+		return ext.Block{Lines: append(lines, truncLines(result(rc, st.dim, "$ "+oneLine(cmd)), rc.Width)...)}
 	}
 	return f.toolFrame(rc, it, "Bash", cmd, func() ([]string, bool) {
 		st := stylesFor(rc)
@@ -818,10 +828,10 @@ func (f *Feature) renderExitPlan(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	case ext.Interrupted:
 		title = "Plan review interrupted"
 	}
-	lines := header(rc, st, bulletStyle(st, it.State), title, "")
-	if f.store.Waiting(it.ID) {
-		lines = append(lines, result(rc, st.dim, "Waiting…")...)
+	if !it.State.Finished() && !verbose(rc) {
+		return ext.Block{} // the approval dialog is the only view while it is open
 	}
+	lines := header(rc, st, bulletStyle(st, it.State), title, "")
 	// The plan itself is in the approval dialog; the transcript shows it only
 	// at full detail (verbose, ctrl+o).
 	if verbose(rc) && strings.TrimSpace(in.Plan) != "" {
@@ -861,7 +871,17 @@ type question struct {
 	Header   string `json:"header"`
 }
 
+// shellTool reports whether an item is a shell command (the only tool whose
+// row says "Waiting…" while its permission prompt is open).
+func shellTool(it *ext.Item) bool {
+	tu := toolUse(it)
+	return tu != nil && (tu.Name == "Bash" || tu.Name == "PowerShell")
+}
+
 func (f *Feature) renderAskUser(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	if !it.State.Finished() && !verbose(rc) {
+		return ext.Block{} // the question dialog is the only view while it is open
+	}
 	var in struct {
 		Questions []question `json:"questions"`
 	}

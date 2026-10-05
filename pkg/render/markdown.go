@@ -29,6 +29,9 @@ type MarkdownOptions struct {
 	NoHighlight bool
 	// NoHyperlinks drops OSC 8 sequences; link URLs are still shown as text.
 	NoHyperlinks bool
+	// KeepLineBreaks renders a single newline inside a paragraph as a line
+	// break (Claude Code shows answers line by line) instead of a space.
+	KeepLineBreaks bool
 	// TabWidth and TabColumn place tab stops in code blocks: every TabWidth
 	// columns (default 4) counted from the screen edge, where the rendering
 	// starts at column TabColumn. A terminal printing a raw tab uses 8.
@@ -487,7 +490,11 @@ func (r *mdRenderer) inline(n ast.Node, st Style, ib *inlineBuf) {
 			case c.HardLineBreak():
 				ib.text(st, "\n")
 			case c.SoftLineBreak():
-				ib.text(st, " ")
+				if r.o.KeepLineBreaks {
+					ib.text(st, "\n")
+				} else {
+					ib.text(st, " ")
+				}
 			}
 		case *ast.String:
 			ib.text(st, Sanitize(string(c.Value), SanitizeOptions{}))
