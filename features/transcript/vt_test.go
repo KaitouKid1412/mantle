@@ -14,7 +14,7 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
 
-const inputMarker = "> type here"
+const inputMarker = "❯ type here"
 
 // inputStub stands in for the prompt editor so the live frame has a bottom.
 type inputStub struct{}
@@ -67,7 +67,7 @@ func TestReplayScrollback(t *testing.T) {
 				hs.SendMsg(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: ev})
 			}
 			last := want[len(want)-1]
-			hs.WaitFor(func(string) bool { return contains(hs.All(), last) }, 10*time.Second)
+			hs.WaitFor(func(string) bool { return contains(termLines(hs), last) }, 10*time.Second)
 			hs.Settle(80*time.Millisecond, 3*time.Second)
 			checkReplay(t, hs, want)
 		})
@@ -97,14 +97,14 @@ func TestStreamingNoArtifacts(t *testing.T) {
 	for _, ev := range decodeLines(t, ndjson) {
 		hs.SendMsg(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: ev})
 	}
-	hs.WaitFor(func(string) bool { return countContains(hs.All(), "streamed in small") >= 30 }, 10*time.Second)
+	hs.WaitFor(func(string) bool { return countContains(termLines(hs), "streamed in small") >= 30 }, 10*time.Second)
 	hs.Settle(80*time.Millisecond, 3*time.Second)
 	checkReplay(t, hs, want)
 }
 
 func checkReplay(t *testing.T, hs *testkit.Harness, want []string) {
 	t.Helper()
-	all := hs.All()
+	all := termLines(hs)
 	// Leading blank rows depend on where the first frame sat; compare from the
 	// first printed text.
 	all = maskClock(trimLeadingBlank(all))
@@ -138,6 +138,16 @@ func maskClock(ls []string) []string {
 		out[i] = reDoneTime.ReplaceAllString(l, "· done <time>")
 	}
 	return out
+}
+
+// termLines is the terminal's scrollback and screen with no-break spaces read
+// as spaces (the result gutter uses one, as claude does).
+func termLines(hs *testkit.Harness) []string {
+	all := hs.All()
+	for i, l := range all {
+		all[i] = strings.ReplaceAll(l, " ", " ")
+	}
+	return all
 }
 
 func trimLeadingBlank(ls []string) []string {

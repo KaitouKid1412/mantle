@@ -1,6 +1,6 @@
 ── width 60 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m Write a function that reverses a string, then run it.     [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m Write a function that reverses a string, then run it.     [m
 
 [3;38;2;139;139;147m✻ Thought[m[38;2;139;139;147m (ctrl+o to expand)[m
 
@@ -18,14 +18,14 @@
   Let me run a quick check.
 
 [38;2;111;194;139m⏺[m [1mBash[m(go run ./cmd/rev héllo)
-  ⎿  olléh
+  ⎿  olléh
 
 [38;2;230;227;222m⏺[m It prints [38;2;158;166;243molléh[m, so the accent stays intact.
 
 [38;2;139;139;147m✻ Churned for 8s · done 3:04 PM[m
 ── width 100 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m Write a function that reverses a string, then run it.                                             [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m Write a function that reverses a string, then run it.                                             [m
 
 [3;38;2;139;139;147m✻ Thought[m[38;2;139;139;147m (ctrl+o to expand)[m
 
@@ -42,14 +42,14 @@
   It handles CJK such as 日本語 and emoji like 👍 correctly. Let me run a quick check.
 
 [38;2;111;194;139m⏺[m [1mBash[m(go run ./cmd/rev héllo)
-  ⎿  olléh
+  ⎿  olléh
 
 [38;2;230;227;222m⏺[m It prints [38;2;158;166;243molléh[m, so the accent stays intact.
 
 [38;2;139;139;147m✻ Churned for 8s · done 3:04 PM[m
 ── width 160 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m Write a function that reverses a string, then run it.                                                                                                         [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m Write a function that reverses a string, then run it.                                                                                                         [m
 
 [3;38;2;139;139;147m✻ Thought[m[38;2;139;139;147m (ctrl+o to expand)[m
 
@@ -66,7 +66,7 @@
   It handles CJK such as 日本語 and emoji like 👍 correctly. Let me run a quick check.
 
 [38;2;111;194;139m⏺[m [1mBash[m(go run ./cmd/rev héllo)
-  ⎿  olléh
+  ⎿  olléh
 
 [38;2;230;227;222m⏺[m It prints [38;2;158;166;243molléh[m, so the accent stays intact.
 

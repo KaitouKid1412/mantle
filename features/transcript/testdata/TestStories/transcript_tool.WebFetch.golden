@@ -1,9 +1,9 @@
 ── width 60 ──
 [38;2;111;194;139m⏺[m [1mFetch[m(https://example.com/docs/backoff)
-  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
+  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
 ── width 100 ──
 [38;2;111;194;139m⏺[m [1mFetch[m(https://example.com/docs/backoff)
-  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
+  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
 ── width 160 ──
 [38;2;111;194;139m⏺[m [1mFetch[m(https://example.com/docs/backoff)
-  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
+  ⎿  [38;2;139;139;147mReceived 17.8KB (200 OK)[m
