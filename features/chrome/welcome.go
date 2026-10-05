@@ -30,6 +30,7 @@ type welcome struct {
 	account  proto.Account
 	started  bool   // the startup banner is out
 	printed  string // session ID the last banner was for ("" = the startup one, before an id)
+	onScreen bool   // the last banner hasn't been cleared away (Reprint) since
 	mcpShown bool
 	version  string
 	home     string
@@ -58,13 +59,16 @@ func (w *welcome) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 		if !isMain(m.EngineID) || w.s.SessionID == "" || w.s.SessionID == w.printed {
 			return nil
 		}
-		if w.started && w.printed == "" {
-			// The first session id after the startup banner: that banner was this
-			// session's.
+		if w.started && w.printed == "" && w.onScreen {
+			// The first session id after the startup banner, which is still on screen:
+			// that banner was this session's. (A /resume before the first turn clears
+			// the screen first, and the picked session gets its own banner.)
 			w.printed = w.s.SessionID
 			return nil
 		}
 		return w.print(ctx, w.s.SessionID)
+	case ext.ScreenClearedMsg:
+		w.onScreen = false
 	case ext.EngineEventMsg:
 		if init, ok := m.Event.(*proto.SystemInit); ok && isMain(m.EngineID) && !w.mcpShown {
 			w.mcpShown = true
@@ -90,7 +94,7 @@ func (w *welcome) observeStartup(ctx ext.Ctx) {
 // first banner also raises the startup notices.
 func (w *welcome) print(ctx ext.Ctx, sessionID string) tea.Cmd {
 	first := !w.started
-	w.started, w.printed = true, sessionID
+	w.started, w.printed, w.onScreen = true, sessionID, true
 	cmds := []tea.Cmd{ctx.Print(w.banner(ctx, max(20, termWidth(ctx))))}
 	if first {
 		seed := sessionID

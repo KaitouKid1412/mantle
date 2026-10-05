@@ -92,6 +92,7 @@ func init() {
 			ext.Subscribe(r, WelcomeID+".session", func(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd { return w.Update(ctx, m) })
 			ext.Subscribe(r, WelcomeID+".control", func(ctx ext.Ctx, m ext.ControlResultMsg) tea.Cmd { return w.Update(ctx, m) })
 			ext.Subscribe(r, WelcomeID+".engine", func(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd { return w.Update(ctx, m) })
+			ext.Subscribe(r, WelcomeID+".cleared", func(ctx ext.Ctx, m ext.ScreenClearedMsg) tea.Cmd { return w.Update(ctx, m) })
 			addStories(r, welcomeStories())
 			return nil
 		},
