@@ -2,6 +2,9 @@ package dialogs
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -162,6 +165,41 @@ func TestPermissionFiltersSuggestionsLikeClaude(t *testing.T) {
 	  {"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"ls"}],"behavior":"deny","destination":"session"}]}`)
 	if got := optionIDs(NewPermission(req, PermissionContext{})); got != "yes,no" {
 		t.Fatalf("options = %s", got)
+	}
+}
+
+// Edits inside a .claude folder offer a session grant for that folder instead of the
+// engine's suggestions (accept-edits mode does not cover it).
+func TestPermissionClaudeFolderGrant(t *testing.T) {
+	const edit = `{"tool_name":"Edit","tool_use_id":"te","input":{"file_path":"%s","old_string":"a","new_string":"b"},
+	 "permission_suggestions":[{"type":"setMode","mode":"acceptEdits","destination":"session"}]}`
+	p := NewPermission(toolReq(t, fmt.Sprintf(edit, "/w/proj/.claude/settings.json")), PermissionContext{Cwd: "/w/proj"})
+	if got := optionIDs(p); got != "yes,always,no" {
+		t.Fatalf("options = %s", got)
+	}
+	if got := p.opts.items[1].label; got != "Yes, and allow edits in this project's .claude folder for this session" {
+		t.Fatalf("label = %q", got)
+	}
+	press(t, p, "2")
+	wantJSON(t, p.Response().UpdatedPermissions,
+		`[{"type":"addRules","rules":[{"toolName":"Edit","ruleContent":"/.claude/**"}],"behavior":"allow","destination":"session"}]`)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no home directory")
+	}
+	p = NewPermission(toolReq(t, fmt.Sprintf(edit, filepath.Join(home, ".claude", "CLAUDE.md"))), PermissionContext{Cwd: "/w/proj"})
+	if got := p.opts.items[1].label; got != "Yes, and allow edits in ~/.claude for this session" {
+		t.Fatalf("home label = %q", got)
+	}
+	press(t, p, "2")
+	wantJSON(t, p.Response().UpdatedPermissions,
+		`[{"type":"addRules","rules":[{"toolName":"Edit","ruleContent":"~/.claude/**"}],"behavior":"allow","destination":"session"}]`)
+
+	// Outside a .claude folder the accept-edits switch stays.
+	p = NewPermission(toolReq(t, fmt.Sprintf(edit, "/w/proj/main.go")), PermissionContext{Cwd: "/w/proj"})
+	if got := p.opts.items[1].label; got != "Yes, and switch to accept edits for this session" {
+		t.Fatalf("label = %q", got)
 	}
 }
 

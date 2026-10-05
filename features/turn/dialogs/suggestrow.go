@@ -1,8 +1,10 @@
 package dialogs
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/KaitouKid1412/mantle/features/turn/mode"
@@ -36,6 +38,11 @@ var pathCheckReasons = map[string]bool{"workingDir": true, "safetyCheck": true, 
 func buildSuggestionRow(req ToolRequest, fileTool bool, cwd string) *suggestionRow {
 	if req.SuppressAlwaysAllowRule {
 		return nil
+	}
+	if fileTool && req.ToolName != "Read" {
+		if row := claudeFolderRow(req, cwd); row != nil {
+			return row
+		}
 	}
 	pathOnly := !fileTool && (req.BlockedPath != "" || pathCheckReasons[req.DecisionReasonType])
 	var kept []PermissionUpdate
@@ -97,6 +104,48 @@ func buildSuggestionRow(req ToolRequest, fileTool bool, cwd string) *suggestionR
 		row.label = toolRowLabel(kept, req.ToolName, cwd)
 	}
 	return row
+}
+
+// claudeFolderRow is the grant for edits inside a .claude folder (the project's or
+// ~/.claude), which accept-edits mode never covers. As in Claude Code it replaces the
+// engine's suggestions: one session rule for edits anywhere in that folder.
+func claudeFolderRow(req ToolRequest, cwd string) *suggestionRow {
+	var in map[string]any
+	_ = json.Unmarshal(req.Input, &in)
+	path := str(in, "file_path")
+	if path == "" {
+		path = str(in, "notebook_path")
+	}
+	if path == "" {
+		return nil
+	}
+	if !filepath.IsAbs(path) && cwd != "" {
+		path = filepath.Join(cwd, path)
+	}
+	rule, label := "", ""
+	home, _ := os.UserHomeDir()
+	switch {
+	case home != "" && within(path, filepath.Join(home, ".claude")):
+		rule, label = "~/.claude/**", "Yes, and allow edits in ~/.claude for this session"
+	case cwd != "" && within(path, filepath.Join(cwd, ".claude")):
+		rule, label = "/.claude/**", "Yes, and allow edits in this project's .claude folder for this session"
+	default:
+		return nil
+	}
+	return &suggestionRow{label: label, updates: []PermissionUpdate{{
+		Type: "addRules", Rules: []PermissionRule{{ToolName: "Edit", RuleContent: rule}},
+		Behavior: "allow", Destination: "session",
+	}}}
+}
+
+// within reports whether path is inside dir, ignoring case where the file system
+// usually does (macOS, Windows).
+func within(path, dir string) bool {
+	path, dir = filepath.Clean(path), filepath.Clean(dir)
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		path, dir = strings.ToLower(path), strings.ToLower(dir)
+	}
+	return strings.HasPrefix(path, dir+string(filepath.Separator))
 }
 
 // fileRowLabel phrases a file prompt's session grant.

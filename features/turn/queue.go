@@ -53,10 +53,26 @@ func (q *queueView) ID() string                      { return QueueComponentID }
 func (q *queueView) Init(ext.Ctx) tea.Cmd            { return nil }
 func (q *queueView) Update(ext.Ctx, tea.Msg) tea.Cmd { return nil }
 func (q *queueView) View(c ext.Ctx, a ext.Area) ext.Rendered {
-	return ext.Rendered{Text: renderQueue(q.st.queued[ext.MainEngine], a.Width, c.Theme())}
+	return ext.Rendered{Text: renderQueue(q.st.queued[ext.MainEngine], a.Width, c.Theme(), sendNowKey(c))}
 }
 
-func renderQueue(prompts []queuedPrompt, width int, t *theme.Theme) string {
+// sendNowKey is a chord bound to chat:sendNow, which sends the queue at once. Like
+// Claude Code it names one that works in every terminal (ctrl+enter needs one that
+// reports modified Enter) when there is one.
+func sendNowKey(c ext.Ctx) string {
+	keys := c.KeysFor(ext.ContextChat, ext.ActChatSendNow)
+	for _, k := range keys {
+		if k != "ctrl+enter" {
+			return k
+		}
+	}
+	if len(keys) > 0 {
+		return keys[0]
+	}
+	return ""
+}
+
+func renderQueue(prompts []queuedPrompt, width int, t *theme.Theme, sendKey string) string {
 	if len(prompts) == 0 || width < 8 {
 		return ""
 	}
@@ -73,7 +89,11 @@ func renderQueue(prompts []queuedPrompt, width int, t *theme.Theme) string {
 		text := strings.TrimSpace(dialogs.SanitizeLine(p.Text))
 		lines = append(lines, dim(ansi.Truncate("  › "+text, width, "…")))
 	}
-	lines = append(lines, dim(ansi.Truncate("  ↑ to edit queued messages", width, "…")))
+	hint := "  ↑ to edit queued messages"
+	if sendKey != "" {
+		hint += " · " + sendKey + " to send them now"
+	}
+	lines = append(lines, dim(ansi.Truncate(hint, width, "…")))
 	return strings.Join(lines, "\n")
 }
 

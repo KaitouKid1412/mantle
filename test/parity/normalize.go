@@ -59,6 +59,8 @@ var DefaultRules = []Rule{
 		`\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b`, "<uuid>"),
 	rule("tool-id", "Tool-use ids (toolu_…) become <toolu>.",
 		`\btoolu_[A-Za-z0-9_]+\b`, "<toolu>"),
+	rule("task-id", "Background task ids (\"(id: b0n0waqen)\") become <task>.",
+		`\(id: [a-z0-9]{6,}\)`, "(id: <task>)"),
 	rule("datetime", "ISO dates and times become <date>.",
 		`\b\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?\b`, "<date>"),
 	rule("clock", "Clock times (14:05, 2:05 PM, 14:05:09) become <time>.",

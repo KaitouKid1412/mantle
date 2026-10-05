@@ -64,7 +64,7 @@ func TestQueueWhileBusyAndTakeBack(t *testing.T) {
 	r.keys("'first'", "enter")
 	r.keys("'second'", "enter")
 	ps := r.eng.prompts()
-	if len(ps) != 2 || ps[1].Priority != proto.PriorityLater {
+	if len(ps) != 2 || ps[1].Priority != proto.PriorityNext {
 		t.Fatalf("second prompt priority %q", ps[1].Priority)
 	}
 	q, ok := lastMsg[ext.QueuedPromptsMsg](r)
