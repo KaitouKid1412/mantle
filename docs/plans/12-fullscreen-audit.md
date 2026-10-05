@@ -230,10 +230,13 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
     themes, keyboard-only flows through every dialog.
   - Record results in this plan.
 
-  **Checklist (for the user, by hand).** About 10 minutes per terminal. Start each run from
-  a scratch directory with `mantle` (built with `make build`; `bin/mantle`), signed in as
-  usual. Record ✓ / ✗ / n/a and a note per cell in the table below; ✗ needs a one-line
-  description (what you pressed, what you saw).
+  **Checklist (for the user, by hand).** About 10 minutes per terminal. Once, run
+  `make install` in the repository (it installs the `mantle` launcher at
+  `~/.local/bin/mantle` and a current build); then start each run with `mantle` from a
+  scratch directory, signed in as usual. Without installing, `./bin/mantle-ui` after
+  `make build` works too. Record ✓ / ✗ / n/a and a note per cell in the tables below
+  (fill in the terminals you have); ✗ needs a one-line description (what you pressed,
+  what you saw).
 
   Terminals: iTerm2 · Ghostty · Terminal.app · kitty · WezTerm · VS Code terminal · tmux
   (inside any of the above) · SSH (to a Linux host, mantle running remotely).
