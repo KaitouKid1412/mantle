@@ -1,6 +1,6 @@
 # 12 → 01: stale blank rows above the prompt after every turn (inline)
 
-**Status:** open (2026-10-05). Found while checking the blank row above the prompt frame
+**Status:** resolved on integration-8: plan 01's dd409a8 leaves no stale rows, plan 07's 6f1d09c adds the one blank row; after turns and resumes mantle shows claude's 1 row (2026-10-05). Found while checking the blank row above the prompt frame
 (plan 03's note after 12-03 round 2) on integration-7. Plan 07 holds a matching change.
 
 Claude Code always leaves exactly one blank row between the transcript and its prompt

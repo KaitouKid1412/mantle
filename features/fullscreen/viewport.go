@@ -17,6 +17,10 @@ type Viewport struct {
 	starts []int // first line of each block
 	ids    []string
 	unseen int // lines added below the window while not following
+	// Tail is blank lines after the last block (the transcript's bottom margin, which
+	// scrolls away with it).
+	Tail int
+	tail int // the tail counted in total
 }
 
 // NewViewport returns a viewport that follows the bottom.
@@ -32,6 +36,11 @@ func (v *Viewport) SetBlocks(blocks []Block) {
 		v.starts = append(v.starts, total)
 		v.ids = append(v.ids, b.ID)
 		total += len(b.Lines)
+	}
+	v.tail = 0
+	if total > 0 {
+		v.tail = v.Tail
+		total += v.tail
 	}
 	v.total = total
 	if v.follow {
@@ -129,8 +138,8 @@ func (v *Viewport) Visible(margin int) (from, to int) {
 
 // BlockAt returns the block index and the line within it for a document line.
 func (v *Viewport) BlockAt(line int) (block, within int, ok bool) {
-	if line < 0 || line >= v.total {
-		return 0, 0, false
+	if line < 0 || line >= v.total || (len(v.starts) > 0 && line >= v.total-v.tail) {
+		return 0, 0, false // outside the document, or in the blank tail
 	}
 	lo, hi := 0, len(v.starts)-1
 	for lo < hi {

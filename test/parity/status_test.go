@@ -47,17 +47,19 @@ func TestParityStatusFromRepo(t *testing.T) {
 | CH-03 | Width | | N | M1 | 07 | B | |
 | CL-04 | Mobile | | H | M2 | 09 | B | |
 | CL-05 | Stop | | N | M2 | 09 | B | |
+| CH-04 | Seq | | N | M3 | 07 | B | |
+| CH-05 | Dialog | | N | M3 | 12 | B | |
 `)
 	write("features/chrome/chrome.go", "package chrome\nvar f = Feature{\n\tParity: []string{\"CH-01\", \"CH-02\"},\n}\nvar c = Command{Parity: \"ZZ-9\"}\n")
 	write("features/chrome/chrome_test.go", "package chrome\nvar x = Feature{Parity: []string{\"CH-03\"}}\n")
-	write("test/parity/scenarios/frame.scn", "name: frame\nparity: CH-01\n---\nready\ncheckpoint c\n")
+	write("test/parity/scenarios/frame.scn", "name: frame\nparity: CH-01, CH-05\n---\nready\ncheckpoint c\n")
 	write("docs/plans/requests/12-07-chrome.md", "# 12 → 07: chrome\n\n**Status:** done by 07.\n")
-	write("docs/parity-evidence/07.md", "| ID | Evidence |\n|---|---|\n| CH-03 | internal/term width tests |\n| CL-05 | Not applicable: only in background sessions |\n")
+	write("docs/parity-evidence/07.md", "| ID | Evidence |\n|---|---|\n| CH-03 | internal/term width tests |\n| CL-05 | Not applicable: only in background sessions |\n| CH-04 | Gap: the engine drops it |\n| CH-05 | built elsewhere, tested |\n")
 	st, err := BuildParityStatus(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"CH-01": "compared", "CH-02": "tagged", "CH-03": "evidenced", "CL-04": "hand-off", "CL-05": "not applicable"}
+	want := map[string]string{"CH-01": "compared", "CH-02": "tagged", "CH-03": "evidenced", "CL-04": "hand-off", "CL-05": "not applicable", "CH-04": "gap", "CH-05": "compared"}
 	for _, r := range st.Rows {
 		if got := st.RowState(r); got != want[r.ID] {
 			t.Errorf("%s = %s, want %s", r.ID, got, want[r.ID])
@@ -70,7 +72,7 @@ func TestParityStatusFromRepo(t *testing.T) {
 		t.Errorf("tag location = %v", got)
 	}
 	md := st.Markdown()
-	for _, s := range []string{"| All rows | 5 | 1 | 1 | 1 | 0 | 0 | 1 | 0 | 1 |", "evidence: internal/term width tests", "| 07 | 3 |", "done by 07.",
+	for _, s := range []string{"| All rows | 7 | 2 | 1 | 1 | 0 | 0 | 1 | 1 | 1 |", "evidence: internal/term width tests", "| 07 | 4 |", "done by 07.",
 		"| CH-01 | Frame | N | 07 | compared | scenarios: frame; tags: features/chrome/chrome.go:3 |", "ZZ-9"} {
 		if !strings.Contains(md, s) {
 			t.Errorf("report lacks %q:\n%s", s, md)
