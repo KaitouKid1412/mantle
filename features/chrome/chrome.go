@@ -14,7 +14,7 @@ const order = 700
 func init() {
 	ext.Register(ext.Feature{
 		ID: FooterID, Order: order,
-		Parity: []string{"CH-05", "CH-06", "CH-07", "CH-14", "ED-16"},
+		Parity: []string{"CH-05", "CH-06", "CH-07", "CH-14", "CH-15", "CH-16", "ED-16"},
 		Setup: func(r ext.Registrar) error {
 			r.AddComponent(ext.SlotBelowInput, newFooter(), ext.SlotOpts{Weight: 0, MaxHeight: 1})
 			// Fullscreen only: the effort hint right above the prompt.
@@ -26,7 +26,7 @@ func init() {
 	})
 	ext.Register(ext.Feature{
 		ID: "chrome.promptFrame", Order: order,
-		Parity: []string{"CH-01", "CH-02", "CH-03", "CH-04"},
+		Parity: []string{"CH-01", "CH-02", "CH-03", "CH-04", "VW-14"},
 		Setup: func(r ext.Registrar) error {
 			r.Wrap(EditorID, func(next ext.Component) ext.Component { return wrapFrame(next) })
 			r.AddCommand(ext.Command{
