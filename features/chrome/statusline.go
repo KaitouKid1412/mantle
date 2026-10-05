@@ -307,21 +307,23 @@ func (c *statusLineComp) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	if c.cfg.Command == "" || c.dialogs > 0 || c.d.s.Panel || a.Width <= 0 {
 		return ext.Rendered{}
 	}
-	text := renderStatusLines(ctx, c.lines, c.notice, a)
-	if text != "" {
-		// The footer's first row carries the effort hint; with a status line, that's
-		// this one.
-		first, rest, _ := strings.Cut(text, "\n")
-		hint := ""
-		if ctx.Layout() != ext.Fullscreen {
-			hint = effortHint(ctx, c.d.s)
-		}
-		text = withRightHint(ctx, first, hint, a.Width)
-		if rest != "" {
-			text += "\n" + rest
-		}
+	inset, inner := footerInset(a.Width)
+	in := a
+	in.Width = inner
+	text := renderStatusLines(ctx, c.lines, c.notice, in)
+	if text == "" {
+		return ext.Rendered{}
 	}
-	return ext.Rendered{Text: text}
+	lines := strings.Split(text, "\n")
+	// The footer's first row carries the effort hint; with a status line, that's this
+	// one (inline; fullscreen puts it above the prompt).
+	if ctx.Layout() != ext.Fullscreen {
+		lines[0] = withRightHint(ctx, lines[0], effortHint(ctx, c.d.s), inner)
+	}
+	for i, l := range lines {
+		lines[i] = inset + l
+	}
+	return ext.Rendered{Text: strings.Join(lines, "\n")}
 }
 
 // withRightHint right-aligns a dim hint after line when both fit in w.

@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -33,6 +35,8 @@ type Term struct {
 	raw bytes.Buffer
 	san stringSanitizer
 
+	started time.Time // when the program was started
+
 	inMu      sync.Mutex
 	stopping  atomic.Bool
 	replyDone chan struct{}
@@ -46,6 +50,7 @@ func StartTerm(cmd *exec.Cmd, w, h int) (*Term, error) {
 	t := &Term{
 		cmd:       cmd,
 		emu:       vt.NewEmulator(w, h),
+		started:   time.Now(),
 		replyDone: make(chan struct{}),
 		outDone:   make(chan struct{}),
 		exited:    make(chan struct{}),
@@ -249,4 +254,55 @@ func (t *Term) Close() error {
 	err := t.ptmx.Close()
 	<-t.outDone
 	return err
+}
+
+// Started is when the program was started.
+func (t *Term) Started() time.Time { return t.started }
+
+// Pid is the program's process id.
+func (t *Term) Pid() int {
+	if t.cmd.Process == nil {
+		return 0
+	}
+	return t.cmd.Process.Pid
+}
+
+// Usage reports the program's CPU time (user + system) and peak resident set size in
+// bytes, once it has exited (after Close); zeros before.
+func (t *Term) Usage() (cpu time.Duration, maxRSS int64) {
+	select {
+	case <-t.exited:
+	default:
+		return 0, 0
+	}
+	ps := t.cmd.ProcessState
+	if ps == nil {
+		return 0, 0
+	}
+	cpu = ps.UserTime() + ps.SystemTime()
+	if ru, ok := ps.SysUsage().(*syscall.Rusage); ok {
+		maxRSS = int64(ru.Maxrss)
+		if runtime.GOOS != "darwin" {
+			maxRSS *= 1024 // Linux reports kilobytes
+		}
+	}
+	return cpu, maxRSS
+}
+
+// RSS is the program's current resident set size in bytes (its own process only, not
+// its children), or 0 when it can't be read.
+func (t *Term) RSS() int64 {
+	pid := t.Pid()
+	if pid == 0 {
+		return 0
+	}
+	out, err := exec.Command("ps", "-o", "rss=", "-p", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return 0
+	}
+	kb, err := strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return kb * 1024
 }

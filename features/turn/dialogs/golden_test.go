@@ -97,6 +97,9 @@ func samples(t *testing.T) map[string]Model {
 	m["api_key"] = NewAPIKeyPrompt("ABCDEFGHIJKLMNOPQRST")
 	m["engine_check"] = NewEngineCheck("2.1.300", []string{"skills", "hooks"}, "2.1.288")
 	m["usage_limit"] = NewUsageLimit("3:00 PM")
+	m["billing_notice"] = NewNotice("Auto mode billing is changing",
+		[]string{"This session keeps the old billing.", "Classifier requests are billed as before. Details: https://example.test/docs/en/auto-mode-classifier-billing"},
+		"Enter to continue · Esc to stop")
 	m["mcp_approval_one"] = NewMcpApproval([]gates.McpServer{{Name: "db", Transport: "stdio", Command: "npx", Args: []string{"db-mcp"}, EnvKeys: []string{"TOKEN"}}})
 	m["mcp_approval_many"] = NewMcpApproval([]gates.McpServer{
 		{Name: "db", Transport: "stdio", Command: "npx", Args: []string{"db-mcp"}},

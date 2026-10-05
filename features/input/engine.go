@@ -2,6 +2,7 @@ package input
 
 import (
 	"encoding/json"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -48,6 +49,16 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		return s.spell.result(c, s, m)
 	case editorDoneMsg:
 		return s.externalEditorDone(c, m)
+	case ext.DialogClosedMsg:
+		if m.ID == DialogHistorySearch && s.searchDialog {
+			// Closed by the host (layout switch): drop the search.
+			s.search, s.searchDialog = nil, false
+			return s.changed(c)
+		}
+	case ext.DialogOpenedMsg:
+		if s.echo != "" && !s.echoClear && m.ID != DialogHistorySearch {
+			return s.echoItem(c)
+		}
 	case ext.CommandsMsg, ext.CommandVisibilityMsg:
 		// The command list changed: refresh an open / menu.
 		if s.comp.kind == compSlash || s.comp.kind == compArgs {
@@ -147,7 +158,17 @@ func (s *state) engineEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 		if e.NewConversationID != "" {
 			s.sessionID = e.NewConversationID
 		}
-		return s.clearQueue()
+		var echo tea.Cmd
+		if s.echoClear {
+			echo = s.echoItem(c) // the new transcript starts with "/clear"
+		}
+		return tea.Batch(s.clearQueue(), echo)
+	case *proto.User:
+		// A forwarded native command came back as a replay: the engine
+		// echoes it, so ours is not needed.
+		if e.IsReplay && s.echo != "" && !s.echoClear && strings.TrimSpace(e.Message.Content.PlainText()) == s.echo {
+			s.echo = ""
+		}
 	case *proto.PromptSuggestion:
 		if s.cfg.suggestions && s.ed.Empty() && s.mode == modePrompt && e.Suggestion != "" {
 			s.suggestion = e.Suggestion

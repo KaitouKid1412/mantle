@@ -30,6 +30,9 @@ type search struct {
 }
 
 func (s *state) openSearch(c ext.Ctx) tea.Cmd {
+	if s.search == nil && c.Layout() == ext.Fullscreen {
+		return s.openSearchDialog(c)
+	}
 	if s.search != nil {
 		s.search.next()
 		s.invalidate(c)

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fixture is a temp HOME with a project directory, isolated from the real machine.
@@ -426,6 +427,23 @@ func TestAutoNoticeRecorded(t *testing.T) {
 	}
 	if LoadGateStore(f.env).AutoNoticeAt == "" {
 		t.Fatal("notice should be recorded")
+	}
+}
+
+func TestBillingNotice(t *testing.T) {
+	f := newFixture(t)
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	if !BillingNoticeDue(LoadGateStore(f.env), now) {
+		t.Fatal("never acknowledged: due")
+	}
+	if err := RecordBillingNotice(f.env, now); err != nil {
+		t.Fatal(err)
+	}
+	if BillingNoticeDue(LoadGateStore(f.env), now.Add(23*time.Hour)) {
+		t.Fatal("acknowledged today: quiet")
+	}
+	if !BillingNoticeDue(LoadGateStore(f.env), now.Add(24*time.Hour)) {
+		t.Fatal("a day later: due again")
 	}
 }
 

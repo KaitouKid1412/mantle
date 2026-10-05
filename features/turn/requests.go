@@ -10,13 +10,16 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/features/turn/dialogs"
+	"github.com/KaitouKid1412/mantle/features/turn/gates"
 	"github.com/KaitouKid1412/mantle/features/turn/mode"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
 // request is one CLI-originated prompt waiting for the user: a can_use_tool request
-// (permission, AskUserQuestion, ExitPlanMode) or an elicitation.
+// (permission, AskUserQuestion, ExitPlanMode), an elicitation, or the auto-mode billing
+// notice (a request_user_dialog, or an informational message that only needs an
+// acknowledgement and takes no reply).
 type request struct {
 	engineID, requestID string
 	dialogID            string
@@ -35,7 +38,7 @@ type requestQueue struct {
 type advanceMsg struct{}
 
 func (st *state) setupRequests(r ext.Registrar) {
-	for _, id := range []string{DialogPermission, DialogAskUserQuestion, DialogPlanApproval, DialogElicitation} {
+	for _, id := range []string{DialogPermission, DialogAskUserQuestion, DialogPlanApproval, DialogElicitation, DialogBillingNotice} {
 		r.AddDialog(id, st.requestDialog(id))
 	}
 	ext.Subscribe(r, "turn.permission", st.onPermission)
@@ -62,8 +65,13 @@ func (st *state) onControlRequest(c ext.Ctx, m ext.ControlRequestMsg) tea.Cmd {
 	case proto.SubElicitation:
 		return st.enqueue(c, &request{engineID: engineKey(m.EngineID), requestID: m.RequestID, ctrl: &m, dialogID: DialogElicitation})
 	case proto.SubRequestUserDialog:
-		// mantle declares no supportedDialogKinds, so this only arrives from a confused
-		// engine; refuse it instead of leaving the engine waiting.
+		if vm := billingDialog(m.Request); vm != nil {
+			st.billingShown = true
+			return st.enqueue(c, &request{engineID: engineKey(m.EngineID), requestID: m.RequestID, ctrl: &m,
+				dialogID: DialogBillingNotice, vm: vm})
+		}
+		// A kind mantle did not declare. The protocol says not to settle it: an error
+		// reply is discarded and the engine cancels the dialog at its deadline.
 		if m.Reply != nil {
 			return m.Reply(nil, errors.New("mantle does not support this dialog kind"))
 		}
@@ -125,6 +133,8 @@ func (st *state) permContext(c ext.Ctx, r *request) dialogs.PermissionContext {
 func (st *state) buildVM(c ext.Ctx, r *request) error {
 	pc := st.permContext(c, r)
 	switch r.dialogID {
+	case DialogBillingNotice:
+		return nil // built when queued
 	case DialogElicitation:
 		var req dialogs.ElicitationRequest
 		if err := json.Unmarshal(r.ctrl.Request, &req); err != nil {
@@ -204,6 +214,17 @@ func (st *state) finish(c ext.Ctx, r *request) tea.Cmd {
 		if res := vm.Response(); res != nil && r.ctrl != nil && r.ctrl.Reply != nil {
 			reply = r.ctrl.Reply(res, nil)
 		}
+	case *dialogs.Notice:
+		switch {
+		case r.ctrl != nil && r.ctrl.Reply != nil:
+			result := billingContinue
+			if vm.Chosen() != dialogs.NoticeOK {
+				result = billingInterrupt
+			}
+			reply = r.ctrl.Reply(userDialogReply{Behavior: "completed", Result: result}, nil)
+		case r.ctrl == nil && vm.Chosen() == dialogs.NoticeOK:
+			reply = st.recordBillingNotice(c)
+		}
 	}
 	return st.close(c, r, reply)
 }
@@ -219,10 +240,17 @@ func (st *state) close(c ext.Ctx, r *request, reply tea.Cmd) tea.Cmd {
 func (st *state) interruptRequest(c ext.Ctx, r *request) tea.Cmd {
 	if r.ctrl != nil {
 		var reply tea.Cmd
-		if r.ctrl.Reply != nil {
+		switch {
+		case r.ctrl.Reply == nil:
+		case r.dialogID == DialogBillingNotice:
+			reply = r.ctrl.Reply(userDialogReply{Behavior: "completed", Result: billingInterrupt}, nil)
+		default:
 			reply = r.ctrl.Reply(dialogs.ElicitationResult{Action: "cancel"}, nil)
 		}
 		return st.close(c, r, reply)
+	}
+	if r.dialogID == DialogBillingNotice {
+		return st.close(c, r, nil)
 	}
 	return st.close(c, r, st.replyDeny(r, "The user interrupted the turn.", true))
 }
@@ -352,4 +380,83 @@ func planFromFile(input json.RawMessage) string {
 	defer f.Close()
 	b, _ := io.ReadAll(io.LimitReader(f, maxPlanFile))
 	return string(b)
+}
+
+// billingDialogKind is the engine's auto-mode classifier billing notice. Declared in
+// initialize.supportedDialogKinds, it arrives as a request_user_dialog at the moment
+// interactive Claude Code would show its dialog, and the engine decides how often.
+const billingDialogKind = "auto_mode_server_fallback"
+
+// Results for billingDialogKind: go on in auto mode, or stop the blocked tool call.
+const (
+	billingContinue  = "continue"
+	billingInterrupt = "interrupt"
+)
+
+// DialogKinds lists the request_user_dialog kinds this feature renders; the host sends
+// them as initialize.supportedDialogKinds.
+func DialogKinds() []string { return []string{billingDialogKind} }
+
+// userDialogReply answers a request_user_dialog.
+type userDialogReply struct {
+	Behavior string `json:"behavior"` // completed | cancelled
+	Result   string `json:"result,omitempty"`
+}
+
+const billingHint = "Enter to continue · Esc to stop"
+
+// billingDialog builds the notice for a billing request_user_dialog, or returns nil for
+// any other kind or a payload without text.
+func billingDialog(raw json.RawMessage) *dialogs.Notice {
+	var d struct {
+		Kind    string `json:"dialog_kind"`
+		Payload struct {
+			Title      string   `json:"title"`
+			Paragraphs []string `json:"paragraphs"`
+			HelpURL    string   `json:"helpUrl"`
+		} `json:"payload"`
+	}
+	if json.Unmarshal(raw, &d) != nil || d.Kind != billingDialogKind {
+		return nil
+	}
+	p := d.Payload
+	if p.Title == "" && len(p.Paragraphs) == 0 {
+		return nil
+	}
+	paras := p.Paragraphs
+	if p.HelpURL != "" && !strings.Contains(strings.Join(paras, "\n"), p.HelpURL) {
+		paras = append(paras, p.HelpURL)
+	}
+	return dialogs.NewNotice(p.Title, paras, billingHint)
+}
+
+// billingNoticeLink identifies the same notice sent as an informational message, which
+// an engine does when it has no dialog for it (one that does not know the kind).
+const billingNoticeLink = "/docs/en/auto-mode-classifier-billing"
+
+// onInformational shows the informational billing notice as a dialog, once per session
+// and at most once a day after it was acknowledged, since the transcript hides it.
+func (st *state) onInformational(c ext.Ctx, engineID string, ev *proto.Informational) tea.Cmd {
+	if st.billingShown || !strings.Contains(ev.Content, billingNoticeLink) {
+		return nil
+	}
+	env, err := st.env()
+	if err != nil || !gates.BillingNoticeDue(gates.LoadGateStore(env), c.Clock().Now()) {
+		return nil
+	}
+	st.billingShown = true
+	vm := dialogs.NewNotice("Auto mode billing", []string{ev.Content}, "Enter to acknowledge · Esc to close")
+	return st.enqueue(c, &request{engineID: engineID, dialogID: DialogBillingNotice, vm: vm})
+}
+
+func (st *state) recordBillingNotice(c ext.Ctx) tea.Cmd {
+	env, err := st.env()
+	if err != nil {
+		return nil
+	}
+	now := c.Clock().Now()
+	return func() tea.Msg {
+		_ = gates.RecordBillingNotice(env, now)
+		return nil
+	}
 }

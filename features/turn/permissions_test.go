@@ -7,10 +7,12 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/features/turn/dialogs"
+	"github.com/KaitouKid1412/mantle/features/turn/gates"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
@@ -155,10 +157,11 @@ func TestElicitationViaControlRequest(t *testing.T) {
 		t.Fatalf("reply = %s", b)
 	}
 
-	// request_user_dialog is refused: mantle declares no dialog kinds.
+	// A request_user_dialog of a kind mantle did not declare is refused (not settled).
 	var errs []error
 	x.send(ext.ControlRequestMsg{EngineID: ext.MainEngine, Subtype: proto.SubRequestUserDialog, RequestID: "d1",
-		Reply: func(_ any, err error) tea.Cmd { errs = append(errs, err); return nil }})
+		Request: json.RawMessage(`{"subtype":"request_user_dialog","dialog_kind":"other","payload":{}}`),
+		Reply:   func(_ any, err error) tea.Cmd { errs = append(errs, err); return nil }})
 	if len(errs) != 1 || errs[0] == nil {
 		t.Fatalf("request_user_dialog should be refused, got %v", errs)
 	}
@@ -264,5 +267,109 @@ func TestPlanApprovalReadsPlanFile(t *testing.T) {
 	x.press("1")
 	if len(r.got) != 1 || r.got[0].UpdatedPermissions[0].Mode != proto.ModeDefault {
 		t.Fatalf("reply = %+v", r.got)
+	}
+}
+
+const billingText = "We're changing how auto mode is billed. Details: https://code.claude.com/docs/en/auto-mode-classifier-billing"
+
+func TestBillingNoticeDialog(t *testing.T) {
+	x := newH(t)
+	r := &replies{}
+	x.send(permMsg(ext.MainEngine, "p", `{"tool_name":"ExitPlanMode","tool_use_id":"p1","input":{}}`, r))
+	x.event(&proto.Informational{Content: billingText, Level: "warning"})
+	if x.c.topID() != DialogPlanApproval {
+		t.Fatalf("the notice waits behind the open prompt: %v", x.c.ids)
+	}
+	x.press("1")
+	if x.c.topID() != DialogBillingNotice || !strings.Contains(testkitStrip(x.view(100)), "auto-mode-classifier-billing") {
+		t.Fatalf("notice expected next:\n%s", x.view(100))
+	}
+	x.press("enter")
+	if len(x.c.stack) != 0 {
+		t.Fatalf("stack = %v", x.c.ids)
+	}
+	env, _ := x.st.env()
+	if gates.LoadGateStore(env).BillingNoticeAt == "" {
+		t.Fatal("acknowledgement should be recorded")
+	}
+	// Once per session, and quiet for a day across sessions.
+	x.event(&proto.Informational{Content: billingText, Level: "warning"})
+	x2 := newH(t)
+	x2.st.env = x.st.env
+	x2.event(&proto.Informational{Content: billingText, Level: "warning"})
+	if len(x.c.stack)+len(x2.c.stack) != 0 {
+		t.Fatal("acknowledged notice shown again")
+	}
+	x2.c.ClockV.Advance(25 * time.Hour)
+	x3 := newH(t)
+	x3.st.env = x.st.env
+	x3.c.ClockV.Advance(25 * time.Hour)
+	x3.event(&proto.Informational{Content: billingText, Level: "warning"})
+	if x3.c.topID() != DialogBillingNotice {
+		t.Fatal("a day later the notice comes back")
+	}
+	// Esc closes without acknowledging; other informational messages are ignored.
+	x4 := newH(t)
+	x4.event(&proto.Informational{Content: "Compacting soon", Level: "warning"})
+	if len(x4.c.stack) != 0 {
+		t.Fatal("unrelated informational opened a dialog")
+	}
+	x4.event(&proto.Informational{Content: billingText, Level: "warning"})
+	x4.press("esc")
+	env4, _ := x4.st.env()
+	if len(x4.c.stack) != 0 || gates.LoadGateStore(env4).BillingNoticeAt != "" {
+		t.Fatal("esc closes without recording")
+	}
+}
+
+func billingDialogMsg(id string, got *[]string) ext.ControlRequestMsg {
+	raw := `{"subtype":"request_user_dialog","dialog_kind":"auto_mode_server_fallback","payload":{` +
+		`"title":"Auto mode billing is changing","paragraphs":["This session keeps the old billing.",` +
+		`"Details: https://code.claude.com/docs/en/auto-mode-classifier-billing"],` +
+		`"helpUrl":"https://code.claude.com/docs/en/auto-mode-classifier-billing"}}`
+	return ext.ControlRequestMsg{EngineID: ext.MainEngine, Subtype: proto.SubRequestUserDialog, RequestID: id,
+		Request: json.RawMessage(raw),
+		Reply: func(resp any, err error) tea.Cmd {
+			b, _ := json.Marshal(resp)
+			*got = append(*got, string(b))
+			return nil
+		}}
+}
+
+func TestBillingUserDialog(t *testing.T) {
+	if strings.Join(DialogKinds(), ",") != "auto_mode_server_fallback" {
+		t.Fatalf("declared kinds = %v", DialogKinds())
+	}
+	x := newH(t)
+	var got []string
+	x.send(billingDialogMsg("d1", &got))
+	view := testkitStrip(x.view(100))
+	if x.c.topID() != DialogBillingNotice || !strings.Contains(view, "Auto mode billing is changing") ||
+		!strings.Contains(view, "This session keeps the old billing.") || strings.Contains(view, "1.") {
+		t.Fatalf("billing dialog:\n%s", view)
+	}
+	x.press("enter")
+	if len(got) != 1 || got[0] != `{"behavior":"completed","result":"continue"}` || len(x.c.stack) != 0 {
+		t.Fatalf("enter: %v %v", got, x.c.ids)
+	}
+	// The engine decides how often; mantle records nothing and the informational
+	// fallback stays quiet once the dialog was shown.
+	env, _ := x.st.env()
+	if gates.LoadGateStore(env).BillingNoticeAt != "" {
+		t.Fatal("the engine records the acknowledgement, not mantle")
+	}
+	x.event(&proto.Informational{Content: billingText, Level: "warning"})
+	if len(x.c.stack) != 0 {
+		t.Fatal("informational after the dialog opened another notice")
+	}
+	x.send(billingDialogMsg("d2", &got))
+	x.press("esc")
+	if len(got) != 2 || got[1] != `{"behavior":"completed","result":"interrupt"}` {
+		t.Fatalf("esc: %v", got)
+	}
+	x.send(billingDialogMsg("d3", &got))
+	x.press("ctrl+c")
+	if len(got) != 3 || got[2] != `{"behavior":"completed","result":"interrupt"}` || len(x.c.stack) != 0 {
+		t.Fatalf("ctrl+c: %v %v", got, x.c.ids)
 	}
 }
