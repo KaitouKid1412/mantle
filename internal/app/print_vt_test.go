@@ -149,6 +149,62 @@ func TestPrintWrapsLongLines(t *testing.T) {
 
 type printLong struct{ s string }
 
+type closeTallMsg struct{}
+
+// TestReprintAfterTallFrameShrinks is plan 06's /resume: a tall live area (the picker,
+// two rows short of the screen) closes in the same Update that asks for a Reprint, and
+// the history is printed on ScreenClearedMsg. The clear must drop the shrink hold, or
+// the frame stays padded to the picker's height and the history scrolls straight into
+// scrollback; and blank rows between items must print even while the tall-frame window
+// limits chunks to one row.
+func TestReprintAfterTallFrameShrinks(t *testing.T) {
+	const w, h = 60, 20
+	live := &box{id: "test.live", text: strings.TrimSuffix(strings.Repeat("TALL\n", h-2), "\n")}
+	printed := false
+	f := ext.Feature{ID: "test.resume", Order: 10, Setup: func(r ext.Registrar) error {
+		r.AddComponent(ext.SlotLive, live, ext.SlotOpts{})
+		r.AddComponent(ext.SlotInput, focusBox{&box{id: "test.input", text: "> type here", ctx: ext.ContextChat}}, ext.SlotOpts{})
+		ext.Subscribe(r, "test.close", func(c ext.Ctx, _ closeTallMsg) tea.Cmd {
+			live.text = "short"
+			c.Invalidate("test.live")
+			return c.Reprint()
+		})
+		ext.Subscribe(r, "test.cleared", func(c ext.Ctx, _ ext.ScreenClearedMsg) tea.Cmd {
+			if printed {
+				return nil
+			}
+			printed = true
+			return c.Print("H 000\nH 001", "", "H 002")
+		})
+		return nil
+	}}
+	root := New(Options{Host: NewHost([]ext.Feature{f}, HostOptions{Core: CoreFeatures()}), NoBackgroundQuery: true})
+	hs := testkit.New(t, root, testkit.WithSize(w, h))
+	hs.WaitFor(func(s string) bool { return strings.Count(s, "TALL") == h-2 }, 3*time.Second)
+
+	hs.SendMsg(closeTallMsg{})
+	hs.WaitFor(func(string) bool { return countPrefix(hs.All(), "H ") == 3 }, 5*time.Second)
+	hs.Settle(80*time.Millisecond, 3*time.Second)
+
+	if sb := hs.Scrollback(); countPrefix(sb, "H ") > 0 {
+		t.Fatalf("history scrolled into scrollback after the clear\n--- scrollback ---\n%s\n--- screen ---\n%s", strings.Join(sb, "\n"), hs.Screen())
+	}
+	screen := hs.ScreenLines()
+	at := -1
+	for i, l := range screen {
+		if strings.HasPrefix(l, "H 001") {
+			at = i
+		}
+	}
+	if at < 1 || at+2 >= len(screen) || !strings.HasPrefix(screen[at-1], "H 000") ||
+		strings.TrimSpace(screen[at+1]) != "" || !strings.HasPrefix(screen[at+2], "H 002") {
+		t.Fatalf("want H 000, H 001, a blank row, H 002 on screen\n%s", strings.Join(screen, "|\n"))
+	}
+	if !strings.Contains(hs.Screen(), "> type here") || strings.Contains(hs.Screen(), "TALL") {
+		t.Fatalf("live frame after the shrink:\n%s", hs.Screen())
+	}
+}
+
 func TestReprintClearsScrollback(t *testing.T) {
 	hs := startPrinter(t, 60, 16, 3)
 	hs.SendMsg(printMsg{prefix: "P", n: 40})

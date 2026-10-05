@@ -76,17 +76,31 @@ func (r *Root) View() tea.View {
 	return v
 }
 
-// Shrinking inline frames. Bubble Tea v2.0.10 redraws a shorter inline frame at the
-// cursor's current row ("\r ESC[J" + frame) without first moving up to the old frame's
-// top, so the old frame's upper rows stay on screen (verified in the vt emulator; real
-// terminals receive the same bytes). Workaround: when the frame would shrink, keep the
-// old height for a few frame intervals with the freed rows blank at the top, then
-// shrink. What stays behind is blank rows, not stale content.
+// Shrinking inline frames. On a shorter frame Bubble Tea v2.0.10 (ultraviolet's
+// TerminalRenderer) moves up to the frame's top from the cursor row it remembers, but
+// first clamps that row to the new frame's last row. When the cursor sat lower than
+// that, it moves up too little: the new frame is drawn lower than the old one's top and
+// the old upper rows stay on screen (pinned by TestUpstreamInlineShrinkBug).
+//
+// The clamp is harmless when the cursor sits inside the new frame. So a shrink happens
+// in two steps:
+//
+//  1. hold: keep the old height with the new content at the top and the freed rows
+//     blank below it (on screen this already looks shrunk);
+//  2. release: shrink once a held frame that shows the cursor inside the new content
+//     has been flushed (a few frame intervals, then a release tick). The renderer then
+//     moves up from that row exactly to the top, and erases the blank rows below.
+//
+// While the cursor is hidden (Bubble Tea leaves it wherever the last write ended) the
+// hold lasts until it shows again or the frame grows back.
 type shrinkState struct {
 	active   bool
 	target   int  // height to hold
 	seq      int  // release token
 	needTick bool // Update must schedule the release tick
+	ready    bool // the release tick for seq fired
+	heldH    int  // content height of the last held frame
+	cursor   bool // the last held frame showed the cursor
 }
 
 type shrinkReleaseMsg struct{ seq int }
@@ -94,34 +108,51 @@ type shrinkReleaseMsg struct{ seq int }
 // holdHeight pads v to the held height while a shrink is pending; it returns the frame
 // height actually shown.
 func (r *Root) holdHeight(v *tea.View, h int) int {
+	cursor := v.Cursor != nil
 	switch {
 	case r.shrink.active && h >= r.shrink.target:
 		r.shrink.active = false // grew back: nothing to hold
 	case !r.shrink.active && r.frameShown > h:
-		r.shrink = shrinkState{active: true, target: r.frameShown, seq: r.shrink.seq + 1, needTick: true}
+		r.shrink = shrinkState{active: true, target: r.frameShown, seq: r.shrink.seq + 1, needTick: true, heldH: h, cursor: cursor}
+	case r.shrink.active && r.shrink.ready && cursor && r.shrink.cursor && h >= r.shrink.heldH:
+		// The flushed held frame put the cursor on a row this frame keeps.
+		r.shrink.active = false
+	case r.shrink.active && (h < r.shrink.heldH || cursor && !r.shrink.cursor):
+		// What was flushed may put the cursor below this frame: hold, flush this
+		// frame, then try again.
+		r.shrink.seq++
+		r.shrink.ready, r.shrink.needTick = false, true
 	}
 	if !r.shrink.active || h >= r.shrink.target {
 		return h
 	}
-	pad := r.shrink.target - h
-	v.Content = strings.Repeat(" \n", pad) + v.Content
-	if v.Cursor != nil {
-		cur := *v.Cursor
-		cur.Y += pad
-		v.Cursor = &cur
-	}
+	r.shrink.heldH, r.shrink.cursor = h, cursor
+	v.Content += strings.Repeat("\n ", r.shrink.target-h)
 	return r.shrink.target
 }
 
+// shrinkCheckMsg gives Update a turn shortly after a View, in case that View started a
+// hold and the program then went quiet.
+type shrinkCheckMsg struct{}
+
 // shrinkCmd schedules the release of a held frame height (called from Update, since
-// View cannot return Cmds).
-func (r *Root) shrinkCmd() tea.Cmd {
-	if !r.shrink.needTick {
-		return nil
+// View cannot return Cmds). A hold starts in the View after some Update, so every
+// Update also keeps one check tick in flight (not re-armed by the check itself): it
+// schedules the release even when nothing else happens after the shrink.
+func (r *Root) shrinkCmd(msg tea.Msg) tea.Cmd {
+	var cmds []tea.Cmd
+	if _, check := msg.(shrinkCheckMsg); check {
+		r.shrinkCheckArmed = false
+	} else if !r.shrinkCheckArmed {
+		r.shrinkCheckArmed = true
+		cmds = append(cmds, tea.Tick(2*r.opts.FrameInterval, func(time.Time) tea.Msg { return shrinkCheckMsg{} }))
 	}
-	r.shrink.needTick = false
-	seq := r.shrink.seq
-	return tea.Tick(4*r.opts.FrameInterval, func(time.Time) tea.Msg { return shrinkReleaseMsg{seq: seq} })
+	if r.shrink.needTick {
+		r.shrink.needTick = false
+		seq := r.shrink.seq
+		cmds = append(cmds, tea.Tick(4*r.opts.FrameInterval, func(time.Time) tea.Msg { return shrinkReleaseMsg{seq: seq} }))
+	}
+	return tea.Batch(cmds...)
 }
 
 func (r *Root) altView(d *openDialog) tea.View {

@@ -143,6 +143,11 @@ func (r *Root) printNext() tea.Cmd {
 	}
 	if head.clear {
 		r.printer.queue = r.printer.queue[1:]
+		// A cleared screen has no stale rows to hide: drop any shrink hold, or
+		// the padded frame takes the whole screen and the reprint's lines are
+		// inserted at its top and scrolled straight into scrollback.
+		r.shrink = shrinkState{seq: r.shrink.seq}
+		r.frameShown = 0
 		r.invalidateAll()
 		wait := 3 * r.opts.FrameInterval
 		return tea.Sequence(
@@ -157,7 +162,11 @@ func (r *Root) printNext() tea.Cmd {
 	if len(head.lines) == 0 {
 		r.printer.queue = r.printer.queue[1:]
 	}
-	return tea.Sequence(tea.Println(strings.Join(chunk, "\n")), ext.Msg(printDoneMsg{}))
+	text := strings.Join(chunk, "\n")
+	if text == "" {
+		text = " " // tea.Println("") prints nothing; a blank row must still take its line
+	}
+	return tea.Sequence(tea.Println(text), ext.Msg(printDoneMsg{}))
 }
 
 // printNextFullscreen finishes the head item without scrollback: a clear redraws and
