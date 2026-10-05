@@ -556,11 +556,6 @@ func TestGateChoices(t *testing.T) {
 	if k.Chosen() != ChoiceNo {
 		t.Fatal("api key defaults to No")
 	}
-	am := NewAutoModePrompt()
-	press(t, am, "up", "enter")
-	if am.Chosen() != ChoiceYes {
-		t.Fatal("auto mode up+enter = yes")
-	}
 }
 
 func TestMcpApprovalDialog(t *testing.T) {

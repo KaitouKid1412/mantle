@@ -95,7 +95,6 @@ func samples(t *testing.T) map[string]Model {
 	m["trust_empty_home"] = NewTrust(gates.TrustReport{Dir: "/home/user"}, true)
 	m["bypass_warning"] = NewBypassWarning()
 	m["api_key"] = NewAPIKeyPrompt("ABCDEFGHIJKLMNOPQRST")
-	m["auto_mode"] = NewAutoModePrompt()
 	m["engine_check"] = NewEngineCheck("2.1.300", []string{"skills", "hooks"}, "2.1.288")
 	m["usage_limit"] = NewUsageLimit("3:00 PM")
 	m["mcp_approval_one"] = NewMcpApproval([]gates.McpServer{{Name: "db", Transport: "stdio", Command: "npx", Args: []string{"db-mcp"}, EnvKeys: []string{"TOKEN"}}})

@@ -23,7 +23,6 @@ const (
 	DialogMcpApproval     = "dialog.mcpApproval"
 	DialogBypassWarning   = "dialog.bypassWarning"
 	DialogAPIKey          = "dialog.apiKey"
-	DialogAutoMode        = "dialog.autoMode"
 	DialogUsageLimit      = "dialog.usageLimit"
 	DialogEngineCheck     = "dialog.engineCheck"
 )
