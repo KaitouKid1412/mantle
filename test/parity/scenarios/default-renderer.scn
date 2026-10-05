@@ -1,0 +1,16 @@
+# No tui setting: each target picks its default renderer (Claude Code 2.1.289: fullscreen;
+# mantle follows the installed engine). The frame says "alternate screen" when fullscreen.
+name: default-renderer
+size: 100x30
+args: --permission-mode default
+prompt: Explain the plan in markdown
+files: ../../../testdata/fixtures/12/app
+script: scripts/plain-qa.json
+settings: {"tui": null}
+parity: VW-12, VW-13, VW-15
+---
+ready
+wait_for 30s Done.
+wait_gone 30s esc to interrupt
+settle
+checkpoint answered

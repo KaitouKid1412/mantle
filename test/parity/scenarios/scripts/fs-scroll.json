@@ -1,0 +1,14 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Here is a long answer.\n\nLine 01 of the long answer.\nLine 02 of the long answer.\nLine 03 of the long answer.\nLine 04 of the long answer.\nLine 05 of the long answer.\nLine 06 of the long answer.\nLine 07 of the long answer.\nLine 08 of the long answer.\nLine 09 of the long answer.\nLine 10 of the long answer.\nLine 11 of the long answer.\nLine 12 of the long answer.\nLine 13 of the long answer.\nLine 14 of the long answer.\nLine 15 of the long answer.\nLine 16 of the long answer.\nLine 17 of the long answer.\nLine 18 of the long answer.\nLine 19 of the long answer.\nLine 20 of the long answer.\nLine 21 of the long answer.\nLine 22 of the long answer.\nLine 23 of the long answer.\nLine 24 of the long answer.\nLine 25 of the long answer.\nLine 26 of the long answer.\nLine 27 of the long answer.\nLine 28 of the long answer.\nLine 29 of the long answer.\nLine 30 of the long answer.\nLine 31 of the long answer.\nLine 32 of the long answer.\nLine 33 of the long answer.\nLine 34 of the long answer.\nLine 35 of the long answer.\nLine 36 of the long answer.\nLine 37 of the long answer.\nLine 38 of the long answer.\nLine 39 of the long answer.\nLine 40 of the long answer.\nLine 41 of the long answer.\nLine 42 of the long answer.\nLine 43 of the long answer.\nLine 44 of the long answer.\nLine 45 of the long answer.\nLine 46 of the long answer.\nLine 47 of the long answer.\nLine 48 of the long answer.\nLine 49 of the long answer.\nLine 50 of the long answer.\nLine 51 of the long answer.\nLine 52 of the long answer.\nLine 53 of the long answer.\nLine 54 of the long answer.\nLine 55 of the long answer.\nLine 56 of the long answer.\nLine 57 of the long answer.\nLine 58 of the long answer.\nLine 59 of the long answer.\nLine 60 of the long answer.\nLine 61 of the long answer.\nLine 62 of the long answer.\nLine 63 of the long answer.\nLine 64 of the long answer.\nLine 65 of the long answer.\nLine 66 of the long answer.\nLine 67 of the long answer.\nLine 68 of the long answer.\nLine 69 of the long answer.\nLine 70 of the long answer.\nLine 71 of the long answer.\nLine 72 of the long answer.\nLine 73 of the long answer.\nLine 74 of the long answer.\nLine 75 of the long answer.\nLine 76 of the long answer.\nLine 77 of the long answer.\nLine 78 of the long answer.\nLine 79 of the long answer.\nLine 80 of the long answer.\n\nEnd of the long answer."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

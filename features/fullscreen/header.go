@@ -13,9 +13,10 @@ import (
 // HeaderID is the sticky prompt header component.
 const HeaderID = "fullscreen.header"
 
-// stickyHeader shows the user prompt of the turn in view once that prompt has scrolled
-// above the top of the viewport, so the reader always knows which question an answer
-// belongs to.
+// stickyHeader shows the user prompt of the turn in view while the reader is scrolled up
+// and that prompt is above the top of the viewport, so they know which question an
+// answer belongs to. At the bottom (following new output) it stays hidden, as in Claude
+// Code.
 type stickyHeader struct {
 	tv *transcriptView
 }
@@ -44,17 +45,16 @@ func (h *stickyHeader) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	return ext.Rendered{Text: renderHeader(ctx.Theme(), text, a.Width)}
 }
 
-// renderHeader is the prompt line and a rule under it.
+// renderHeader is the prompt line.
 func renderHeader(t *theme.Theme, text string, w int) string {
-	line := t.Paint(theme.Inactive, "❯ ") + t.Paint(theme.Text, ansi.Truncate(text, max(1, w-2), "…"))
-	return line + "\n" + t.Paint(theme.Subtle, strings.Repeat("─", w))
+	return t.Paint(theme.Inactive, "❯ ") + t.Paint(theme.Text, ansi.Truncate(text, max(1, w-2), "…"))
 }
 
 // prompt finds the last user prompt starting above the viewport's first line.
 func (h *stickyHeader) prompt() (string, bool) {
 	tv := h.tv
 	top := tv.vp.Offset()
-	if top == 0 || len(tv.items) == 0 {
+	if top == 0 || len(tv.items) == 0 || tv.vp.Following() {
 		return "", false
 	}
 	b, _, ok := tv.vp.BlockAt(top)

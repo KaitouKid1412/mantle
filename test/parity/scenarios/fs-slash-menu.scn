@@ -1,0 +1,17 @@
+# Fullscreen renderer: the empty screen, then the / menu.
+name: fs-slash-menu
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+settings: {"tui": "fullscreen"}
+parity: VW-15, AC-01
+---
+ready
+settle 3s
+checkpoint start
+type /
+settle
+checkpoint menu
+keys esc
+settle
+checkpoint closed

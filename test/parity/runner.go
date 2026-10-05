@@ -225,7 +225,7 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 		t.Settle(300*time.Millisecond, timeout)
 	case StepCheckpoint:
 		t.Settle(200*time.Millisecond, 2*time.Second)
-		res.Checkpoints = append(res.Checkpoints, Checkpoint{Name: st.Text, Frame: t.Snapshot(), At: time.Since(start)})
+		res.Checkpoints = append(res.Checkpoints, Checkpoint{Name: st.Text, Frame: steadyFrame(t), At: time.Since(start)})
 	case StepResize:
 		if err := t.Resize(st.Width, st.Height); err != nil {
 			return err

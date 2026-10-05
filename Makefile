@@ -46,8 +46,11 @@ lint: vet
 archtest:
 	$(GO) test ./internal/archtest/...
 
+# Parity status (plan 12): every docs/PARITY.md row with its evidence (Parity tags on
+# registrations, side-by-side scenarios) and plan 12's triage requests, written to
+# docs/parity-status.md.
 parity:
-	@echo "parity report: not implemented yet (plan 12 / CLAUDE.md rule 9)"
+	$(GO) run ./test/parity/cmd/status
 
 # Side-by-side parity harness (plan 12): runs test/parity/scenarios against the
 # interactive targets with fakeapi (offline, free) and writes test/parity/out/.

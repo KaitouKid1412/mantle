@@ -229,6 +229,63 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   - Accessibility: screen-reader flat mode (plan 07), reduced motion, daltonized and ANSI
     themes, keyboard-only flows through every dialog.
   - Record results in this plan.
+
+  **Checklist (for the user, by hand).** About 10 minutes per terminal. Once, run
+  `make install` in the repository (it installs the `mantle` launcher at
+  `~/.local/bin/mantle` and a current build); then start each run with `mantle` from a
+  scratch directory, signed in as usual. Without installing, `./bin/mantle-ui` after
+  `make build` works too. Record ✓ / ✗ / n/a and a note per cell in the tables below
+  (fill in the terminals you have); ✗ needs a one-line description (what you pressed,
+  what you saw).
+
+  Terminals: iTerm2 · Ghostty · Terminal.app · kitty · WezTerm · VS Code terminal · tmux
+  (inside any of the above) · SSH (to a Linux host, mantle running remotely).
+
+  | # | Check | How |
+  |---|---|---|
+  | T1 | Starts and draws | `mantle`, then type `hi` and enter. The banner, a reply, the prompt frame and the footer draw without garbage. |
+  | T2 | shift+enter newline | Type `a`, press shift+enter, type `b`. Two lines in the prompt, not a submit. (If not: run `/terminal-setup` and retry; note whether that fixed it.) |
+  | T3 | Image paste | Copy a screenshot, press ctrl+v (cmd+v in iTerm2/Ghostty) in the prompt. An `[Image #1]` chip appears. |
+  | T4 | Notification | Ask "wait 20 seconds then say done" (or any long turn), switch to another app/tab. A desktop notification arrives when it finishes. |
+  | T5 | Window title | The tab/window title shows the session name or the folder, and changes after `/rename parity test`. |
+  | T6 | Progress bar | During a long turn, the tab or dock shows progress (Ghostty, iTerm2, Windows Terminal only; n/a elsewhere). |
+  | T7 | Colours | `/theme`, pick Dark, then Light, then a daltonized theme. Text stays readable; diff colours (`/diff` after an edit) are distinguishable. |
+  | T8 | Fullscreen | `/tui fullscreen`: mouse wheel scrolls, drag selects and copies (paste somewhere to check), PgUp/PgDn and ctrl+end work. `/tui default` returns to inline. |
+  | T9 | Clipboard over SSH / tmux | In tmux and over SSH, select text in fullscreen (or `/copy`) and paste locally. OSC 52 must reach your local clipboard. |
+  | T10 | Resize | Drag the window narrower and wider during a reply. No duplicated or torn lines in scrollback. |
+  | T11 | Hand-off | `/mobile`, confirm with enter: Claude Code opens with the QR code; exit it (ctrl+c twice); mantle comes back with the conversation. |
+
+  Accessibility (any one terminal):
+
+  | # | Check | How |
+  |---|---|---|
+  | A1 | Screen-reader flat mode | `CLAUDE_AX_SCREEN_READER=1 mantle` (or the screen-reader setting in `/config`; `CLAUDE_CODE_ACCESSIBILITY=1` additionally keeps the real cursor visible): no box drawing, no spinner animation, every dialog readable as plain lines; with VoiceOver on, a reply is read out. |
+  | A2 | Reduced motion | `/config` → reduce motion: spinner stops animating, no shimmer. |
+  | A3 | Daltonized and ANSI themes | `/theme` → daltonized dark/light and the ANSI theme: modes, diffs and errors stay distinguishable. |
+  | A4 | Keyboard-only dialogs | Without the mouse, open and close each: permission prompt (ask for a file edit), plan approval (shift+tab to plan, ask for a plan), AskUserQuestion (ask Claude to ask you a question), `/model`, `/help`, `/mcp`, `/resume`, `/rewind` (esc esc), `/config`, `/tasks`. Every option is reachable with arrows/tab/enter and esc closes. |
+
+  Results:
+
+  | Check | iTerm2 | Ghostty | Terminal.app | kitty | WezTerm | VS Code | tmux | SSH |
+  |---|---|---|---|---|---|---|---|---|
+  | T1 | | | | | | | | |
+  | T2 | | | | | | | | |
+  | T3 | | | | | | | | |
+  | T4 | | | | | | | | |
+  | T5 | | | | | | | | |
+  | T6 | | | | | | | | |
+  | T7 | | | | | | | | |
+  | T8 | | | | | | | | |
+  | T9 | | | | | | | | |
+  | T10 | | | | | | | | |
+  | T11 | | | | | | | | |
+
+  | Check | Result | Note |
+  |---|---|---|
+  | A1 | | |
+  | A2 | | |
+  | A3 | | |
+  | A4 | | |
 - [ ] **B6 [M2] Close the parity audit.**
   - Go through every `docs/PARITY.md` row with `make parity` (generated status from plan
     checklists and `Parity:` tags) plus the side-by-side results.

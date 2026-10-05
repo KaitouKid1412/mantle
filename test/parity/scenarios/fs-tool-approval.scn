@@ -1,0 +1,19 @@
+# Fullscreen renderer: a permission prompt, allowed once.
+name: fs-tool-approval
+size: 100x30
+args: --permission-mode default
+prompt: Create the marker file
+files: ../../../testdata/fixtures/12/app
+script: scripts/tool-approval.json
+settings: {"tui": "fullscreen"}
+parity: VW-15, PD-01, PD-02
+---
+ready
+wait_for 30s touch parity-marker.txt
+wait_for 30s 1. Yes
+settle
+checkpoint permission-prompt
+keys enter
+wait_for 30s Created parity-marker.txt.
+settle
+checkpoint allowed
