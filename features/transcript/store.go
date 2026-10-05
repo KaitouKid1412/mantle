@@ -51,6 +51,7 @@ type Store struct {
 	models      map[string]string                          // item ID → model that wrote it
 	shown       map[string]bool                            // result uuid → its error is already on screen
 	interrupted map[string]bool                            // result uuid → a tool row shows the interruption
+	waiting     map[string]string                          // tool_use id → permission request id while its prompt is open
 	view        func(ext.Ctx, int) ([]string, []ext.Block) // set by the feature (Lines)
 	_           struct{}
 }
@@ -99,6 +100,7 @@ func (s *Store) reset() {
 	s.models = map[string]string{}
 	s.shown = map[string]bool{}
 	s.interrupted = map[string]bool{}
+	s.waiting = map[string]string{}
 	s.retry = nil
 	s.rev++
 }
@@ -122,6 +124,34 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// Waiting reports whether a tool call's permission prompt is open.
+func (s *Store) Waiting(id string) bool { return s.waiting[id] != "" }
+
+// SetWaiting marks a tool call as waiting for a permission answer (request ID
+// requestID); "" clears the mark.
+func (s *Store) SetWaiting(id, requestID string) {
+	if requestID == "" {
+		if _, ok := s.waiting[id]; !ok {
+			return
+		}
+		delete(s.waiting, id)
+	} else {
+		s.waiting[id] = requestID
+	}
+	if it := s.byID[id]; it != nil {
+		s.touch(it)
+	}
+}
+
+// ClearWaiting drops the marks of one permission request ("" = all of them).
+func (s *Store) ClearWaiting(requestID string) {
+	for id, req := range s.waiting {
+		if requestID == "" || req == requestID {
+			s.SetWaiting(id, "")
+		}
+	}
+}
 
 // InterruptShown reports whether an interrupted turn's last tool row already
 // carries the interruption (so the result does not repeat it).
@@ -634,6 +664,7 @@ func (s *Store) applyUser(e *proto.User) {
 		if it == nil {
 			continue
 		}
+		delete(s.waiting, r.ToolUseID)
 		res := r
 		it.Result = &res
 		var async struct {
