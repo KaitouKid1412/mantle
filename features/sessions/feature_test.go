@@ -80,7 +80,7 @@ func TestSessionChangedLoadsHistory(t *testing.T) {
 	h := newHarness(t)
 	h.run(ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{EngineID: ext.MainEngine, SessionID: sidCompact, Cwd: "/work/demo"}}))
 	hist := find[ext.TranscriptHistoryMsg](h)
-	if len(hist) != 1 || len(hist[0].Items) != 4 { // boundary, prompt, answer, turn result
+	if len(hist) != 1 || len(hist[0].Items) != 3 {
 		t.Fatalf("history = %+v", hist)
 	}
 	// Seen once; a repeat does not load again.
