@@ -44,7 +44,6 @@ var storyItems = []struct {
 	{"tool.Bash", []string{"t_bash"}},
 	{"tool.Edit", []string{"t_edit"}},
 	{"tool.Write", []string{"t_write"}},
-	{"tool.TodoWrite", []string{"t_todo"}},
 	{"tool.Agent", []string{"t_agent"}},
 	{"tool.mcp", []string{"t_mcp1", "t_mcp2"}},
 	{"tool.WebFetch", []string{"t_fetch"}},

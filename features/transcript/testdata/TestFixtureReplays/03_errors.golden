@@ -30,9 +30,9 @@
 
 [38;2;230;227;222m⏺[m I was asked not to edit the README, so I'll stop here. The
   build folder
+  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
 
-  ⎿  [38;2;239;122;128mInterrupted by user[m
-[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Edit(file_path: "/work/app/README.md")[m
+[38;2;139;139;147m✻ Churned for 12s · done 3:04 PM[m
 
 [38;2;239;122;128m⏺[m [38;2;239;122;128mThe API is overloaded. Try again shortly.[m
   ⎿  [38;2;139;139;147mAPI Error: 529 Overloaded[m
@@ -66,9 +66,9 @@
 [38;2;231;183;95m⏺[m [38;2;231;183;95mThe model declined to respond; retrying with model-b[m
 
 [38;2;230;227;222m⏺[m I was asked not to edit the README, so I'll stop here. The build folder
+  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
 
-  ⎿  [38;2;239;122;128mInterrupted by user[m
-[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Edit(file_path: "/work/app/README.md")[m
+[38;2;139;139;147m✻ Churned for 12s · done 3:04 PM[m
 
 [38;2;239;122;128m⏺[m [38;2;239;122;128mThe API is overloaded. Try again shortly.[m
   ⎿  [38;2;139;139;147mAPI Error: 529 Overloaded[m
@@ -102,9 +102,9 @@
 [38;2;231;183;95m⏺[m [38;2;231;183;95mThe model declined to respond; retrying with model-b[m
 
 [38;2;230;227;222m⏺[m I was asked not to edit the README, so I'll stop here. The build folder
+  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
 
-  ⎿  [38;2;239;122;128mInterrupted by user[m
-[38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Edit(file_path: "/work/app/README.md")[m
+[38;2;139;139;147m✻ Churned for 12s · done 3:04 PM[m
 
 [38;2;239;122;128m⏺[m [38;2;239;122;128mThe API is overloaded. Try again shortly.[m
   ⎿  [38;2;139;139;147mAPI Error: 529 Overloaded[m

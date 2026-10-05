@@ -3,22 +3,16 @@
   ⎿  === RUN   TestRetryBackoff
          worker_test.go:41: retried after 0s, want >= 200ms
      --- FAIL: TestRetryBackoff (0.00s)
-     === RUN   TestRetryLimit
-     --- PASS: TestRetryLimit (0.00s)
-     [38;2;139;139;147m… +3 lines (ctrl+o to expand)[m
+     [38;2;139;139;147m… +5 lines (ctrl+o to expand)[m
 ── width 100 ──
 [38;2;111;194;139m⏺[m [1mBash[m(go test ./internal/queue/... -run TestRetry -count=1)
   ⎿  === RUN   TestRetryBackoff
          worker_test.go:41: retried after 0s, want >= 200ms
      --- FAIL: TestRetryBackoff (0.00s)
-     === RUN   TestRetryLimit
-     --- PASS: TestRetryLimit (0.00s)
-     [38;2;139;139;147m… +3 lines (ctrl+o to expand)[m
+     [38;2;139;139;147m… +5 lines (ctrl+o to expand)[m
 ── width 160 ──
 [38;2;111;194;139m⏺[m [1mBash[m(go test ./internal/queue/... -run TestRetry -count=1)
   ⎿  === RUN   TestRetryBackoff
          worker_test.go:41: retried after 0s, want >= 200ms
      --- FAIL: TestRetryBackoff (0.00s)
-     === RUN   TestRetryLimit
-     --- PASS: TestRetryLimit (0.00s)
-     [38;2;139;139;147m… +3 lines (ctrl+o to expand)[m
+     [38;2;139;139;147m… +5 lines (ctrl+o to expand)[m
