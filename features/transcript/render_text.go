@@ -177,6 +177,9 @@ func (f *Feature) mdOptions(rc ext.RenderCtx, width int) render.MarkdownOptions 
 		Palette:       paletteOf(rc.Theme),
 		NoHighlight:   f.cfg.noHighlight,
 		NoHyperlinks:  f.cfg.noLinks,
+		// Code keeps a terminal's 8-column tab stops, past the 2-column margin.
+		TabWidth:  8,
+		TabColumn: len(dotIndent),
 	}
 }
 
