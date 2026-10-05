@@ -312,7 +312,11 @@ func (c *statusLineComp) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 		// The footer's first row carries the effort hint; with a status line, that's
 		// this one.
 		first, rest, _ := strings.Cut(text, "\n")
-		text = withRightHint(ctx, first, effortHint(ctx, c.d.s), a.Width)
+		hint := ""
+		if ctx.Layout() != ext.Fullscreen {
+			hint = effortHint(ctx, c.d.s)
+		}
+		text = withRightHint(ctx, first, hint, a.Width)
 		if rest != "" {
 			text += "\n" + rest
 		}
