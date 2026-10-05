@@ -1,0 +1,22 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "First reply."
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Second reply."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

@@ -63,6 +63,28 @@ func TestFullscreenRefusedAndMouseOff(t *testing.T) {
 	}
 }
 
+func TestFullscreenInlineDialogAtBottom(t *testing.T) {
+	in := &box{id: "test.input", text: "> prompt", ctx: ext.ContextChat}
+	var got []string
+	host := NewHost([]ext.Feature{inputFeature(in, &got)}, HostOptions{Core: CoreFeatures()})
+	r := New(Options{Host: host, NoBackgroundQuery: true, Layout: ext.Fullscreen, Clock: &manualClock{}})
+	r.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
+	drive(t, r, cmdMsgs(r.Ctx().OpenDialog("dialog.test", "rm -rf build"))...)
+	lines := strings.Split(r.View().Content, "\n")
+	last := ""
+	for _, l := range lines {
+		if strings.TrimSpace(l) != "" {
+			last = l
+		}
+	}
+	if !strings.Contains(last, "Allow? rm -rf build") {
+		t.Fatalf("inline dialog should sit at the bottom in place of the input:\n%s", r.View().Content)
+	}
+	if strings.Contains(r.View().Content, "> prompt") {
+		t.Fatal("the input should be replaced while the inline dialog is open")
+	}
+}
+
 func TestEmptySidebarTakesNoColumns(t *testing.T) {
 	side := &box{id: "fs.side", text: ""} // a closed pane
 	host := NewHost([]ext.Feature{fullscreenFeature(side)}, HostOptions{Core: CoreFeatures()})

@@ -71,8 +71,9 @@ func LoadAllowlist(path string) (*Allowlist, error) {
 
 func matchAny(field, v string) bool { return field == "" || field == "*" || field == v }
 
-// Covers reports whether every differing line between left and right is explained by
-// an entry for this scenario and checkpoint, and returns the reasons used.
+// Covers reports whether every differing line between left and right (the lines a line
+// diff marks as added or removed) is explained by an entry for this scenario and
+// checkpoint, and returns the reasons used.
 func (a *Allowlist) Covers(scenario, checkpoint string, left, right []string) ([]string, bool) {
 	if a == nil || len(a.Entries) == 0 {
 		return nil, false
@@ -84,20 +85,14 @@ func (a *Allowlist) Covers(scenario, checkpoint string, left, right []string) ([
 		}
 	}
 	var reasons []string
-	for i := range max(len(left), len(right)) {
-		var x, y string
-		if i < len(left) {
-			x = left[i]
-		}
-		if i < len(right) {
-			y = right[i]
-		}
-		if x == y {
-			continue
+	onlyL, onlyR := diffLines(left, right)
+	for _, line := range append(onlyL, onlyR...) {
+		if strings.TrimSpace(line) == "" {
+			continue // blank lines move with the text around them
 		}
 		covered := false
 		for _, e := range entries {
-			if (x != "" && e.re.MatchString(x)) || (y != "" && e.re.MatchString(y)) {
+			if e.re.MatchString(line) {
 				covered = true
 				if !slices.Contains(reasons, e.Reason) {
 					reasons = append(reasons, e.Reason)

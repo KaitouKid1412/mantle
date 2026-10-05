@@ -1,0 +1,17 @@
+# The /model picker.
+name: model-picker
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+parity: ST-01
+---
+ready
+type /model
+keys enter
+# Both list the models once they have loaded them.
+wait_for 20s Haiku
+settle
+checkpoint shown
+keys esc
+settle
+checkpoint closed

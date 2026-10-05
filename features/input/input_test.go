@@ -229,6 +229,26 @@ func TestArgumentCompletion(t *testing.T) {
 	if r.text() != "/model sonnet " {
 		t.Fatalf("%q", r.text())
 	}
+	// Enter on a partial argument picks it and runs the command.
+	r.s.ed.Clear()
+	r.keys("'/model op'", "enter")
+	// Enter on an exactly typed argument just runs it.
+	r.keys("'/model haiku'", "enter")
+	ps := r.eng.prompts()
+	if len(ps) != 2 || ps[0].Blocks[0].Text != "/model opus" || ps[1].Blocks[0].Text != "/model haiku" {
+		t.Fatalf("enter submits: %+v", ps)
+	}
+	if !r.s.ed.Empty() {
+		t.Fatalf("nothing glued on: %q", r.text())
+	}
+}
+
+func TestEnterOnExactSlashMatchSubmits(t *testing.T) {
+	r := newRig(t, nil)
+	r.keys("'/cost'", "enter")
+	if ps := r.eng.prompts(); len(ps) != 1 || ps[0].Blocks[0].Text != "/cost" {
+		t.Fatalf("exact command: %+v", ps)
+	}
 }
 
 func itemValues(items []compItem) []string {

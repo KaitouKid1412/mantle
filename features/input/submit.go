@@ -37,11 +37,16 @@ func (s *state) submitAction(c ext.Ctx, priority string) (bool, tea.Cmd) {
 	}
 	if s.comp.open() && priority == "" {
 		kind := s.comp.kind
-		cmd := s.comp.accept(c, s, true)
-		if kind != compSlash {
-			return true, cmd
+		if s.comp.selectedIsTyped() {
+			// Nothing left to complete: Enter submits what is typed.
+			s.comp.close()
+			return true, s.trySubmit(c, priority)
 		}
-		// A command picked from the menu runs right away.
+		cmd := s.comp.accept(c, s, true)
+		if kind != compSlash && kind != compArgs {
+			return true, cmd // @ paths, emoji and ! paths only insert
+		}
+		// A command or argument picked from the menu runs right away.
 		return true, tea.Batch(cmd, s.trySubmit(c, priority))
 	}
 	return true, s.trySubmit(c, priority)

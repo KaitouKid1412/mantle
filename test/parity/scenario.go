@@ -18,8 +18,9 @@ import (
 //	name: plain-qa
 //	size: 100x30
 //	script: scripts/plain-qa.json   # fakeapi script, relative to the scenario file
-//	args: --model sonnet            # extra command-line arguments for the target
-//	files: fixtures/app             # copied into the working directory before start
+//	args: --model sonnet            # extra command-line arguments ('…' and "…" quote)
+//	prompt: Explain this project    # positional first prompt (first start only, not restarts)
+//	files: ../../../testdata/fixtures/12/app  # copied into the working directory first
 //	env: CLAUDE_CODE_ENABLE_TODO_TOOLS=1   # extra environment (repeatable)
 //	settings: {"statusLine": {...}}  # written to the isolated CLAUDE_CONFIG_DIR/settings.json;
 //	                                 # "tui" defaults to "default" (the inline renderer)
@@ -37,6 +38,8 @@ import (
 //	resize 120x40
 //	sleep 300ms
 //	restart -c                  # quit and start the target again with these arguments
+//	@mantle keys enter          # a step for one target only (not checkpoints); the
+//	                            # report lists these, since they are real differences
 //
 // fakeapi scripts may use {{work}}, {{config}} and {{home}}; the runner replaces them
 // with the run's directories (tools need absolute paths).
@@ -46,6 +49,7 @@ type Scenario struct {
 	Height   int
 	Script   string   // fakeapi script path (absolute after Load)
 	Args     []string // extra target arguments
+	Prompt   string   // positional first prompt, for the first start only
 	Files    string   // fixture directory copied into the workspace (absolute after Load)
 	Env      []string // extra KEY=VALUE environment
 	Settings string   // JSON written to CLAUDE_CONFIG_DIR/settings.json
@@ -81,6 +85,8 @@ type Step struct {
 	Height  int           // resize
 	Dur     time.Duration // sleep
 	Args    []string      // restart
+	Only    string        // run on this target only ("" = every target)
+	Src     string        // the step as written (without @target), for reports
 	Line    int           // line in the file, for errors
 }
 
@@ -158,11 +164,22 @@ func ParseScenario(text string) (*Scenario, error) {
 			}
 			continue
 		}
+		only := ""
+		if strings.HasPrefix(line, "@") {
+			tgt, rest, _ := strings.Cut(line[1:], " ")
+			if tgt == "" || strings.TrimSpace(rest) == "" {
+				return nil, fmt.Errorf("line %d: @target needs a target and a step", n)
+			}
+			only, line = tgt, strings.TrimSpace(rest)
+		}
 		st, err := parseStep(line)
 		if err != nil {
 			return nil, fmt.Errorf("line %d: %w", n, err)
 		}
-		st.Line = n
+		if only != "" && st.Kind == StepCheckpoint {
+			return nil, fmt.Errorf("line %d: checkpoints run on every target", n)
+		}
+		st.Line, st.Only, st.Src = n, only, line
 		sc.Steps = append(sc.Steps, st)
 	}
 	if !sawHeaderEnd {
@@ -195,8 +212,14 @@ func (sc *Scenario) setHeader(key, val string) error {
 		sc.Width, sc.Height = w, h
 	case "script":
 		sc.Script = val
+	case "prompt":
+		sc.Prompt = val
 	case "args":
-		sc.Args = strings.Fields(val)
+		args, err := splitArgs(val)
+		if err != nil {
+			return err
+		}
+		sc.Args = args
 	case "files":
 		sc.Files = val
 	case "env":
@@ -278,7 +301,7 @@ func parseStep(line string) (Step, error) {
 	case StepSleep:
 		st.Dur, err = time.ParseDuration(rest)
 	case StepRestart:
-		st.Args = strings.Fields(rest)
+		st.Args, err = splitArgs(rest)
 	default:
 		err = fmt.Errorf("unknown step %q", verb)
 	}
@@ -300,4 +323,47 @@ func parseSize(s string) (int, int, error) {
 		return 0, 0, fmt.Errorf("bad size %q (want WxH, at least 20x5)", s)
 	}
 	return w, h, nil
+}
+
+// splitArgs splits a command line into words like a shell: whitespace separates,
+// '…' quotes literally, "…" quotes with \" and \\ escapes.
+func splitArgs(s string) ([]string, error) {
+	var args []string
+	var cur strings.Builder
+	inWord := false
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; {
+		case c == ' ' || c == '\t':
+			if inWord {
+				args, inWord = append(args, cur.String()), false
+				cur.Reset()
+			}
+		case c == '\'':
+			end := strings.IndexByte(s[i+1:], '\'')
+			if end < 0 {
+				return nil, fmt.Errorf("unterminated ' in %q", s)
+			}
+			cur.WriteString(s[i+1 : i+1+end])
+			i, inWord = i+1+end, true
+		case c == '"':
+			i++
+			for ; i < len(s) && s[i] != '"'; i++ {
+				if s[i] == '\\' && i+1 < len(s) && (s[i+1] == '"' || s[i+1] == '\\') {
+					i++
+				}
+				cur.WriteByte(s[i])
+			}
+			if i >= len(s) {
+				return nil, fmt.Errorf("unterminated \" in %q", s)
+			}
+			inWord = true
+		default:
+			cur.WriteByte(c)
+			inWord = true
+		}
+	}
+	if inWord {
+		args = append(args, cur.String())
+	}
+	return args, nil
 }
