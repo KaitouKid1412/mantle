@@ -172,11 +172,12 @@ func (f *Feature) mdOptions(rc ext.RenderCtx, width int) render.MarkdownOptions 
 		prose = max(prose-len(dotIndent), 1)
 	}
 	return render.MarkdownOptions{
-		Width:         max(width, 1),
-		MaxProseWidth: prose,
-		Palette:       paletteOf(rc.Theme),
-		NoHighlight:   f.cfg.noHighlight,
-		NoHyperlinks:  f.cfg.noLinks,
+		Width:          max(width, 1),
+		MaxProseWidth:  prose,
+		Palette:        paletteOf(rc.Theme),
+		NoHighlight:    f.cfg.noHighlight,
+		NoHyperlinks:   f.cfg.noLinks,
+		KeepLineBreaks: true, // a single newline is a line break, as in claude
 		// Code keeps a terminal's 8-column tab stops, past the 2-column margin.
 		TabWidth:  8,
 		TabColumn: len(dotIndent),

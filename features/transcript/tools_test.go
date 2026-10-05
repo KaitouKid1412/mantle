@@ -55,6 +55,9 @@ var sampleInput = map[string]any{
 	"SendUserMessage": map[string]any{"message": "Done **now**."},
 }
 
+// dialogTool lists tools whose dialog replaces their row while it is open.
+var dialogTool = map[string]bool{"AskUserQuestion": true, "ExitPlanMode": true}
+
 // hiddenRow lists tools with no row in the normal view.
 var hiddenRow = map[string]bool{"TodoWrite": true, "TaskCreate": true, "TaskUpdate": true, "TaskList": true, "TaskGet": true}
 
@@ -79,7 +82,7 @@ func TestEveryToolRenders(t *testing.T) {
 			}
 			for _, w := range []int{20, 40, 100} {
 				rc := ext.RenderCtx{Width: w}
-				if hiddenRow[name] {
+				if hiddenRow[name] || (dialogTool[name] && !state.Finished()) {
 					rc.Mode = ext.Verbose // shown only there
 				}
 				lines := f.rendererFor(it.Key)(rc, it).Lines

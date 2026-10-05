@@ -32,7 +32,8 @@ func TestExitPlanModeRows(t *testing.T) {
 	g := newRig(t, 61)
 	g.send(`{"type":"assistant","uuid":"a1","message":{"id":"m","content":[{"type":"tool_use","id":"p1","name":"ExitPlanMode","input":{"plan":"1. Test\n2. Fix"}}]}}`)
 	g.deliver(ext.PermissionMsg{EngineID: ext.MainEngine, RequestID: "r1", Req: proto.CanUseTool{ToolName: "ExitPlanMode", ToolUseID: "p1"}})
-	if live := join(g.live(10)); !strings.Contains(live, "Plan ready for review\n  ⎿  Waiting…") || strings.Contains(live, "1. Test") {
+	// Like claude: no row while the approval dialog is open.
+	if live := join(g.live(10)); live != "" {
 		t.Fatalf("live = %q", live)
 	}
 	g.send(`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"p1","content":"approved"}]},"tool_use_result":{"plan":null,"filePath":"/w/plans/p.md"}}`)
