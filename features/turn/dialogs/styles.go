@@ -115,6 +115,8 @@ func frame(title string, body []string, width int, kind string, st Styles) strin
 		line := " " + l
 		if raw, ok := strings.CutPrefix(l, flush); ok {
 			line = raw
+		} else if l == "" {
+			line = ""
 		}
 		if ansi.StringWidth(line) > width {
 			line = ansi.Truncate(line, width, "…")

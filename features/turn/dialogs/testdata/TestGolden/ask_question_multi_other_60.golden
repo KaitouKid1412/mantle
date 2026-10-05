@@ -1,13 +1,12 @@
 ────────────────────────────────────────────────────────────
- Checks
  ← ☒ Manager  ☒ Checks  ✔ Submit →
- 
- Which checks?
-   1. [x] lint
-   2. [ ] test
-   3. [ ] build
- ❯ 4. [x] docs
-   Review →
- 
- space to toggle · enter on Next to continue · esc to
- cancel · tab for next question
+
+Which checks?
+
+  1. [x] lint
+  2. [ ] test
+  3. [ ] build
+❯ 4. [x] docs
+  Review →
+
+Space to toggle · Enter on Next to continue · Esc to cancel

@@ -1,13 +1,13 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- Review
  ← ☒ Manager  ☐ Checks  ✔ Submit →
- 
- Review your answers
-  • Which package manager?
-    → yarn
-  • Which checks?
-    → (no answer)
- 
- ❯ 1. Submit answers
-   2. Cancel
- enter to confirm · ←/→ to switch questions · esc to cancel
+
+Review your answers
+• Which package manager?
+  → yarn
+• Which checks?
+  → (no answer)
+
+❯ 1. Submit answers
+  2. Cancel
+
+Enter to confirm · ←/→ to switch questions · Esc to cancel

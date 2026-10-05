@@ -1,16 +1,18 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- Manager
  ← ☐ Manager  ☐ Checks  ✔ Submit →
- 
- Which package manager?
-   1. npm
-      Default
- ❯ 2. yarn
-      Classic
-   3. Other
- 
- Preview
- │ # yarn
- │ fast
- 
- enter to select · ↑/↓ to move · esc to cancel · tab for next question
+
+Which package manager?
+
+  1. npm
+     Default
+❯ 2. yarn
+     Classic
+  3. Type an answer
+
+Preview
+│ # yarn
+│ fast
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · Tab/Arrow keys to navigate · Esc to cancel

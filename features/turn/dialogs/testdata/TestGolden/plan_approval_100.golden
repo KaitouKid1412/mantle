@@ -6,7 +6,7 @@
    1. Add the handler in internal/server.
    2. Cover it with a table test.
    3. Update the README.
- 
+
  Would you like to proceed?
  ❯ 1. Yes, and use auto mode
    2. Yes, and auto-accept edits

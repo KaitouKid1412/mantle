@@ -3,9 +3,9 @@
  db
    db (stdio: npx db-mcp)
    env: TOKEN
- 
+
  MCP servers can run code and reach the network. Only use servers you trust.
- 
+
  ❯ 1. Use this and all future MCP servers in this project
    2. Use this MCP server
    3. Continue without this MCP server

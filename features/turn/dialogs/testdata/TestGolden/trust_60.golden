@@ -1,11 +1,11 @@
 ────────────────────────────────────────────────────────────
  Do you trust this folder?
  /work/proj
- 
+
  Claude Code will be able to read, change and run files
  here. Only continue if you trust the people who wrote this
  folder's code and settings.
- 
+
  This folder's configuration will take effect:
  Allowed without asking:
    • Bash(npm test:*)
@@ -20,7 +20,7 @@
    • db (stdio: npx db-mcp)
  Project commands and agents:
    • .claude/commands
- 
+
  ❯ 1. Yes, I trust this folder
    2. No, exit
  enter to confirm · esc to exit

@@ -344,6 +344,26 @@ func TestAskQuestionSingleSubmitsImmediately(t *testing.T) {
 	}
 }
 
+func TestAskQuestionChatAboutThis(t *testing.T) {
+	req := toolReq(t, `{"tool_name":"AskUserQuestion","tool_use_id":"q3","input":{"questions":[
+	  {"question":"Pick","header":"P","multiSelect":false,"options":[{"label":"A","description":""},{"label":"B","description":""}]}]}}`)
+	a, _ := NewAskQuestion(req, PermissionContext{})
+	v := a.View(80, PlainStyles())
+	for _, want := range []string{"☐ P", "3. Type an answer", "4. Chat about this", "Enter to select · ↑/↓ to navigate · Esc to cancel"} {
+		if !strings.Contains(v, want) {
+			t.Fatalf("view missing %q:\n%s", want, v)
+		}
+	}
+	press(t, a, "down", "down", "down", "enter")
+	wantJSON(t, a.Response(), `{"behavior":"deny","message":"The user wants to talk this over before answering the questions.","interrupt":true,"toolUseID":"q3","decisionClassification":"user_reject"}`)
+	// Multi-select questions have no chat row.
+	a, _ = NewAskQuestion(toolReq(t, questionsReq), PermissionContext{})
+	press(t, a, "1")
+	if strings.Contains(a.View(80, PlainStyles()), "Chat about this") {
+		t.Fatal("multi-select question shows the chat row")
+	}
+}
+
 func TestAskQuestionReviewJumpsToUnanswered(t *testing.T) {
 	a, _ := NewAskQuestion(toolReq(t, questionsReq), PermissionContext{})
 	press(t, a, "tab", "tab") // skip both questions to the review tab

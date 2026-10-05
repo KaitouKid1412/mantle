@@ -2,19 +2,19 @@
  New contact
  MCP server crm is asking:
  Fill in the contact details.
- 
+
  ❯ Name *
    >
- 
+
    age *
    >
- 
+
    subscribe
    [x] Yes
- 
+
    color
    Red  Green
- 
+
    1. Submit
    2. Decline
    3. Cancel
