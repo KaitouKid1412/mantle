@@ -13,7 +13,12 @@ type toolView struct {
 	title    string
 	question string
 	kind     string // frame kind for BorderColor
-	body     func(width int, st Styles) []string
+	// header lines under the title (description, path); block is shown between dashed
+	// rules (command, diff, arguments). Either may be nil.
+	header, block func(width int, st Styles) []string
+	// fileTool marks Edit/Write/NotebookEdit prompts: their suggestions are session
+	// grants (accept edits) picked with shift+tab, and they offer no auto-mode switch.
+	fileTool bool
 }
 
 // Line budgets for previews inside an inline dialog.
@@ -50,7 +55,12 @@ func prettyJSON(raw []byte) string {
 // editPreview renders one edit with the context's Diff hook, or the plain fallback.
 func editPreview(ctx PermissionContext, old, new, path string, w int, st Styles) []string {
 	if ctx.Diff != nil {
-		return ctx.Diff(Sanitize(old), Sanitize(new), path, w, maxDiffLines)
+		// The diff gutter brings its own leading column: write the lines flush.
+		lines := ctx.Diff(SanitizeText(old), SanitizeText(new), path, w+1, maxDiffLines)
+		for i, l := range lines {
+			lines[i] = flush + l
+		}
+		return lines
 	}
 	if old == "" {
 		return renderDiff(addedPreview(new), w, maxDiffLines, st)
@@ -58,11 +68,20 @@ func editPreview(ctx PermissionContext, old, new, path string, w int, st Styles)
 	return renderDiff(diffPreview(old, new, 2), w, maxDiffLines, st)
 }
 
-// describeTool picks the header variant for a request.
+// describeTool picks the header variant for a request: title, header lines (description,
+// path), and the block shown between dashed rules (the command, diff or arguments).
 func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) toolView {
 	name := req.ToolName
 	cwd := ctx.Cwd
 	v := toolView{kind: "permission", question: "Do you want to proceed?"}
+	desc := func(s string) func(int, Styles) []string {
+		return func(w int, st Styles) []string {
+			if s == "" {
+				return nil
+			}
+			return wrap(Sanitize(s), w)
+		}
+	}
 	switch {
 	case name == "Bash" || name == "PowerShell":
 		v.title = "Bash command"
@@ -75,17 +94,14 @@ func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) too
 		if boolean(in, "run_in_background") {
 			v.title += " (background)"
 		}
-		cmd, desc := str(in, "command"), str(in, "description")
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Code, truncateLines(wrapIndent("  ", Sanitize(cmd), w), maxCommandLines, st))
-			if desc != "" {
-				out = append(out, styleLines(st.Dim, wrapIndent("  ", Sanitize(desc), w))...)
-			}
-			return out
+		cmd := str(in, "command")
+		v.header = desc(str(in, "description"))
+		v.block = func(w int, st Styles) []string {
+			return styleLines(st.Code, truncateLines(wrap(Sanitize(cmd), w), maxCommandLines, st))
 		}
 	case name == "Edit" || name == "MultiEdit":
 		path := str(in, "file_path")
-		v.title = "Edit file"
+		v.title, v.fileTool = "Edit file", true
 		v.question = "Do you want to make this edit to " + baseName(path) + "?"
 		type pair struct{ old, new string }
 		var edits []pair
@@ -99,43 +115,44 @@ func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) too
 			edits = append(edits, pair{str(in, "old_string"), str(in, "new_string")})
 		}
 		replaceAll := boolean(in, "replace_all")
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Code, wrapIndent("  ", displayPath(path, cwd), w))
+		v.header = func(w int, st Styles) []string {
+			out := wrap(displayPath(path, cwd), w)
 			if replaceAll {
-				out = append(out, render(st.Dim, "  (every occurrence)"))
+				out = append(out, render(st.Dim, "(every occurrence)"))
 			}
+			return out
+		}
+		v.block = func(w int, st Styles) []string {
 			var diff []string
 			for i, e := range edits {
 				if i > 0 {
-					diff = append(diff, render(st.Dim, "  ⋯"))
+					diff = append(diff, render(st.Dim, "⋯"))
 				}
 				diff = append(diff, editPreview(ctx, e.old, e.new, path, w, st)...)
 			}
-			return append(out, truncateLines(diff, maxDiffLines, st)...)
+			return truncateLines(diff, maxDiffLines, st)
 		}
 	case name == "Write":
 		path := str(in, "file_path")
-		v.title = "Write file"
+		v.title, v.fileTool = "Write file", true
 		v.question = "Do you want to write " + baseName(path) + "?"
 		content := str(in, "content")
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Code, wrapIndent("  ", displayPath(path, cwd), w))
-			return append(out, editPreview(ctx, "", content, path, w, st)...)
-		}
+		v.header = func(w int, st Styles) []string { return wrap(displayPath(path, cwd), w) }
+		v.block = func(w int, st Styles) []string { return editPreview(ctx, "", content, path, w, st) }
 	case name == "NotebookEdit":
 		path := str(in, "notebook_path")
-		v.title = "Edit notebook"
+		v.title, v.fileTool = "Edit notebook", true
 		v.question = "Do you want to make this edit to " + baseName(path) + "?"
 		cell, editMode := str(in, "cell_id"), str(in, "edit_mode")
 		source := str(in, "new_source")
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Code, wrapIndent("  ", displayPath(path, cwd), w))
-			meta := strings.TrimSpace(strings.Join([]string{editMode, cellLabel(cell)}, " "))
-			if meta != "" {
-				out = append(out, render(st.Dim, "  "+SanitizeLine(meta)))
+		v.header = func(w int, st Styles) []string {
+			out := wrap(displayPath(path, cwd), w)
+			if meta := strings.TrimSpace(strings.Join([]string{editMode, cellLabel(cell)}, " ")); meta != "" {
+				out = append(out, render(st.Dim, SanitizeLine(meta)))
 			}
-			return append(out, editPreview(ctx, "", source, path, w, st)...)
+			return out
 		}
+		v.block = func(w int, st Styles) []string { return editPreview(ctx, "", source, path, w, st) }
 	case name == "Read":
 		path := str(in, "file_path")
 		v.title = "Read file"
@@ -149,20 +166,20 @@ func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) too
 		} else if lim, ok := number(in, "limit"); ok {
 			rng = fmt.Sprintf("first %d lines", lim)
 		}
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Code, wrapIndent("  ", displayPath(path, cwd), w))
+		v.header = func(w int, st Styles) []string {
+			out := wrap(displayPath(path, cwd), w)
 			if rng != "" {
-				out = append(out, render(st.Dim, "  "+rng))
+				out = append(out, render(st.Dim, rng))
 			}
 			return out
 		}
 	case name == "Glob" || name == "Grep":
 		v.title = "Search files"
 		pattern, path := str(in, "pattern"), str(in, "path")
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Code, wrapIndent("  ", SanitizeLine(pattern), w))
+		v.header = func(w int, st Styles) []string {
+			out := styleLines(st.Code, wrap(SanitizeLine(pattern), w))
 			if path != "" {
-				out = append(out, styleLines(st.Dim, wrapIndent("  in ", displayPath(path, cwd), w))...)
+				out = append(out, styleLines(st.Dim, wrapIndent("in ", displayPath(path, cwd), w))...)
 			}
 			return out
 		}
@@ -175,20 +192,18 @@ func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) too
 		}
 		v.question = "Do you want to allow Claude to fetch this content?"
 		prompt := str(in, "prompt")
-		v.body = func(w int, st Styles) []string {
-			out := styleLines(st.Title, wrapIndent("  ", SanitizeLine(host), w))
-			out = append(out, styleLines(st.Code, wrapIndent("  ", SanitizeLine(raw), w))...)
+		v.header = func(w int, st Styles) []string { return styleLines(st.Title, wrap(SanitizeLine(host), w)) }
+		v.block = func(w int, st Styles) []string {
+			out := styleLines(st.Code, wrap(SanitizeLine(raw), w))
 			if prompt != "" {
-				out = append(out, styleLines(st.Dim, truncateLines(wrapIndent("  ", Sanitize(prompt), w), 3, st))...)
+				out = append(out, styleLines(st.Dim, truncateLines(wrap(Sanitize(prompt), w), 3, st))...)
 			}
 			return out
 		}
 	case name == "WebSearch":
 		v.title = "Web search"
 		q := str(in, "query")
-		v.body = func(w int, st Styles) []string {
-			return styleLines(st.Code, wrapIndent("  ", SanitizeLine(q), w))
-		}
+		v.block = func(w int, st Styles) []string { return styleLines(st.Code, wrap(SanitizeLine(q), w)) }
 	case strings.HasPrefix(name, "mcp__"):
 		server, tool := splitMcpName(name)
 		if req.McpServer != nil && req.McpServer.Name != "" {
@@ -200,17 +215,17 @@ func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) too
 		}
 		v.title = "MCP tool"
 		args := prettyJSON(req.Input)
-		v.body = func(w int, st Styles) []string {
+		v.header = func(w int, st Styles) []string {
 			srv := SanitizeLine(server)
 			if source != "" {
 				srv += " (" + SanitizeLine(source) + ")"
 			}
-			out := wrapIndent("  server ", srv, w)
-			out = append(out, wrapIndent("  tool   ", SanitizeLine(tool), w)...)
-			if args != "" && args != "{}" && args != "null" {
-				out = append(out, styleLines(st.Code, truncateLines(wrapIndent("  ", Sanitize(args), w), maxInputLines, st))...)
+			return wrap(srv+" · "+SanitizeLine(tool), w)
+		}
+		if args != "" && args != "{}" && args != "null" {
+			v.block = func(w int, st Styles) []string {
+				return styleLines(st.Code, truncateLines(wrap(Sanitize(args), w), maxInputLines, st))
 			}
-			return out
 		}
 	default:
 		v.title = req.DisplayName
@@ -219,16 +234,11 @@ func describeTool(req ToolRequest, in map[string]any, ctx PermissionContext) too
 		}
 		v.title = SanitizeLine(v.title)
 		raw := prettyJSON(req.Input)
-		desc := req.Description
-		v.body = func(w int, st Styles) []string {
-			var out []string
-			if desc != "" {
-				out = append(out, styleLines(st.Dim, wrapIndent("  ", Sanitize(desc), w))...)
+		v.header = desc(req.Description)
+		if raw != "" && raw != "{}" && raw != "null" {
+			v.block = func(w int, st Styles) []string {
+				return styleLines(st.Code, truncateLines(wrap(Sanitize(raw), w), maxInputLines, st))
 			}
-			if raw != "" && raw != "{}" && raw != "null" {
-				out = append(out, styleLines(st.Code, truncateLines(wrapIndent("  ", Sanitize(raw), w), maxInputLines, st))...)
-			}
-			return out
 		}
 	}
 	return v

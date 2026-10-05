@@ -3,6 +3,8 @@ package turn
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -141,7 +143,10 @@ func (st *state) buildVM(c ext.Ctx, r *request) error {
 		r.vm = vm
 	case DialogPlanApproval:
 		avail := st.availability(c, r.engineID)
-		r.vm = dialogs.NewPlanApproval(tr, dialogs.PlanContext{PermissionContext: pc, AutoAvailable: avail.Auto, BypassAvailable: avail.Bypass, RenderPlan: pc.Markdown})
+		r.vm = dialogs.NewPlanApproval(tr, dialogs.PlanContext{
+			PermissionContext: pc, AutoAvailable: avail.Auto, BypassAvailable: avail.Bypass,
+			RenderPlan: pc.Markdown, PlanText: planFromFile(tr.Input),
+		})
 	default:
 		r.vm = dialogs.NewPermission(tr, pc)
 	}
@@ -325,4 +330,26 @@ func toProtoResult(r *dialogs.PermissionResult) proto.PermissionResult {
 		out.Message = "The user denied this tool call."
 	}
 	return out
+}
+
+// maxPlanFile caps the plan file read for the approval dialog.
+const maxPlanFile = 1 << 20
+
+// planFromFile reads the plan from the request's planFilePath when its input carries no
+// plan text (claude 2.1.289 keeps the plan in the file).
+func planFromFile(input json.RawMessage) string {
+	var in struct {
+		Plan         string `json:"plan"`
+		PlanFilePath string `json:"planFilePath"`
+	}
+	if json.Unmarshal(input, &in) != nil || strings.TrimSpace(in.Plan) != "" || in.PlanFilePath == "" {
+		return ""
+	}
+	f, err := os.Open(in.PlanFilePath)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	b, _ := io.ReadAll(io.LimitReader(f, maxPlanFile))
+	return string(b)
 }

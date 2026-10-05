@@ -1,12 +1,7 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- ← ☒ Manager  ☒ Checks  ✔ Submit →
+ Exit plan mode?
 
-Which checks?
+  Claude wants to leave plan mode
 
-  1. [x] lint
-  2. [ ] test
-  3. [ ] build
-❯ 4. [x] docs
-  Review →
-
-Space to toggle · Enter on Next to continue · Esc to cancel
+  ❯ 1. Yes, and switch to manual approval (ask each time) for this session
+    2. No

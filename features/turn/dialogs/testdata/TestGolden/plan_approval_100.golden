@@ -1,15 +1,15 @@
-╭─ Ready to code? ─────────────────────────────────────────────────────────────────────────────────╮
-│ Here is Claude's plan:                                                                           │
-│   ## Plan                                                                                        │
-│                                                                                                  │
-│   1. Add the handler in internal/server.                                                         │
-│   2. Cover it with a table test.                                                                 │
-│   3. Update the README.                                                                          │
-│                                                                                                  │
-│ Would you like to proceed?                                                                       │
-│ ❯ 1. Yes, and use auto mode                                                                      │
-│   2. Yes, and auto-accept edits                                                                  │
-│   3. Yes, and manually approve edits                                                             │
-│   4. No, keep planning                                                                           │
-│ ctrl+g to edit the plan · esc to keep planning                                                   │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?
+ Here is Claude's plan:
+   ## Plan
+   
+   1. Add the handler in internal/server.
+   2. Cover it with a table test.
+   3. Update the README.
+
+ Would you like to proceed?
+ ❯ 1. Yes, and use auto mode
+   2. Yes, and auto-accept edits
+   3. Yes, and manually approve edits
+   4. No, keep planning
+ ctrl+g to edit the plan · esc to keep planning

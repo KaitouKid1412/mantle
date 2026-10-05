@@ -108,9 +108,17 @@ func TestPermissionYes(t *testing.T) {
 		"toolUseID":"tu1","decisionClassification":"user_temporary"}`)
 }
 
+func optionIDs(p *Permission) string {
+	var ids []string
+	for _, o := range p.opts.items {
+		ids = append(ids, o.id)
+	}
+	return strings.Join(ids, ",")
+}
+
 func TestPermissionAlwaysSendsSuggestionVerbatim(t *testing.T) {
-	p := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	if got := p.opts.items[1].label; got != "Yes, and don't ask again for Bash(npm test:*) in this project" {
+	p := NewPermission(toolReq(t, bashReq), PermissionContext{Cwd: "/w/proj"})
+	if got := p.opts.items[1].label; got != "Yes, and don't ask again for `npm test` commands in proj" {
 		t.Fatalf("label = %q", got)
 	}
 	press(t, p, "down", "enter")
@@ -118,6 +126,43 @@ func TestPermissionAlwaysSendsSuggestionVerbatim(t *testing.T) {
 	wantJSON(t, p.Response(), `{"behavior":"allow","updatedInput":{"command":"npm test","description":"Run tests"},
 		"updatedPermissions":[{"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"npm test:*"}],"behavior":"allow","destination":"localSettings","future":"kept"}],
 		"toolUseID":"tu1","decisionClassification":"user_permanent"}`)
+}
+
+// The parity case (claude 2.1.289): a Bash call blocked by a path check offers only
+// the directory grant, and sends back only that; no accept-edits option on a Bash
+// prompt.
+const blockedBashReq = `{"tool_name":"Bash","tool_use_id":"tb","blocked_path":"/w/proj/marker.txt",
+ "input":{"command":"touch marker.txt","description":"Create a marker file"},
+ "permission_suggestions":[
+  {"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"touch marker.txt"}],"behavior":"allow","destination":"localSettings"},
+  {"type":"addDirectories","directories":["/w/proj"],"destination":"session"},
+  {"type":"setMode","mode":"acceptEdits","destination":"session"}]}`
+
+func TestPermissionFiltersSuggestionsLikeClaude(t *testing.T) {
+	p := NewPermission(toolReq(t, blockedBashReq), PermissionContext{Cwd: "/w/proj", OfferAuto: true})
+	if got := optionIDs(p); got != "yes,always,auto,no" {
+		t.Fatalf("options = %s", got)
+	}
+	if got := p.opts.items[1].label; got != "Yes, and always allow access to /w/proj in this project" {
+		t.Fatalf("label = %q", got)
+	}
+	press(t, p, "2")
+	wantJSON(t, p.Response().UpdatedPermissions, `[{"type":"addDirectories","directories":["/w/proj"],"destination":"session"}]`)
+
+	// Without the path check the command rule shows too, with the directory.
+	req := toolReq(t, blockedBashReq)
+	req.BlockedPath = ""
+	p = NewPermission(req, PermissionContext{Cwd: "/w/proj"})
+	if got := p.opts.items[1].label; got != "Yes, and allow /w/proj and `touch marker.txt`" {
+		t.Fatalf("label = %q", got)
+	}
+	// Grants to shared or user settings, and deny rules, are never offered.
+	req = toolReq(t, `{"tool_name":"Bash","tool_use_id":"x","input":{"command":"ls"},"permission_suggestions":[
+	  {"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"ls"}],"behavior":"allow","destination":"userSettings"},
+	  {"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"ls"}],"behavior":"deny","destination":"session"}]}`)
+	if got := optionIDs(NewPermission(req, PermissionContext{})); got != "yes,no" {
+		t.Fatalf("options = %s", got)
+	}
 }
 
 func TestPermissionDigitPicks(t *testing.T) {
@@ -141,95 +186,61 @@ func TestPermissionEscDeniesAndInterrupts(t *testing.T) {
 	wantJSON(t, p.Response(), `{"behavior":"deny","message":"The user denied this tool call and stopped the turn.","interrupt":true,"toolUseID":"tu1","decisionClassification":"user_reject"}`)
 }
 
-func TestPermissionDenyWithFeedback(t *testing.T) {
+func TestPermissionNoEndsTheTurn(t *testing.T) {
 	p := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	press(t, p, "3") // "No, and tell Claude…" opens the feedback field
-	if p.Done() || p.stage != permStageFeedback {
-		t.Fatal("feedback field should open")
-	}
-	press(t, p, "'use yarn'", "backspace", "'n'")
-	// esc goes back to the options, keeping the text; enter on the option reopens it.
-	press(t, p, "esc")
-	if p.Done() || p.stage != permStageOptions {
-		t.Fatal("esc in feedback should go back")
-	}
-	press(t, p, "enter", "enter")
-	wantJSON(t, p.Response(), `{"behavior":"deny","message":"The user denied this tool call and said: use yarn","toolUseID":"tu1","decisionClassification":"user_reject"}`)
-}
-
-func TestPermissionStopInterrupts(t *testing.T) {
-	p := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	press(t, p, "down", "down", "down", "enter")
+	press(t, p, "3") // Yes, always, No
 	r := p.Response()
 	if r == nil || r.Behavior != "deny" || !r.Interrupt {
-		t.Fatalf("stop should deny with interrupt: %+v", r)
-	}
-	if !strings.Contains(toJSON(t, r), `"interrupt":true`) {
-		t.Fatal("interrupt missing from JSON")
+		t.Fatalf("No denies and interrupts: %+v", r)
 	}
 }
 
-func TestPermissionTabAmendsBashCommand(t *testing.T) {
+func TestPermissionTabAddsInstructionsToNo(t *testing.T) {
 	p := NewPermission(toolReq(t, bashReq), PermissionContext{})
 	press(t, p, "tab")
-	if p.amend.Value() != "npm test" {
-		t.Fatalf("amend prefill = %q", p.amend.Value())
+	if p.Done() || p.stage != permStageFeedback || p.opts.selected().id != "no" {
+		t.Fatal("tab should focus No and open its instructions")
 	}
-	press(t, p, "ctrl+u", "enter") // empty command is refused
-	if p.Done() || p.amendErr == "" {
-		t.Fatal("empty amended command should be refused")
+	press(t, p, "'use yarn'", "backspace", "'n'")
+	// esc closes the field, keeping the text; tab reopens it.
+	press(t, p, "esc")
+	if p.Done() || p.stage != permStageOptions {
+		t.Fatal("esc in the field should go back")
 	}
-	p.HandlePaste("npm run test -- --ci")
-	press(t, p, "enter")
-	wantJSON(t, p.Response(), `{"behavior":"allow","updatedInput":{"command":"npm run test -- --ci","description":"Run tests"},
-		"toolUseID":"tu1","decisionClassification":"user_temporary"}`)
-}
-
-func TestPermissionAmendJSON(t *testing.T) {
-	req := toolReq(t, `{"tool_name":"Glob","tool_use_id":"g1","input":{"pattern":"*.go"}}`)
-	p := NewPermission(req, PermissionContext{})
-	press(t, p, "tab")
-	p.amend.SetValue(`{"pattern": `)
-	press(t, p, "enter")
-	if p.Done() || !strings.Contains(p.amendErr, "JSON") {
-		t.Fatal("invalid JSON must be refused")
-	}
-	p.amend.SetValue(`{"pattern":"**/*.go"}`)
-	press(t, p, "enter")
-	wantJSON(t, p.Response(), `{"behavior":"allow","updatedInput":{"pattern":"**/*.go"},"toolUseID":"g1","decisionClassification":"user_temporary"}`)
+	press(t, p, "tab", "enter")
+	wantJSON(t, p.Response(), `{"behavior":"deny","message":"The user denied this tool call and said: use yarn","toolUseID":"tu1","decisionClassification":"user_reject"}`)
 }
 
 func TestPermissionDefaultToNoAndOneTime(t *testing.T) {
 	req := toolReq(t, bashReq)
 	req.DefaultToNo = true
 	req.SuppressAlwaysAllowRule = true
-	p := NewPermission(req, PermissionContext{})
-	ids := []string{}
-	for _, o := range p.opts.items {
-		ids = append(ids, o.id)
-	}
-	if strings.Join(ids, ",") != "yes,no,stop" {
-		t.Fatalf("one-time prompt options = %v", ids)
+	p := NewPermission(req, PermissionContext{OfferAuto: true})
+	if got := optionIDs(p); got != "yes,auto,no" {
+		t.Fatalf("one-time prompt options = %s", got)
 	}
 	if p.opts.selected().id != "no" {
 		t.Fatal("default_to_no should focus No")
 	}
 	press(t, p, "enter")
-	if p.Done() || p.stage != permStageFeedback {
-		t.Fatal("enter on the default should open feedback, never allow")
+	if r := p.Response(); r == nil || r.Behavior != "deny" {
+		t.Fatal("enter on the default denies, never allows")
 	}
 }
 
-func TestPermissionShiftTab(t *testing.T) {
+func TestPermissionEditOptionsAndShiftTab(t *testing.T) {
 	edit := toolReq(t, `{"tool_name":"Edit","tool_use_id":"e1",
 	  "input":{"file_path":"/w/a.go","old_string":"a","new_string":"b"},
 	  "permission_suggestions":[{"type":"setMode","mode":"acceptEdits","destination":"session"}]}`)
-	p := NewPermission(edit, PermissionContext{Cwd: "/w"})
-	if got := p.opts.items[1].label; got != "Yes, and allow all edits for this session" {
-		t.Fatalf("setMode label = %q", got)
+	p := NewPermission(edit, PermissionContext{Cwd: "/w", OfferAuto: true})
+	if got := optionIDs(p); got != "yes,always,no" {
+		t.Fatalf("file prompts offer no auto switch: %s", got)
+	}
+	if got := p.opts.items[1].label; got != "Yes, and switch to accept edits for this session" || p.opts.items[1].hint != "(shift+tab)" {
+		t.Fatalf("session option = %q %q", got, p.opts.items[1].hint)
 	}
 	if eff := press(t, p, "shift+tab"); eff != Answered {
-		t.Fatal("shift+tab should take the setMode option")
+		t.Fatal("shift+tab should take the session option")
 	}
 	wantJSON(t, p.Response(), `{"behavior":"allow","updatedInput":{"file_path":"/w/a.go","old_string":"a","new_string":"b"},
 		"updatedPermissions":[{"type":"setMode","mode":"acceptEdits","destination":"session"}],
@@ -237,7 +248,7 @@ func TestPermissionShiftTab(t *testing.T) {
 
 	p = NewPermission(toolReq(t, bashReq), PermissionContext{})
 	if eff := press(t, p, "shift+tab"); eff != CycleMode || p.Done() {
-		t.Fatalf("without a setMode suggestion shift+tab cycles the mode, eff=%v", eff)
+		t.Fatalf("without a session grant shift+tab cycles the mode, eff=%v", eff)
 	}
 }
 
@@ -333,6 +344,26 @@ func TestAskQuestionSingleSubmitsImmediately(t *testing.T) {
 	}
 }
 
+func TestAskQuestionChatAboutThis(t *testing.T) {
+	req := toolReq(t, `{"tool_name":"AskUserQuestion","tool_use_id":"q3","input":{"questions":[
+	  {"question":"Pick","header":"P","multiSelect":false,"options":[{"label":"A","description":""},{"label":"B","description":""}]}]}}`)
+	a, _ := NewAskQuestion(req, PermissionContext{})
+	v := a.View(80, PlainStyles())
+	for _, want := range []string{"☐ P", "3. Type an answer", "4. Chat about this", "Enter to select · ↑/↓ to navigate · Esc to cancel"} {
+		if !strings.Contains(v, want) {
+			t.Fatalf("view missing %q:\n%s", want, v)
+		}
+	}
+	press(t, a, "down", "down", "down", "enter")
+	wantJSON(t, a.Response(), `{"behavior":"deny","message":"The user wants to talk this over before answering the questions.","interrupt":true,"toolUseID":"q3","decisionClassification":"user_reject"}`)
+	// Multi-select questions have no chat row.
+	a, _ = NewAskQuestion(toolReq(t, questionsReq), PermissionContext{})
+	press(t, a, "1")
+	if strings.Contains(a.View(80, PlainStyles()), "Chat about this") {
+		t.Fatal("multi-select question shows the chat row")
+	}
+}
+
 func TestAskQuestionReviewJumpsToUnanswered(t *testing.T) {
 	a, _ := NewAskQuestion(toolReq(t, questionsReq), PermissionContext{})
 	press(t, a, "tab", "tab") // skip both questions to the review tab
@@ -416,6 +447,42 @@ func TestPlanEditExternal(t *testing.T) {
 	p.SetEditedText("# Plan\n1. Do it better")
 	press(t, p, "enter")
 	wantJSON(t, p.Response().UpdatedInput, `{"plan":"# Plan\n1. Do it better","planFilePath":"/w/plan.md"}`)
+}
+
+func TestPlanShortWithoutPlan(t *testing.T) {
+	req := toolReq(t, `{"tool_name":"ExitPlanMode","tool_use_id":"p","input":{}}`)
+	p := NewPlanApproval(req, PlanContext{AutoAvailable: true, BypassAvailable: true})
+	var ids []string
+	for _, o := range p.opts.items {
+		ids = append(ids, o.id)
+	}
+	if strings.Join(ids, ",") != "default,no" {
+		t.Fatalf("short dialog options = %v", ids)
+	}
+	v := p.View(80, PlainStyles())
+	if !strings.Contains(v, "Exit plan mode?") || strings.Contains(v, "Here is Claude's plan") {
+		t.Fatalf("short view:\n%s", v)
+	}
+	if eff := press(t, p, "ctrl+g"); eff != None || p.Done() {
+		t.Fatal("no plan to edit")
+	}
+	press(t, p, "enter")
+	wantJSON(t, p.Response(), `{"behavior":"allow","updatedInput":{},
+		"updatedPermissions":[{"type":"setMode","mode":"default","destination":"session"}],
+		"toolUseID":"p","decisionClassification":"user_temporary"}`)
+
+	p = NewPlanApproval(req, PlanContext{})
+	press(t, p, "esc")
+	if r := p.Response(); r.Behavior != "deny" || r.Interrupt {
+		t.Fatalf("esc keeps planning: %+v", r)
+	}
+	// A plan from the plan file gets the full dialog, and isn't echoed back unedited.
+	p = NewPlanApproval(req, PlanContext{PlanText: "1. Rename greet"})
+	if p.short || !strings.Contains(p.View(80, PlainStyles()), "Rename greet") {
+		t.Fatal("plan file text should show the full dialog")
+	}
+	press(t, p, "1")
+	wantJSON(t, p.Response().UpdatedInput, `{}`)
 }
 
 func TestPlanScroll(t *testing.T) {
@@ -508,11 +575,6 @@ func TestGateChoices(t *testing.T) {
 	press(t, k, "enter")
 	if k.Chosen() != ChoiceNo {
 		t.Fatal("api key defaults to No")
-	}
-	am := NewAutoModePrompt()
-	press(t, am, "up", "enter")
-	if am.Chosen() != ChoiceYes {
-		t.Fatal("auto mode up+enter = yes")
 	}
 }
 

@@ -23,7 +23,10 @@ type QuestionOption struct {
 	Preview     Text   `json:"preview,omitempty"`
 }
 
-const askDenyMessage = "The user dismissed the questions without answering."
+const (
+	askDenyMessage = "The user dismissed the questions without answering."
+	askChatMessage = "The user wants to talk this over before answering the questions."
+)
 
 // AskQuestion is the view-model of an AskUserQuestion prompt: one tab per question,
 // single or multiple choice, a free-text "Other" row, option previews, and a review tab
@@ -159,13 +162,9 @@ func (a *AskQuestion) advance() (bool, Effect) {
 	return true, None
 }
 
-func (a *AskQuestion) rows(i int) int {
-	n := len(a.qs[i].Options) + 1
-	if a.qs[i].MultiSelect {
-		n++
-	}
-	return n
-}
+// rows counts a question's rows: its options, the free-text row, then "Next" (several
+// choices) or "Chat about this" (single choice).
+func (a *AskQuestion) rows(i int) int { return len(a.qs[i].Options) + 2 }
 
 // activate acts on the row under the cursor (enter / space / digit).
 func (a *AskQuestion) activate(toggle bool) (bool, Effect) {
@@ -186,8 +185,12 @@ func (a *AskQuestion) activate(toggle bool) (bool, Effect) {
 	case c == len(q.Options):
 		a.editing = true
 		return true, None
-	default: // Next row of a multi-select question
+	case q.MultiSelect: // Next
 		return a.advance()
+	default: // Chat about this: hand the turn back so the user can talk it over
+		a.result = &PermissionResult{Behavior: "deny", Message: askChatMessage, Interrupt: true,
+			ToolUseID: a.req.ToolUseID, DecisionClassification: ClassUserReject}
+		return true, Answered
 	}
 }
 
@@ -239,7 +242,7 @@ func (a *AskQuestion) HandleKey(k tea.KeyPressMsg) (bool, Effect) {
 	act, digit := keyAct(k)
 	if digit > 0 {
 		if a.tab < len(a.qs) {
-			if digit <= len(a.qs[a.tab].Options)+1 {
+			if digit <= a.rows(a.tab) {
 				a.cursor[a.tab] = digit - 1
 				return a.activate(false)
 			}
@@ -353,22 +356,34 @@ func (a *AskQuestion) tabsLine(w int, st Styles) string {
 	return line
 }
 
-// View implements Model.
+// View implements Model, in Claude Code's layout: the header tab line, the question,
+// the options with their descriptions, the free-text row, then (single choice) a rule
+// and "Chat about this", and the key hints. Lines are flush with the rule, as in Claude
+// Code; only the tab line is indented.
 func (a *AskQuestion) View(width int, st Styles) string {
-	w := bodyWidth(width)
+	w := max(4, width)
 	var body []string
+	flushLines := func(lines []string) {
+		for _, l := range lines {
+			body = append(body, flush+l)
+		}
+	}
 	if at := attribution(a.ctx.Engine, a.ctx.Agent); at != "" {
-		body = append(body, styleLines(st.Accent, wrap(at, w))...)
+		body = append(body, styleLines(st.Accent, wrap(at, w-1))...)
 	}
 	single := len(a.qs) == 1 && !a.qs[0].MultiSelect
-	if !single {
-		body = append(body, wrap(a.tabsLine(w, st), w)...)
-		body = append(body, "")
+	if len(a.qs) == 1 && a.tab < len(a.qs) {
+		mark := "☐"
+		if _, ok := a.answer(0); ok {
+			mark = "☒"
+		}
+		body = append(body, mark+" "+SanitizeLine(a.qs[0].Header)+counter(a.ctx.Index, a.ctx.Total))
+	} else {
+		body = append(body, wrap(a.tabsLine(w-1, st)+counter(a.ctx.Index, a.ctx.Total), w-1)...)
 	}
-	title := "Question"
+	body = append(body, "")
 	if a.tab == len(a.qs) {
-		title = "Review"
-		body = append(body, render(st.Title, "Review your answers"))
+		flushLines([]string{render(st.Title, "Review your answers")})
 		for i, q := range a.qs {
 			ans, ok := a.answer(i)
 			if !ok {
@@ -376,27 +391,33 @@ func (a *AskQuestion) View(width int, st Styles) string {
 			} else {
 				ans = SanitizeLine(ans)
 			}
-			body = append(body, wrapIndent(" • ", SanitizeLine(q.Question), w)...)
-			body = append(body, wrapIndent("   → ", ans, w)...)
+			flushLines(wrapIndent("• ", SanitizeLine(q.Question), w))
+			flushLines(wrapIndent("  → ", ans, w))
 		}
 		body = append(body, "")
-		body = append(body, a.review.lines(w, st, true)...)
-		body = append(body, styleLines(st.Dim, wrap("enter to confirm · ←/→ to switch questions · esc to cancel", w))...)
-		return frame(title+counter(a.ctx.Index, a.ctx.Total), body, width, "permission", st)
+		flushLines(a.review.lines(w, st, true))
+		body = append(body, "")
+		flushLines(styleLines(st.Dim, wrap("Enter to confirm · ←/→ to switch questions · Esc to cancel", w)))
+		return frame("", body, width, "permission", st)
 	}
 
 	i := a.tab
 	q := a.qs[i]
-	if q.Header != "" {
-		title = SanitizeLine(q.Header)
-	}
-	body = append(body, styleLines(st.Title, wrap(Sanitize(q.Question), w))...)
+	flushLines(styleLines(st.Title, wrap(Sanitize(q.Question), w)))
+	body = append(body, "")
 	cur := a.cursor[i]
-	for j, o := range q.Options {
+	row := func(j int, label string) []string {
 		pointer := "  "
 		if j == cur {
 			pointer = "❯ "
 		}
+		lines := wrapIndent(pointer+itoa(j+1)+". ", label, w)
+		if j == cur {
+			lines = styleLines(st.Selected, lines)
+		}
+		return lines
+	}
+	for j, o := range q.Options {
 		box := ""
 		if q.MultiSelect {
 			box = "[ ] "
@@ -406,21 +427,13 @@ func (a *AskQuestion) View(width int, st Styles) string {
 		} else if a.picked[i][j] {
 			box = "● "
 		}
-		lines := wrapIndent(pointer+itoa(j+1)+". "+box, SanitizeLine(o.Label), w)
-		if j == cur {
-			lines = styleLines(st.Selected, lines)
-		}
-		body = append(body, lines...)
+		flushLines(row(j, box+SanitizeLine(o.Label)))
 		if o.Description != "" {
-			body = append(body, styleLines(st.Dim, wrapIndent("     ", Sanitize(o.Description), w))...)
+			flushLines(styleLines(st.Dim, wrapIndent("     ", Sanitize(o.Description), w)))
 		}
 	}
-	// The Other row.
+	// The free-text row.
 	n := len(q.Options)
-	pointer := "  "
-	if cur == n {
-		pointer = "❯ "
-	}
 	otherOn := a.otherOn[i] || a.editing && strings.TrimSpace(a.other[i].Value()) != ""
 	box := ""
 	if q.MultiSelect {
@@ -431,32 +444,34 @@ func (a *AskQuestion) View(width int, st Styles) string {
 	} else if otherOn {
 		box = "● "
 	}
-	prefix := pointer + itoa(n+1) + ". " + box
 	if a.editing || a.other[i].Value() != "" {
+		pointer := "  "
+		if cur == n {
+			pointer = "❯ "
+		}
+		prefix := pointer + itoa(n+1) + ". " + box
 		lines := a.other[i].lines(w, st, a.editing, prefix)
 		if cur == n {
 			lines[0] = render(st.Selected, prefix) + strings.TrimPrefix(lines[0], prefix)
 		}
-		body = append(body, lines...)
+		flushLines(lines)
 	} else {
-		l := prefix + "Other"
-		if cur == n {
-			l = render(st.Selected, l)
-		}
-		body = append(body, l)
+		flushLines(row(n, box+"Type an answer"))
 	}
 	if q.MultiSelect {
-		l := "  " + "Next →"
+		l := "Next →"
 		if a.tab == len(a.qs)-1 {
-			l = "  " + "Review →"
+			l = "Review →"
 		}
 		if cur == n+1 {
-			l = render(st.Selected, "❯ "+strings.TrimPrefix(l, "  "))
+			flushLines([]string{render(st.Selected, "❯ "+l)})
+		} else {
+			flushLines([]string{"  " + l})
 		}
-		body = append(body, l)
 	}
 	if cur < n && q.Options[cur].Preview != "" {
-		body = append(body, "", render(st.Dim, "Preview"))
+		body = append(body, "")
+		flushLines([]string{render(st.Dim, "Preview")})
 		src := strings.TrimRight(Sanitize(string(q.Options[cur].Preview)), "\n")
 		var lines []string
 		if a.ctx.Markdown != nil {
@@ -468,16 +483,20 @@ func (a *AskQuestion) View(width int, st Styles) string {
 		for _, l := range lines {
 			prev = append(prev, "│ "+l)
 		}
-		body = append(body, styleLines(st.Code, truncateLines(prev, 12, st))...)
+		flushLines(styleLines(st.Code, truncateLines(prev, 12, st)))
+	}
+	if !q.MultiSelect {
+		body = append(body, solidRule(width, st))
+		flushLines(row(n+1, "Chat about this"))
 	}
 	body = append(body, "")
-	hint := "enter to select · ↑/↓ to move · esc to cancel"
-	if q.MultiSelect {
-		hint = "space to toggle · enter on Next to continue · esc to cancel"
+	hint := "Enter to select · ↑/↓ to navigate · Esc to cancel"
+	switch {
+	case q.MultiSelect:
+		hint = "Space to toggle · Enter on Next to continue · Esc to cancel"
+	case !single:
+		hint = "Enter to select · Tab/Arrow keys to navigate · Esc to cancel"
 	}
-	if !single {
-		hint += " · tab for next question"
-	}
-	body = append(body, styleLines(st.Dim, wrap(hint, w))...)
-	return frame(title+counter(a.ctx.Index, a.ctx.Total), body, width, "permission", st)
+	flushLines(styleLines(st.Dim, wrap(hint, w)))
+	return frame("", body, width, "permission", st)
 }

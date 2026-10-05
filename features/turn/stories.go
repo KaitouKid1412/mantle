@@ -48,7 +48,7 @@ var storyDialogs = []struct {
 	}},
 	{DialogPermission + "/feedback", func() dialogs.Model {
 		p := dialogs.NewPermission(storyRequest(`{"tool_name":"Bash","tool_use_id":"s","input":{"command":"rm -rf build"}}`), dialogs.PermissionContext{})
-		storyKeys(p, tea.KeyPressMsg{Code: '2', Text: "2"})
+		storyKeys(p, tea.KeyPressMsg{Code: tea.KeyTab})
 		p.HandlePaste("clean with make clean instead")
 		return p
 	}},
@@ -64,6 +64,9 @@ var storyDialogs = []struct {
 		return dialogs.NewPlanApproval(storyRequest(`{"tool_name":"ExitPlanMode","tool_use_id":"s",
 		  "input":{"plan":"## Plan\n\n1. Add a /health endpoint.\n2. Cover it with a handler test.\n3. Document it in the README."}}`),
 			dialogs.PlanContext{AutoAvailable: true})
+	}},
+	{DialogPlanApproval + "/no-plan", func() dialogs.Model {
+		return dialogs.NewPlanApproval(storyRequest(`{"tool_name":"ExitPlanMode","tool_use_id":"s","input":{}}`), dialogs.PlanContext{})
 	}},
 	{DialogElicitation + "/form", func() dialogs.Model {
 		return dialogs.NewElicitation(dialogs.ElicitationRequest{McpServerName: "tickets", Title: "New ticket", Message: "Describe the bug.",
@@ -94,7 +97,6 @@ var storyDialogs = []struct {
 		})
 	}},
 	{DialogAPIKey + "/default", func() dialogs.Model { return dialogs.NewAPIKeyPrompt("0123456789abcdefABCD") }},
-	{DialogAutoMode + "/default", func() dialogs.Model { return dialogs.NewAutoModePrompt() }},
 	{DialogUsageLimit + "/default", func() dialogs.Model { return dialogs.NewUsageLimit("3:00 PM") }},
 	{DialogEngineCheck + "/pin", func() dialogs.Model {
 		return dialogs.NewEngineCheck("2.1.300", []string{"skills", "hooks"}, "2.1.288")

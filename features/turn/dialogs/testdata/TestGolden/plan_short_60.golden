@@ -1,11 +1,8 @@
 ────────────────────────────────────────────────────────────
- Input requested
- MCP server auth is asking:
- Sign in to continue.
+ Exit plan mode?
 
-   https://auth.example.com/device?code=ABCD-1234
+  Claude wants to leave plan mode
 
- ❯ 1. Open the link
-   2. Decline
-   3. Cancel
- esc to cancel
+  ❯ 1. Yes, and switch to manual approval (ask each time)
+       for this session
+    2. No

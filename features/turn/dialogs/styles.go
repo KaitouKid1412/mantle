@@ -89,43 +89,57 @@ func styleLines(s lipgloss.Style, lines []string) []string {
 	return out
 }
 
-// frame draws a box of exactly width cells around body lines (already wrapped to
-// width-4), with the title in the top edge: ╭─ Title ───╮.
+// flush marks a body line that frame must not indent (rules that span the full width,
+// unindented question layouts).
+const flush = "\x01"
+
+// frame draws an inline dialog the way Claude Code does: a full-width rule in the
+// dialog's colour, the title, then the body indented by one column. No side or bottom
+// border, so the dialog reads as part of the prompt area. Body lines starting with
+// flush are written without the indent. Every line fits width.
 func frame(title string, body []string, width int, kind string, st Styles) string {
 	if width < 8 {
 		width = 8
 	}
-	bs := st.border(kind)
-	inner := width - 2
-	top := render(bs, "╭"+strings.Repeat("─", inner)+"╮")
-	if title != "" {
-		t := ansi.Truncate(" "+title+" ", inner-1, "… ")
-		top = render(bs, "╭─") + render(st.Title, t) +
-			render(bs, strings.Repeat("─", max(0, inner-1-ansi.StringWidth(t)))+"╮")
-	}
 	var b strings.Builder
-	b.WriteString(top)
+	b.WriteString(render(st.border(kind), strings.Repeat("─", width)))
+	if title != "" {
+		ts := st.Title
+		if st.BorderColor != nil {
+			ts = st.BorderColor(kind).Bold(true)
+		}
+		b.WriteString("\n ")
+		b.WriteString(render(ts, ansi.Truncate(title, width-1, "…")))
+	}
 	for _, l := range body {
-		w := ansi.StringWidth(l)
-		if w > inner-2 {
-			l = ansi.Truncate(l, inner-2, "…")
-			w = ansi.StringWidth(l)
+		line := " " + l
+		if raw, ok := strings.CutPrefix(l, flush); ok {
+			line = raw
+		} else if l == "" {
+			line = ""
+		}
+		if ansi.StringWidth(line) > width {
+			line = ansi.Truncate(line, width, "…")
 		}
 		b.WriteString("\n")
-		b.WriteString(render(bs, "│"))
-		b.WriteString(" ")
-		b.WriteString(l)
-		b.WriteString(strings.Repeat(" ", inner-2-w))
-		b.WriteString(" ")
-		b.WriteString(render(bs, "│"))
+		b.WriteString(line)
 	}
-	b.WriteString("\n")
-	b.WriteString(render(bs, "╰"+strings.Repeat("─", inner)+"╯"))
 	return b.String()
 }
 
 // bodyWidth is the usable text width inside a frame of the given width.
-func bodyWidth(width int) int { return max(4, max(8, width)-4) }
+func bodyWidth(width int) int { return max(4, max(8, width)-2) }
+
+// dashRule is a full-width dashed separator inside a frame (around commands and
+// diffs).
+func dashRule(width int, st Styles) string {
+	return flush + render(st.Dim, strings.Repeat("╌", max(8, width)))
+}
+
+// solidRule is a full-width solid separator inside a frame.
+func solidRule(width int, st Styles) string {
+	return flush + render(st.Dim, strings.Repeat("─", max(8, width)))
+}
 
 // truncateLines keeps at most n lines, replacing the rest with a dim "… +k lines".
 func truncateLines(lines []string, n int, st Styles) []string {

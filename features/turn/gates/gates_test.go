@@ -416,19 +416,16 @@ func TestBypassWarning(t *testing.T) {
 	}
 }
 
-func TestAutoModePrompt(t *testing.T) {
+func TestAutoNoticeRecorded(t *testing.T) {
 	f := newFixture(t)
-	if !AutoModePromptNeeded(LoadSettings(f.env, f.proj, ""), nil) {
-		t.Fatal("first use should prompt")
+	if LoadGateStore(f.env).AutoNoticeAt != "" {
+		t.Fatal("fresh store")
 	}
-	if AutoModePromptNeeded(LoadSettings(f.env, f.proj, `{"skipAutoPermissionPrompt":true}`), nil) {
-		t.Fatal("flag settings should suppress")
-	}
-	if err := RecordAutoModeAccepted(f.env); err != nil {
+	if err := RecordAutoNotice(f.env); err != nil {
 		t.Fatal(err)
 	}
-	if AutoModePromptNeeded(LoadSettings(f.env, f.proj, ""), LoadGateStore(f.env)) {
-		t.Fatal("acceptance should suppress")
+	if LoadGateStore(f.env).AutoNoticeAt == "" {
+		t.Fatal("notice should be recorded")
 	}
 }
 

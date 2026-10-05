@@ -1,9 +1,9 @@
-╭─ New MCP servers in .mcp.json ───────────────────────────────────────────────────────────────────╮
-│ This project declares MCP servers. Choose the ones Claude Code may start; they can run code and  │
-│ reach the network.                                                                               │
-│                                                                                                  │
-│ ❯ [x] db (stdio: npx db-mcp)                                                                     │
-│   [x] docs (http: https://example.test/mcp)                                                      │
-│                                                                                                  │
-│ space to toggle · enter to confirm · esc to use none                                             │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ New MCP servers in .mcp.json
+ This project declares MCP servers. Choose the ones Claude Code may start; they can run code and
+ reach the network.
+
+ ❯ [x] db (stdio: npx db-mcp)
+   [x] docs (http: https://example.test/mcp)
+
+ space to toggle · enter to confirm · esc to use none

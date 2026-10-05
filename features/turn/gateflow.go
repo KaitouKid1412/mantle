@@ -164,15 +164,8 @@ func (st *state) onGateEvaluated(c ext.Ctx, m gateEvaluatedMsg) tea.Cmd {
 	run.pending = run.report.Pending()
 
 	var cmds []tea.Cmd
-	if ck := run.check; ck != nil {
-		if !ck.OK {
-			run.pending = append([]gates.Kind{kindVersion}, run.pending...)
-		} else if ck.Probed {
-			cmds = append(cmds, c.Notify(ext.Notice{
-				Key: "turn.engineCheck", Text: "claude " + ck.Version + " passed mantle's startup checks.",
-				Level: ext.NoticeInfo, Timeout: 5 * time.Second, Source: FeatureID,
-			}))
-		}
+	if ck := run.check; ck != nil && !ck.OK {
+		run.pending = append([]gates.Kind{kindVersion}, run.pending...)
 	}
 	for i, n := range run.report.Notices() {
 		cmds = append(cmds, c.Notify(ext.Notice{

@@ -65,13 +65,3 @@ func BypassWarningNeeded(f LaunchFlags, layers Layers, store *GateStore) bool {
 	}
 	return store == nil || store.BypassAcceptedAt == ""
 }
-
-// AutoModePromptNeeded reports whether the auto-mode first-use prompt must be shown
-// before entering auto mode. skipAutoPermissionPrompt (user-controlled scopes) or an
-// earlier acceptance suppress it. store may be nil.
-func AutoModePromptNeeded(layers Layers, store *GateStore) bool {
-	if AutoDisabled(layers) || layers.Bool("skipAutoPermissionPrompt", userScopes...) {
-		return false
-	}
-	return store == nil || store.AutoModeAcceptedAt == ""
-}
