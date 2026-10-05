@@ -46,10 +46,8 @@ func (e *effortLine) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	inset, inner := footerInset(a.Width)
 	hint = ansi.Truncate(hint, inner, "…")
 	pad := inset + strings.Repeat(" ", max(0, inner-ansi.StringWidth(hint)))
-	// A blank row above, between the transcript and the hint, as in Claude Code (the
-	// prompt frame leaves its own out while this line is shown).
 	if ctx.Accessibility().ScreenReader {
-		return ext.Rendered{Text: "\n" + hint}
+		return ext.Rendered{Text: hint}
 	}
-	return ext.Rendered{Text: "\n" + pad + ctx.Theme().Paint(theme.Inactive, hint)}
+	return ext.Rendered{Text: pad + ctx.Theme().Paint(theme.Inactive, hint)}
 }
