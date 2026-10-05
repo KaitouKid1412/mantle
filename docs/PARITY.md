@@ -35,11 +35,11 @@ are **H**. Infeasible features are **X**.
 | Prompt editor | ED | 04 | 40 | 0 | 1 | 39 | 0 | 0 |
 | Autocomplete | AC | 04 | 22 | 2 | 3 | 17 | 0 | 0 |
 | History | HI | 04 | 10 | 0 | 0 | 10 | 0 | 0 |
-| Turn control | TC | 05 | 21 | 2 | 4 | 15 | 0 | 0 |
+| Turn control | TC | 05 | 21 | 1 | 4 | 14 | 0 | 2 |
 | Transcript rendering | TR | 03 | 60 | 0 | 54 | 6 | 0 | 0 |
 | Views | VW | 03 / 07 / 12 | 24 | 0 | 7 | 17 | 0 | 0 |
 | Chrome & terminal | CH | 07 | 30 | 0 | 7 | 23 | 0 | 0 |
-| Permissions, dialogs & startup gates | PD | 05 | 45 | 0 | 0 | 45 | 0 | 0 |
+| Permissions, dialogs & startup gates | PD | 05 | 45 | 0 | 0 | 39 | 0 | 6 |
 | Sessions | SE | 06 | 43 | 5 | 1 | 35 | 2 | 0 |
 | Context & usage | CU | 06 | 11 | 1 | 5 | 5 | 0 | 0 |
 | Settings & model panels | ST | 08 | 36 | 4 | 0 | 32 | 0 | 0 |
@@ -49,7 +49,7 @@ are **H**. Infeasible features are **X**.
 | Cloud & product hand-offs | CL | 09 / 11 | 27 | 2 | 0 | 0 | 25 | 0 |
 | Known gaps | GAP | various | 13 | 0 | 0 | 0 | 0 | 13 |
 | mantle-only | MT | 10 / 01 | 36 | 0 | 0 | 36 | 0 | 0 |
-| **Total** | | | **572** | **63** | **87** | **373** | **36** | **13** |
+| **Total** | | | **572** | **62** | **87** | **366** | **36** | **21** |
 
 ---
 
@@ -213,11 +213,11 @@ are **H**. Infeasible features are **X**.
 | TC-03 | Ctrl+C semantics | Interrupt, else clear input, twice to exit ("Press Ctrl-C again to exit") | N | M1 | 05 | B | |
 | TC-04 | Ctrl+D double press exits | Within 800 ms | N | M1 | 05 | B | |
 | TC-05 | Queue while busy | Enter during a turn queues a gray pending message | N | M1 | 05 | B | |
-| TC-06 | Mid-turn pickup | Queued message folded in between tool rounds | E | M1 | 05 | B | `priority:"next"`; S2 |
+| TC-06 | Mid-turn pickup | Queued message folded in between tool rounds | X | M1 | 05 | B | `priority:"next"`; S2; Not built yet: mantle sends every prompt typed during a turn as `priority:"later"` (`features/input` stagePriority), so it waits for the turn to end instead of being folded in at the next tool boundary (S2: no priority behaves like `next`). Request 05-04 |
 | TC-07 | Take back queued messages | Up edits queued messages | N | M2 | 05 | B | `cancel_async_message`; S2 |
 | TC-08 | Send now | Ctrl+Enter or Ctrl+X Ctrl+S | N | M1 | 05 | B | `priority:"now"` + `origin:{kind:"human"}` |
 | TC-09 | Queue submit | Ctrl+X Enter queues without interrupting | N | M2 | 05 | B | `priority:"later"` |
-| TC-10 | Send queued immediately | Enter on queued messages | N | M2 | 05 | B | |
+| TC-10 | Send queued immediately | Enter on queued messages | X | M2 | 05 | B | Not built yet: Enter on an empty prompt does nothing while messages are queued (`features/input` trySubmit). Request 05-04 |
 | TC-11 | Background the running task | Ctrl+B or Ctrl+X Ctrl+B | N | M2 | 05 | B | `background_tasks` control request; Task context |
 | TC-12 | Kill all background agents | Ctrl+X Ctrl+K | N | M2 | 05 | B | `stop_task` per task |
 | TC-13 | Mid-turn model, effort or fast switch | Applies on the next request | E | M1 | 05 | B | |
@@ -385,10 +385,10 @@ are **H**. Infeasible features are **X**.
 | PD-20 | Bypass availability | Only with `--allow-dangerously-skip-permissions` | N | M1 | 05 | B | |
 | PD-21 | Plan approval dialog | Approve + auto / accept edits / bypass; manual; keep planning with feedback | N | M1 | 05 | B | ExitPlanMode via `can_use_tool` |
 | PD-22 | Edit the plan | Ctrl+G opens the plan in the editor | N | M2 | 05 | B | |
-| PD-23 | Clear-context option on approval | | N | M2 | 05 | B | `showClearContextOnPlanAccept` |
+| PD-23 | Clear-context option on approval |  | X | M2 | 05 | B | `showClearContextOnPlanAccept`; Not built: no verified headless way to clear the context and continue with the approved plan; `showClearContextOnPlanAccept` is not read |
 | PD-24 | AskUserQuestion dialog | 1–4 questions, 2–4 options, multiSelect, Other | N | M1 | 05 | B | Answer via `updatedInput.answers` |
 | PD-25 | AskUserQuestion previews | Markdown preview per option | N | M2 | 05 | B | |
-| PD-26 | `askUserQuestionTimeout` | | N | M2 | 05 | B | |
+| PD-26 | `askUserQuestionTimeout` |  | X | M2 | 05 | B | Not built: Claude Code auto-continues an idle AskUserQuestion dialog with the answers picked so far after `askUserQuestionTimeout`; mantle has no idle timer on the dialog |
 | PD-27 | MCP elicitation, form mode | JSON schema → form | N | M2 | 05 | B | `elicitation` → accept/decline/cancel |
 | PD-28 | MCP elicitation, URL mode | Open a URL to continue | N | M2 | 05 | B | |
 | PD-29 | `request_user_dialog` kinds | Forwarded dialogs | N | M2 | 05 | B | Declare only implemented `supportedDialogKinds` |
@@ -398,15 +398,15 @@ are **H**. Infeasible features are **X**.
 | PD-33 | Bypass-mode warning | First-use warning | N | M1 | 05 | A | `skipDangerousModePermissionPrompt` |
 | PD-34 | Auto-mode first-use prompt | | N | M2 | 05 | A | `skipAutoPermissionPrompt` |
 | PD-35 | `ANTHROPIC_API_KEY` approval | One-time approve | N | M2 | 05 | A | |
-| PD-36 | External CLAUDE.md import approval | | N | M2 | 05 | B | Needs a spike |
+| PD-36 | External CLAUDE.md import approval |  | X | M2 | 05 | B | Needs a spike; Infeasible: the approval is the project's `hasClaudeMdExternalIncludesApproved` flag in `~/.claude.json`, which the engine reads and mantle never writes; there is no control request for it |
 | PD-37 | Invalid settings notice | Bad settings file reported | N | M2 | 05 | A | `-p` silently ignores invalid files |
 | PD-38 | Corrupted `~/.claude.json` notice | Report only; never write the file | N | M3 | 05 | A | |
-| PD-39 | Sandbox network-host prompt | | N | M2 | 05 | B | Routing in headless unclear |
-| PD-40 | Sandbox unsandboxed-retry prompt | | N | M2 | 05 | B | |
+| PD-39 | Sandbox network-host prompt |  | X | M2 | 05 | B | Routing in headless unclear; Not built: headless sends sandbox network asks as `can_use_tool` for a synthetic tool; mantle shows them as a generic tool prompt only (no host layout, no domain grant), unverified against a sandboxed run |
+| PD-40 | Sandbox unsandboxed-retry prompt |  | X | M2 | 05 | B | Not built: the unsandboxed-retry ask has no dedicated prompt (generic tool prompt only), unverified against a sandboxed run |
 | PD-41 | Confirmation keys | Enter yes, Esc no, Up/Down, Tab next field, Space toggle | N | M1 | 05 | B | Confirmation context |
 | PD-42 | `dialogExpiry` | Held dialogs expire | N | M3 | 05 | B | |
 | PD-43 | No spawn before gates | None (security guarantee) | N | M1 | 05 | B | Test asserts it |
-| PD-44 | Workflow launch approval | | N | M2 | 05 | B | `can_use_tool` for Workflow |
+| PD-44 | Workflow launch approval |  | X | M2 | 05 | B | `can_use_tool` for Workflow; Not built: Workflow launches get the generic tool prompt (approve/deny works); Claude Code's dedicated workflow dialog and its usage-consent record are not reproduced |
 | PD-45 | Dialog view-models | None (pure, story-tested) | N | M1 | 05 | A | |
 
 ## SE: sessions (owner 06)

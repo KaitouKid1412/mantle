@@ -266,10 +266,12 @@ Everything that decides *whether* and *how* Claude proceeds:
   against a scripted claude (enginefake), which checks the exact `control_response`
   for a permission with an always-allow suggestion, an AskUserQuestion and an
   elicitation.
-- Not done: PD-23 (clear context on plan accept: no verified wire), PD-26
-  (`askUserQuestionTimeout`), PD-36 (external CLAUDE.md import approval), PD-39/40
-  (sandbox prompts; headless routing unknown), PD-42 (`dialogExpiry`, M3), TC-21
-  (`command_lifecycle` states, M3).
+- Parity bookkeeping (plan 12 B6, 2026-10-05): every PARITY row of this plan is
+  compared, tagged, evidenced (docs/parity-evidence/05.md) or a gap (X, reason in
+  PARITY Notes). Built since: PD-15 (`.claude` folder session grant), TC-14 and TC-21
+  tagged. Gaps: TC-06 and TC-10 (in `features/input`, request 05-04), PD-23, PD-26,
+  PD-36 (needs `~/.claude.json`), PD-39/40 (sandbox prompts), PD-44 (Workflow dialog).
+  PD-42 (`dialogExpiry`) is engine-enforced; mantle closes withdrawn prompts.
 
 ### Parity pass against claude 2.1.289 (request 12-05, done)
 
