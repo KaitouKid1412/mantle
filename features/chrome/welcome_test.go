@@ -28,32 +28,48 @@ func TestWelcomeOncePerSession(t *testing.T) {
 	ctx.SettingsV.ClaudeM["companyAnnouncements"] = []any{"Welcome to Acme engineering"}
 	w := newWelcome()
 	w.version = "0.1.0"
+	// What the host knew at launch: the working directory and a --model.
+	ctx.SessionValue = ext.SessionInfo{EngineID: ext.MainEngine, Cwd: "/w/app", Model: "claude-sonnet-5-5"}
 	resp, _ := json.Marshal(proto.InitializeResponse{Account: proto.Account{SubscriptionType: "pro", Email: "x@y.z"}})
 	w.Update(ctx, ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Resp: resp})
-	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{
-		SessionID: "s1", Cwd: "/w/app", Model: "claude-sonnet-5-5", ClaudeVersion: "2.1.288"}})
 	if len(ctx.Printed) != 1 {
-		t.Fatalf("printed = %q", ctx.Printed)
+		t.Fatalf("the banner is printed at startup, on initialize: printed = %q", ctx.Printed)
 	}
 	b := ansi.Strip(ctx.Printed[0])
-	if !strings.Contains(b, "mantle 0.1.0 · Claude Code 2.1.288") || !strings.Contains(b, "Sonnet 5.5 · Claude Pro") ||
-		strings.Contains(b, "x@y.z") {
+	if !strings.Contains(b, "mantle 0.1.0") || !strings.Contains(b, "Sonnet 5.5 · Claude Pro") ||
+		!strings.Contains(b, "/w/app") || strings.Contains(b, "x@y.z") {
 		t.Errorf("banner = %q", b)
 	}
 	if len(ctx.Notices) != 1 || ctx.Notices[0].Text != "Welcome to Acme engineering" {
 		t.Errorf("notices = %+v", ctx.Notices)
 	}
+	w.Update(ctx, ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Resp: resp})
+	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{
+		SessionID: "s1", Cwd: "/w/app", Model: "claude-sonnet-5-5", ClaudeVersion: "2.1.288"}})
 	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "s1", Title: "x"}})
 	if len(ctx.Printed) != 1 {
-		t.Error("same session: no second banner")
+		t.Errorf("the first session id is the startup banner's: printed %d", len(ctx.Printed))
 	}
 	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "s2"}})
 	if len(ctx.Printed) != 2 || len(ctx.Notices) != 1 {
-		t.Errorf("new session: banner again, startup notices once (%d, %d)", len(ctx.Printed), len(ctx.Notices))
+		t.Errorf("new session (/clear): banner again, startup notices once (%d, %d)", len(ctx.Printed), len(ctx.Notices))
+	}
+	if b := ansi.Strip(ctx.Printed[1]); !strings.Contains(b, "mantle 0.1.0 · Claude Code 2.1.288") {
+		t.Errorf("later banners name the engine version: %q", b)
 	}
 	w.Update(ctx, ext.SessionChangedMsg{EngineID: "builder", Info: ext.SessionInfo{SessionID: "b"}})
 	if len(ctx.Printed) != 2 {
 		t.Error("other engines get no banner")
+	}
+}
+
+func TestWelcomeWithoutInitialize(t *testing.T) {
+	// An engine that never answers initialize still gets a banner with its first session.
+	ctx := exttest.NewCtx()
+	w := newWelcome()
+	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "s1"}})
+	if len(ctx.Printed) != 1 {
+		t.Errorf("printed = %d", len(ctx.Printed))
 	}
 }
 

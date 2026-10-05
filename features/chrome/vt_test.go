@@ -26,7 +26,7 @@ func startChrome(t *testing.T, settings map[string]any) *testkit.Harness {
 	root := app.New(app.Options{Host: host, NoBackgroundQuery: true,
 		Settings: exttest.NewSettings(settings)})
 	hs := testkit.New(t, root, testkit.WithSize(100, 30))
-	hs.WaitForText("shift+tab to change", 5*time.Second)
+	hs.WaitForText("manual approval", 5*time.Second) // the footer is up
 	return hs
 }
 
@@ -94,6 +94,28 @@ func TestVTStatusLineAndFooter(t *testing.T) {
 	if strings.Contains(hs.Screen(), "? for shortcuts") {
 		t.Error("a statusLine command hides the shortcuts hint")
 	}
+	slRow, modeRow := -1, -1
+	for i, l := range strings.Split(hs.Screen(), "\n") {
+		if strings.Contains(l, "SL 100 cols") {
+			slRow = i
+		}
+		if strings.Contains(l, "edits auto-approved") {
+			modeRow = i
+		}
+	}
+	if slRow < 0 || slRow+1 != modeRow {
+		t.Errorf("the status line sits right above the mode line (rows %d, %d):\n%s", slRow, modeRow, hs.Screen())
+	}
+	// Effort from the engine: the hint goes on the status line's row.
+	hs.SendMsg(mainEv(&proto.SystemInit{SessionID: "s1", Effort: "medium"}))
+	hs.WaitFor(func(s string) bool {
+		for _, l := range strings.Split(s, "\n") {
+			if strings.Contains(l, "SL 100 cols") && strings.Contains(l, "medium · /effort") {
+				return true
+			}
+		}
+		return false
+	}, 3*time.Second)
 	if bytes.Contains(hs.Output(), []byte("\x1b]9;4;")) {
 		t.Error("no progress bar for a terminal that doesn't render it")
 	}

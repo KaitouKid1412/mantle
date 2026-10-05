@@ -28,6 +28,8 @@ type sessionState struct {
 	EditorMode  string // "prompt" | "bash"
 	Vim         string
 	EditorEmpty bool
+	Panel       bool   // the editor shows a menu, hint or picker below the prompt
+	FrameTitle  string // the editor's title for the prompt frame ("History 2/2")
 }
 
 func newSessionState() sessionState { return sessionState{EditorEmpty: true} }
@@ -53,6 +55,7 @@ func (s *sessionState) observe(msg tea.Msg) bool {
 		set(&s.OutputStyle, i.OutputStyle)
 	case ext.EditorStateMsg:
 		s.EditorMode, s.Vim, s.EditorEmpty = m.Mode, m.Vim, m.Empty
+		s.Panel, s.FrameTitle = m.Panel, m.FrameTitle
 	case ext.EngineEventMsg:
 		if !isMain(m.EngineID) {
 			return false

@@ -40,7 +40,8 @@ func init() {
 		ID: StatusLineID, Order: order,
 		Parity: []string{"CH-18", "CH-19"},
 		Setup: func(r ext.Registrar) error {
-			r.AddComponent(ext.SlotStatusLine, newStatusLine(), ext.SlotOpts{Weight: 0})
+			// In the footer area, between the editor's menus (-100) and the mode line (0).
+			r.AddComponent(ext.SlotBelowInput, newStatusLine(), ext.SlotOpts{Weight: -50})
 			addStories(r, statusLineStories())
 			return nil
 		},

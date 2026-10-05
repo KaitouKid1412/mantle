@@ -59,6 +59,42 @@ func TestFooterTracksMode(t *testing.T) {
 	}
 }
 
+func TestFooterLayoutLikeClaudeCode(t *testing.T) {
+	ctx := exttest.NewCtx()
+	f := newFooter()
+	f.Init(ctx)
+	// Manual mode: the shortcuts hint follows the indicator; no effort known yet.
+	if got := plainView(f, ctx, 100); !strings.HasPrefix(got, "⏸ manual approval · ? for shortcuts") ||
+		strings.Contains(got, "to change") || strings.Contains(got, "/effort") {
+		t.Errorf("manual footer = %q", got)
+	}
+	// Another mode names the cycle key instead; the engine's effort shows on the right.
+	f.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{PermissionMode: ModePlan}})
+	f.Update(ctx, ev(&proto.SystemInit{Effort: "medium"}))
+	got := plainView(f, ctx, 100)
+	if !strings.HasPrefix(got, "⏸ planning only · shift+tab to change") || !strings.HasSuffix(got, "◑ medium · /effort") ||
+		strings.Contains(got, "? for shortcuts") {
+		t.Errorf("plan footer = %q", got)
+	}
+	// A menu or hint below the prompt takes the footer's place.
+	f.Update(ctx, ext.EditorStateMsg{Mode: "prompt", Empty: false, Panel: true})
+	if got := plainView(f, ctx, 100); got != "" {
+		t.Errorf("footer under a menu = %q", got)
+	}
+	f.Update(ctx, ext.EditorStateMsg{Mode: "prompt", Empty: true})
+	if plainView(f, ctx, 100) == "" {
+		t.Error("the footer comes back when the menu closes")
+	}
+	// The effortLevel setting stands in until the engine reports one.
+	ctx2 := exttest.NewCtx()
+	ctx2.SettingsV.ClaudeM["effortLevel"] = "high"
+	f2 := newFooter()
+	f2.Init(ctx2)
+	if got := plainView(f2, ctx2, 100); !strings.HasSuffix(got, "◕ high · /effort") {
+		t.Errorf("effort from settings = %q", got)
+	}
+}
+
 func TestFooterStatusLineAndHideVim(t *testing.T) {
 	ctx := exttest.NewCtx()
 	ctx.SettingsV.ClaudeM["statusLine"] = map[string]any{"type": "command", "command": "x", "hideVimModeIndicator": true}
@@ -422,8 +458,8 @@ func TestTodoPanel(t *testing.T) {
 	}
 	p.Update(ctx, ev(todoWrite("t1", `[{"content":"A","status":"in_progress","activeForm":"Doing A"},{"content":"B","status":"pending"}]`)))
 	p.Update(ctx, ev(toolOK("t1")))
-	if got := plainView(p, ctx, 80); got != "Tasks 0/2 done · Doing A (ctrl+t to show)" {
-		t.Errorf("collapsed = %q", got)
+	if got := plainView(p, ctx, 80); got != "Tasks 0/2 done · 1 in progress (ctrl+t to hide)\n  ▸ Doing A\n  ○ B" {
+		t.Errorf("expanded by default = %q", got)
 	}
 	sub := todoWrite("t2", `[{"content":"Sub","status":"pending"}]`)
 	sub.ParentToolUseID = "agent-1"
@@ -433,17 +469,17 @@ func TestTodoPanel(t *testing.T) {
 	}
 
 	handled, _ := p.toggle(ctx)
-	if !handled || !strings.Contains(plainView(p, ctx, 80), "▸ Doing A") {
-		t.Errorf("expanded = %q", plainView(p, ctx, 80))
+	if got := plainView(p, ctx, 80); !handled || got != "Tasks 0/2 done · 1 in progress · Doing A (ctrl+t to show)" {
+		t.Errorf("collapsed = %q", got)
 	}
-	var saved bool
-	if ok, _ := ctx.Store(TodosID).Get("expanded", &saved); !ok || !saved {
-		t.Error("expanded state not persisted")
+	saved := true
+	if ok, _ := ctx.Store(TodosID).Get("expanded", &saved); !ok || saved {
+		t.Error("collapsed state not persisted")
 	}
 	p2 := newTodoPanel()
 	p2.Init(ctx)
-	if !p2.expanded {
-		t.Error("expanded state not restored")
+	if p2.expanded {
+		t.Error("collapsed state not restored")
 	}
 
 	ctx.SettingsV.ClaudeM["todoFeatureEnabled"] = false
