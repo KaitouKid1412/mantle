@@ -24,11 +24,11 @@ func TestModelPickerApplyAndPersist(t *testing.T) {
 	if !reflect.DeepEqual(g.eng.subtypes(), []string{proto.SubListModels}) {
 		t.Errorf("controls on open %v", g.eng.subtypes())
 	}
-	g.mustContain(100, "Model", "❯ 3. Opus", "✔", "Effort", "● medium")
+	g.mustContain(100, "Model", "❯ 3. Opus", "✔", "●●○○○ medium effort (default)", "←/→ to adjust")
 
 	g.press(ext.ActSelectNext)                                                  // Opus (1M context)
 	g.press(ext.ActModelPickerIncreaseEffort, ext.ActModelPickerIncreaseEffort) // medium → xhigh
-	g.mustContain(100, "❯ 4. Opus (1M context)", "● xhigh")
+	g.mustContain(100, "❯ 4. Opus (1M context)", "●●●●○ xhigh effort")
 	g.press(ext.ActSelectAccept)
 
 	if g.dialog != nil {
@@ -180,8 +180,13 @@ func TestModelPickerLoading(t *testing.T) {
 	g.eng.missing[proto.SubListModels] = true
 	g.command("model", "")
 	g.mustContain(80, "Default (recommended)")
-	// A list_models answer arriving later fills the list.
+	// initialize arriving after the picker opened fills it at once.
 	g.loadModels()
+	g.mustContain(80, "Opus (1M context)")
+	if strings.Contains(g.screen(80), "Loading") {
+		t.Error("still loading after initialize")
+	}
+	// A later list_models answer keeps it filled.
 	g.deliver(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubListModels,
 		Resp: []byte(jsonOf(g.eng.responses[proto.SubListModels]))})
 	g.mustContain(80, "Opus (1M context)")
