@@ -7,4 +7,4 @@
   3. Add tests.
 
 [38;2;111;194;139m⏺[m Bash(go test ./...)
-  ⎿ ok   example.com/pkg01  0.01s
+  ⎿ ok   example.com/pkg01  0.01s                                                                                                                                            [38;2;139;139;147m↓ jump to bottom · ctrl+end[m
