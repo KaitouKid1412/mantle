@@ -770,6 +770,51 @@ func TestEditorStateBroadcast(t *testing.T) {
 	}
 }
 
+func TestPanelAndFrameTitle(t *testing.T) {
+	r := newRig(t, nil)
+	state := func() ext.EditorStateMsg {
+		st, _ := lastMsg[ext.EditorStateMsg](r)
+		return st
+	}
+	r.keys("'/co'")
+	if !state().Panel {
+		t.Fatal("/ menu sets Panel")
+	}
+	r.keys("esc")
+	if state().Panel {
+		t.Fatal("dismissing clears Panel")
+	}
+	r.s.ed.Clear()
+	r.keys("ctrl+u", "'?'")
+	if !state().Panel {
+		t.Fatal("? help sets Panel")
+	}
+	r.keys("'?'")
+	if state().Panel {
+		t.Fatal("? again hides help")
+	}
+	r.keys("ctrl+r")
+	if !state().Panel {
+		t.Fatal("history search sets Panel")
+	}
+	r.keys("ctrl+c")
+	r.event(historyLoadedMsg{entries: []history.Entry{
+		{Display: "older", Project: "/work/demo"}, {Display: "newer", Project: "/work/demo"},
+	}})
+	r.keys("up")
+	if got := state().FrameTitle; got != "History 1/2" {
+		t.Fatalf("title %q", got)
+	}
+	r.keys("up")
+	if got := state().FrameTitle; got != "History 2/2" {
+		t.Fatalf("title %q", got)
+	}
+	r.keys("down", "down")
+	if got := state().FrameTitle; got != "" {
+		t.Fatalf("back at the draft: %q", got)
+	}
+}
+
 func TestUltrathinkDecoration(t *testing.T) {
 	r := newRig(t, nil)
 	r.s.ed.SetValue("please ultrathink about it, not ultrathinking")

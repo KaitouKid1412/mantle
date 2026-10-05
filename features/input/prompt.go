@@ -48,19 +48,27 @@ func (p *promptComp) KeyContexts() []string {
 func (p *promptComp) OnFocus(c ext.Ctx) tea.Cmd { p.s.ed.Focus(); p.s.invalidate(c); return nil }
 func (p *promptComp) OnBlur(c ext.Ctx) tea.Cmd  { p.s.ed.Blur(); p.s.invalidate(c); return nil }
 
+// Every entry point ends with stateCmd, which broadcasts EditorStateMsg
+// only when mode, vim mode, emptiness, panel or frame title changed.
+
 func (p *promptComp) HandleAction(c ext.Ctx, a ext.ActionID) (bool, tea.Cmd) {
-	return p.s.action(c, a)
+	ok, cmd := p.s.action(c, a)
+	return ok, tea.Batch(cmd, p.s.stateCmd(false))
 }
 
 func (p *promptComp) HandleKey(c ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
-	return p.s.key(c, k)
+	ok, cmd := p.s.key(c, k)
+	return ok, tea.Batch(cmd, p.s.stateCmd(false))
 }
 
 func (p *promptComp) HandlePaste(c ext.Ctx, m tea.PasteMsg) (bool, tea.Cmd) {
-	return p.s.paste(c, m.Content)
+	ok, cmd := p.s.paste(c, m.Content)
+	return ok, tea.Batch(cmd, p.s.stateCmd(false))
 }
 
-func (p *promptComp) Update(c ext.Ctx, msg tea.Msg) tea.Cmd { return p.s.update(c, msg) }
+func (p *promptComp) Update(c ext.Ctx, msg tea.Msg) tea.Cmd {
+	return tea.Batch(p.s.update(c, msg), p.s.stateCmd(false))
+}
 
 func (p *promptComp) View(c ext.Ctx, a ext.Area) ext.Rendered { return p.s.viewPrompt(c, a) }
 
