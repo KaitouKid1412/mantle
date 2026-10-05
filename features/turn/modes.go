@@ -34,6 +34,7 @@ func (st *state) mode(engineID string) *modeState {
 }
 
 func (st *state) setupModes(r ext.Registrar) {
+	ext.Subscribe(r, "turn.autoNotice", st.printAutoNotice)
 	r.AddAction(ext.Action{
 		ID: ext.ActChatCycleMode, Context: ext.ContextChat,
 		Description: "Cycle the permission mode",
@@ -177,8 +178,20 @@ var autoNoticeText = []string{
 	"press shift+tab to pick another mode, or set permissions.defaultMode.",
 }
 
-// autoNotice prints the auto-mode default notice the first time it applies.
+// autoNoticeMsg prints the auto-mode notice. It is a message of its own so the notice
+// lands after the startup banner, which is printed for the same initialize result.
+type autoNoticeMsg struct{}
+
+// autoNotice schedules the auto-mode default notice the first time it applies.
 func (st *state) autoNotice(c ext.Ctx) tea.Cmd {
+	env, err := st.env()
+	if err != nil || gates.LoadGateStore(env).AutoNoticeAt != "" {
+		return nil
+	}
+	return ext.Msg(autoNoticeMsg{})
+}
+
+func (st *state) printAutoNotice(c ext.Ctx, _ autoNoticeMsg) tea.Cmd {
 	env, err := st.env()
 	if err != nil || gates.LoadGateStore(env).AutoNoticeAt != "" {
 		return nil
@@ -187,7 +200,8 @@ func (st *state) autoNotice(c ext.Ctx) tea.Cmd {
 		_ = gates.RecordAutoNotice(env)
 		return nil
 	}
-	return tea.Batch(c.Print(strings.Join(autoNoticeText, "\n")), record)
+	lines := append(append([]string{""}, autoNoticeText...), "")
+	return tea.Batch(c.Print(strings.Join(lines, "\n")), record)
 }
 
 func (st *state) onModeResult(c ext.Ctx, m ext.ControlResultMsg) tea.Cmd {

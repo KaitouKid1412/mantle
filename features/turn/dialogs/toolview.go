@@ -55,7 +55,12 @@ func prettyJSON(raw []byte) string {
 // editPreview renders one edit with the context's Diff hook, or the plain fallback.
 func editPreview(ctx PermissionContext, old, new, path string, w int, st Styles) []string {
 	if ctx.Diff != nil {
-		return ctx.Diff(SanitizeText(old), SanitizeText(new), path, w, maxDiffLines)
+		// The diff gutter brings its own leading column: write the lines flush.
+		lines := ctx.Diff(SanitizeText(old), SanitizeText(new), path, w+1, maxDiffLines)
+		for i, l := range lines {
+			lines[i] = flush + l
+		}
+		return lines
 	}
 	if old == "" {
 		return renderDiff(addedPreview(new), w, maxDiffLines, st)

@@ -193,7 +193,8 @@ func renderHooks(c ext.Ctx) (diff func(old, new, path string, width, maxLines in
 		pair, ok := files[key]
 		if !ok {
 			pair = wholeFileEdit(path, old, new)
-			pair = [2]string{render.ExpandTabs(pair[0], 4), render.ExpandTabs(pair[1], 4)}
+			// Tabs as two columns, like Claude Code's diff previews.
+			pair = [2]string{render.ExpandTabs(pair[0], 2), render.ExpandTabs(pair[1], 2)}
 			files[key] = pair
 		}
 		return diffview.Render(diffview.FromStrings(pair[0], pair[1], 3), diffview.Options{
