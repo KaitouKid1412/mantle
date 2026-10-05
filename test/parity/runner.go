@@ -332,9 +332,10 @@ func sanitizeName(s string) string {
 }
 
 // scenarioSettings is the settings.json a run starts with: the scenario's settings,
-// with "tui" pinned to the inline renderer unless the scenario chose one. Claude Code
-// 2.1.289 starts in fullscreen with a fresh config, and mantle starts inline, so an
-// unpinned comparison would set two different renderers against each other.
+// with "tui" pinned to the inline renderer unless the scenario chose one. The default
+// renderer depends on the engine version (Claude Code 2.1.289 starts fullscreen with a
+// fresh config, and mantle follows the installed engine), so each suite names its
+// renderer; "tui": null leaves it unset, to compare the two targets' defaults.
 func scenarioSettings(raw string) ([]byte, error) {
 	m := map[string]json.RawMessage{}
 	if strings.TrimSpace(raw) != "" {
@@ -342,8 +343,11 @@ func scenarioSettings(raw string) ([]byte, error) {
 			return nil, fmt.Errorf("parity: settings: %w", err)
 		}
 	}
-	if _, ok := m["tui"]; !ok {
+	switch v, ok := m["tui"]; {
+	case !ok:
 		m["tui"] = json.RawMessage(`"default"`)
+	case strings.TrimSpace(string(v)) == "null":
+		delete(m, "tui") // "tui": null leaves it unset: each target's own default
 	}
 	return json.MarshalIndent(m, "", "  ")
 }

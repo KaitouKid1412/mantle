@@ -126,6 +126,8 @@ type Root struct {
 
 	cmdHidden map[string]map[string]bool // CommandVisibilityMsg overlays, by source
 
+	pendingPrompts []ext.Prompt // core.send drafts typed before the main engine attached
+
 	exitCode   int
 	exitReason string
 	quitting   bool
@@ -457,6 +459,9 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.log().Debug("engine: attached", "id", m.EngineID)
 		r.engines[m.EngineID] = m.Engine
 		cmds = append(cmds, r.broadcast(msg))
+		if m.EngineID == ext.MainEngine {
+			cmds = append(cmds, r.flushPendingPrompts())
+		}
 	case ext.EngineStartMsg:
 		if e := r.engines[m.EngineID]; e != nil {
 			cmds = append(cmds, e.Restart(m.Opts))

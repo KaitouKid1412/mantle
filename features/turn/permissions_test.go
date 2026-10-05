@@ -45,8 +45,8 @@ func TestPermissionQueueInOrder(t *testing.T) {
 		t.Fatalf("attribution/counter wrong:\n%s", v)
 	}
 	x.press("esc")
-	if len(builder.got) != 1 || builder.got[0].Behavior != proto.BehaviorDeny || builder.got[0].Interrupt {
-		t.Fatalf("esc should deny without interrupt: %+v", builder.got)
+	if len(builder.got) != 1 || builder.got[0].Behavior != proto.BehaviorDeny || !builder.got[0].Interrupt {
+		t.Fatalf("esc should deny and interrupt: %+v", builder.got)
 	}
 	if len(x.c.stack) != 0 || x.st.reqs.open != nil {
 		t.Fatal("queue should be empty")

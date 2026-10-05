@@ -273,9 +273,6 @@ func (f *Feature) renderText(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	for _, b := range blocks {
 		lines = append(lines, b...)
 	}
-	if it.State == ext.Interrupted {
-		lines = append(lines, result(rc, stylesFor(rc).dim, "(response interrupted)")...)
-	}
 	if it.State.Finished() {
 		// Finished text never changes: drop its streaming state whatever the
 		// layout (inline commit also forgets it; fullscreen caches lines itself).

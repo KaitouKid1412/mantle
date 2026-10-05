@@ -80,12 +80,16 @@ func (f *feature) onTitled(ctx ext.Ctx, m titledMsg) tea.Cmd {
 	if m.sid != "" {
 		f.titles[m.sid] = m.title
 	}
+	if m.auto {
+		// A generated title names the session in pickers, not in the prompt bar.
+		return nil
+	}
+	if m.sid != "" {
+		f.names[m.sid] = m.title
+	}
 	info := ctx.Session()
 	if info.SessionID == m.sid {
 		info.Title = m.title
-	}
-	if m.auto {
-		return ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: info})
 	}
 	return tea.Batch(
 		ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: info}),

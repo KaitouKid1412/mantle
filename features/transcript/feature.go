@@ -129,6 +129,21 @@ func (f *Feature) Setup(r ext.Registrar) error {
 			return true, tea.Batch(c.Notify(ext.Notice{Key: "transcript.brief", Text: label, Source: FeatureID}), c.Reprint())
 		},
 	})
+	// "⎿ Waiting…" under a tool call while its permission prompt is open.
+	ext.Subscribe(r, "transcript.permission", func(c ext.Ctx, m ext.PermissionMsg) tea.Cmd {
+		if f.forEngine(m.EngineID) && m.Req.ToolUseID != "" {
+			f.store.SetWaiting(m.Req.ToolUseID, m.RequestID)
+			c.Invalidate(LiveID)
+		}
+		return nil
+	})
+	ext.Subscribe(r, "transcript.permissionCancel", func(c ext.Ctx, m ext.ControlCancelMsg) tea.Cmd {
+		if f.forEngine(m.EngineID) {
+			f.store.ClearWaiting(m.RequestID)
+			c.Invalidate(LiveID)
+		}
+		return nil
+	})
 	f.registerViewer(r)
 	f.spinner.setup(r)
 	f.registerStories(r)
@@ -151,6 +166,9 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 				reprint = c.Reprint()
 			}
 		}
+	}
+	if st, ok := m.Event.(*proto.SessionStateChanged); ok && st.State != proto.StateRequiresAction {
+		f.store.ClearWaiting("") // every open prompt was answered
 	}
 	spin := f.spinner.onEvent(c, m.Event)
 	if n, ok := m.Event.(*proto.Notification); ok && strings.TrimSpace(n.Text) != "" {
