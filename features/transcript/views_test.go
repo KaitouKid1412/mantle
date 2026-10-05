@@ -25,7 +25,7 @@ func TestFocusView(t *testing.T) {
 	g.deliver(ext.SettingsMsg{})
 	g.send(focusTurn)
 	got := join(g.printed())
-	for _, want := range []string{"> check it", "⏺ Used 2 tools (ctrl+o to see them)", "⏺ All good.", "for 3s"} {
+	for _, want := range []string{"❯ check it", "⏺ Used 2 tools (ctrl+o to see them)", "⏺ All good.", "for 3s"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("focus view lacks %q:\n%s", want, got)
 		}
@@ -82,6 +82,7 @@ func TestBriefMode(t *testing.T) {
 		t.Fatal("app:toggleBrief not registered")
 	}
 	handled, cmd := toggle.Run(g.c)
+	g.settle()
 	if !handled || cmd == nil || g.f.mode() != ext.Brief || g.c.Reprints != 1 {
 		t.Fatalf("toggle: handled %v mode %v reprints %d", handled, g.f.mode(), g.c.Reprints)
 	}
@@ -96,6 +97,7 @@ func TestBriefMode(t *testing.T) {
 		t.Fatalf("brief view:\n%s", got)
 	}
 	toggle.Run(g.c)
+	g.settle()
 	if g.f.mode() != ext.Normal {
 		t.Fatal("brief mode did not toggle off")
 	}

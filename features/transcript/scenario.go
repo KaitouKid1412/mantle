@@ -45,7 +45,7 @@ const sampleSession = `
 {"type":"assistant","uuid":"a18","message":{"id":"m1","content":[{"type":"text","text":"Fixed. The worker now waits before retrying:\n\n- **Backoff** starts at 200ms and doubles per attempt, capped at 8 doublings.\n- The failing test \u0060TestRetryBackoff\u0060 now passes.\n\n| File | Change |\n|---|---|\n| \u0060worker.go\u0060 | uses \u0060enqueueAfter\u0060 |\n| \u0060backoff.go\u0060 | new helper |\n\nI also found the same issue in \u0060internal/sync/client.go\u0060; I can fix that next."}]}}
 {"type":"result","subtype":"success","uuid":"r1","duration_ms":66000,"duration_api_ms":30000,"is_error":false,"num_turns":12,"result":"Fixed.","total_cost_usd":0.12,"permission_denials":[{"tool_name":"Bash","tool_use_id":"t_x","tool_input":{"command":"rm -rf build"}}]}
 {"type":"system","subtype":"session_state_changed","state":"idle"}
-{"type":"system","subtype":"compact_boundary","uuid":"c1","compact_metadata":{"trigger":"manual","pre_tokens":48200,"post_tokens":7900}}
+{"type":"system","subtype":"compact_boundary","uuid":"c1","compact_metadata":{"trigger":"auto","pre_tokens":48200,"post_tokens":7900}}
 {"type":"assistant","uuid":"a19","error":"rate_limit","message":{"id":"m3","model":"<synthetic>","content":[{"type":"text","text":"API Error: 429 rate limited"}]}}
 {"type":"assistant","uuid":"a20","local_command_run":{"command":"context","args":""},"message":{"id":"m4","model":"<synthetic>","content":[{"type":"text","text":"Context usage: 7.9k / 200k tokens (4%)"}]}}
 {"type":"result","subtype":"success","uuid":"r9","duration_ms":30,"is_error":false,"num_turns":0,"local_command":"context","total_cost_usd":0}

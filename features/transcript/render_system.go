@@ -63,7 +63,12 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		}
 		body = append(body, truncLines(render.WrapWith(st.dim.Render(clean(text)), render.WrapOptions{Width: rc.Width, First: st.err.Render(glyphDot) + " ", Rest: dotIndent}), rc.Width)...)
 	}
-	if f.cfg.showTurnDuration && r.NumTurns > 0 && (r.Interrupted() || !r.IsError) {
+	if n := f.store.WaitingAgents(r.UUID); n > 0 && r.NumTurns > 0 {
+		if len(body) > 0 {
+			body = append(body, "")
+		}
+		body = append(body, st.dim.Render(glyphThought+" Waiting for "+plural(n, "background agent", "background agents")+" to finish"))
+	} else if f.cfg.showTurnDuration && r.NumTurns > 0 && r.TerminalReason != proto.TerminalAbortedStreaming && (r.Interrupted() || !r.IsError) {
 		line := glyphThought + " " + pickVerb(r.UUID+it.ID) + " for " + formatDuration(msToDuration(r.DurationMS))
 		if t := f.formatClock(it.End); t != "" {
 			line += " · done " + t
@@ -82,7 +87,12 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 
 // attached reports whether an item's first line continues the item above it
 // (no blank line between): the interrupt line of an interrupted turn.
-func (f *Feature) attached(it *ext.Item) bool {
+// prev is the item above it ("" item when none). Attached are the interrupt
+// line of an interrupted turn and a local command's output under its prompt.
+func (f *Feature) attached(it, prev *ext.Item) bool {
+	if it.Key == ext.KeySystemLocalCommand {
+		return prev != nil && prev.Key == ext.KeyUserPrompt
+	}
 	r, ok := it.Data.(*proto.Result)
 	return ok && it.Key == KeyResult && r.Interrupted() && !f.store.InterruptShown(r.UUID)
 }
@@ -185,6 +195,9 @@ func (f *Feature) renderLocalCommand(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	for _, l := range strings.Split(render.ExpandTabs(text, 4), "\n") {
 		lines = append(lines, render.WrapWith(stylesFor(rc).dim.Render(l), render.WrapOptions{Width: width})...)
 	}
+	if strings.TrimSpace(render.Strip(text)) == "Compacted" && len(lines) == 1 {
+		lines[0] += stylesFor(rc).dim.Render(" (ctrl+o for the summary)")
+	}
 	return ext.Block{Lines: indentLines(lines, true)}
 }
 
@@ -212,23 +225,28 @@ func stripTags(s string, tags ...string) string {
 
 func (f *Feature) renderCompact(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	st := stylesFor(rc)
-	cb, _ := it.Data.(*proto.CompactBoundary)
-	label := " Conversation compacted"
-	if cb != nil && cb.CompactMetadata.PreTokens > 0 {
-		label += " (" + formatTokens(cb.CompactMetadata.PreTokens)
+	line := glyphThought + " Conversation compacted (ctrl+o for history)"
+	if cb, _ := it.Data.(*proto.CompactBoundary); cb != nil && verbose(rc) && cb.CompactMetadata.PreTokens > 0 {
+		line += " · " + formatTokens(cb.CompactMetadata.PreTokens)
 		if cb.CompactMetadata.PostTokens > 0 {
-			label += " → " + formatTokens(cb.CompactMetadata.PostTokens)
+			line += " → " + formatTokens(cb.CompactMetadata.PostTokens)
 		}
-		label += " tokens)"
+		line += " tokens"
 	}
-	label += " · ctrl+o for history "
-	w := render.Width(label)
-	if w+4 > rc.Width {
-		return ext.Block{Lines: truncLines([]string{st.dim.Render(strings.TrimSpace(label))}, rc.Width)}
+	return ext.Block{Lines: truncLines([]string{st.dim.Render(line)}, rc.Width)}
+}
+
+// renderCompactSummary shows the summary a compaction left, at full detail
+// only (ctrl+o, verbose).
+func (f *Feature) renderCompactSummary(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	u, _ := it.Data.(*proto.User)
+	if u == nil || !verbose(rc) {
+		return ext.Block{}
 	}
-	side := (rc.Width - w) / 2
-	line := strings.Repeat("═", min(side, 6)) + label + strings.Repeat("═", min(rc.Width-w-side, 6))
-	return ext.Block{Lines: []string{st.dim.Render(line)}}
+	st := stylesFor(rc)
+	lines := []string{st.dim.Render(glyphThought + " Summary of the earlier conversation")}
+	md := render.Markdown(u.Message.Content.PlainText(), f.mdOptions(rc, rc.Width-len(resultHang)))
+	return ext.Block{Lines: append(lines, indentLines(md, true)...)}
 }
 
 func (f *Feature) renderRetry(rc ext.RenderCtx, it *ext.Item) ext.Block {
@@ -412,17 +430,25 @@ func (f *Feature) renderTaskNotification(rc ext.RenderCtx, it *ext.Item) ext.Blo
 	case "stopped":
 		dot, verb = st.dim, "stopped"
 	}
-	name, args := "Background task "+verb, ""
+	name := "Background task " + verb
+	agent := false
 	if id := f.store.TaskTool(n.TaskID); id != "" {
 		var in agentInput
-		if it := f.store.Get(id); it != nil && toolUse(it) != nil {
-			decodeInput(toolUse(it).Input, &in)
+		if t := f.store.Get(id); t != nil && toolUse(t) != nil {
+			decodeInput(toolUse(t).Input, &in)
 			name = "Agent \"" + oneLine(in.Description) + "\" " + verb
+			agent = true
 		}
 	}
-	lines := header(rc, st, dot, name, args)
-	if s := firstNonEmpty(n.Summary, n.Reason); s != "" {
-		lines = append(lines, result(rc, st.dim, oneLine(s))...)
+	if n.Usage != nil && n.Usage.DurationMS > 0 {
+		name += " · " + formatDuration(msToDuration(n.Usage.DurationMS))
+	}
+	lines := header(rc, st, dot, name, "")
+	// An agent's answer goes to Claude; the row only says it finished.
+	if !agent || verbose(rc) || n.Status == "failed" {
+		if s := firstNonEmpty(n.Summary, n.Reason); s != "" {
+			lines = append(lines, result(rc, st.dim, oneLine(s))...)
+		}
 	}
 	return ext.Block{Lines: lines}
 }

@@ -206,11 +206,11 @@ func (c *ConfirmView) Action(ctx ext.Ctx, d *Dialog, a ext.ActionID) (bool, tea.
 }
 
 func (c *ConfirmView) accept(ctx ext.Ctx, d *Dialog) tea.Cmd {
-	cmd := d.Pop(ctx)
-	if c.OnYes == nil {
-		return cmd
+	var yes tea.Cmd
+	if c.OnYes != nil {
+		yes = c.OnYes(ctx, d) // before the pop, so it can adjust the dialog
 	}
-	return tea.Batch(cmd, c.OnYes(ctx, d))
+	return tea.Batch(d.Pop(ctx), yes)
 }
 
 func (c *ConfirmView) Key(ctx ext.Ctx, d *Dialog, k tea.KeyPressMsg) (bool, tea.Cmd) {

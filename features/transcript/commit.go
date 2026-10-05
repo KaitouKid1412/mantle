@@ -15,6 +15,9 @@ type commitState struct {
 	partialID string // text item at the watermark whose closed blocks are printed
 	partial   int    // how many of its markdown blocks are printed
 	hidden    int    // tool calls skipped by the focus view since the last summary
+	// awaitClear holds commits between our Reprint request and the
+	// ScreenClearedMsg that follows it.
+	awaitClear bool
 }
 
 // commitReady prints every finished item at the watermark into scrollback, plus
@@ -22,7 +25,7 @@ type commitState struct {
 // lines are never re-rendered. Only inline layout commits; fullscreen keeps
 // everything in the store.
 func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
-	if c.Layout() != ext.Inline {
+	if c.Layout() != ext.Inline || f.commit.awaitClear {
 		return nil
 	}
 	tw, _ := c.Size()
@@ -70,7 +73,7 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 		if it.State.Finished() {
 			if lines := f.finishLines(c, it, w); len(lines) > 0 {
 				out = f.flushHidden(c, out, w)
-				out = appendChunk(out, lines, f.commit.partialID != it.ID && !f.attached(it))
+				out = appendChunk(out, lines, f.commit.partialID != it.ID && !f.attached(it, prevItem(items, i)))
 			}
 			if f.commit.partialID == it.ID {
 				f.commit.partialID, f.commit.partial = "", 0
@@ -140,6 +143,14 @@ func (f *Feature) flushHidden(c ext.Ctx, out []string, w int) []string {
 	out = appendItem(out, f.hiddenSummary(c, f.commit.hidden, w, false))
 	f.commit.hidden = 0
 	return out
+}
+
+// prevItem returns the item before index i (nil for the first).
+func prevItem(items []*ext.Item, i int) *ext.Item {
+	if i > 0 {
+		return items[i-1]
+	}
+	return nil
 }
 
 // appendItem adds a whole item's lines with a blank line before it.
@@ -268,7 +279,7 @@ func (f *Feature) groupLines(c ext.Ctx, run []*ext.Item, w int) []string {
 
 // reprint re-prints the whole store after the host cleared the screen.
 func (f *Feature) reprint(c ext.Ctx) tea.Cmd {
-	f.store.SetCommitted(0)
+	f.store.SetCommitted(f.store.Base())
 	f.store.TakeNotes()
 	f.commit = commitState{}
 	return f.commitReady(c)
@@ -309,7 +320,7 @@ func (f *Feature) liveItems(c ext.Ctx, w int) (chunks [][]string, running []bool
 			continue
 		}
 		flush()
-		if newItem && !f.attached(it) {
+		if newItem && !f.attached(it, prevItem(items, i)) {
 			lines = append([]string{""}, lines...)
 		}
 		chunks = append(chunks, lines)

@@ -18,6 +18,7 @@ const (
 	KeyTaskNotification ext.ContentKey = "system.task_notification" // Data *proto.TaskNotification
 	KeyNotification     ext.ContentKey = "system.notification"      // Data *proto.Notification
 	KeyMemoryRecall     ext.ContentKey = "system.memory_recall"     // Data *proto.MemoryRecall
+	KeyCompactSummary   ext.ContentKey = "system.compact_summary"   // Data *proto.User: the summary a compaction left
 )
 
 // Store is the transcript: ordered items with stable IDs and revisions. It is the
@@ -37,23 +38,29 @@ type Store struct {
 	rev       int // bumped on every change
 
 	// streaming state, per parent_tool_use_id ("" = main thread)
-	curMsg      map[string]string                          // parent → message.id of the message being streamed
-	blocks      map[blockKey]*ext.Item                     // (parent, message.id, index) → item
-	pending     map[msgKey][]*ext.Item                     // streamed items not yet matched by an assistant message
-	inputs      map[string]*strings.Builder                // tool_use id → partial input JSON
-	uuids       map[string][]string                        // assistant message uuid → item IDs (supersedes)
-	tools       map[string]*ToolInfo                       // tool_use id → progress
-	tasks       map[string]string                          // task_id → tool_use id
-	retry       *ext.Item                                  // the live api_retry item, if any
-	hooks       map[string]*ext.Item                       // hook_id → item
-	notes       []string                                   // pending markers for the commit policy
-	rateStatus  string                                     // last rate_limit_event status
-	models      map[string]string                          // item ID → model that wrote it
-	shown       map[string]bool                            // result uuid → its error is already on screen
-	interrupted map[string]bool                            // result uuid → a tool row shows the interruption
-	waiting     map[string]string                          // tool_use id → permission request id while its prompt is open
-	view        func(ext.Ctx, int) ([]string, []ext.Block) // set by the feature (Lines)
-	_           struct{}
+	curMsg       map[string]string                          // parent → message.id of the message being streamed
+	blocks       map[blockKey]*ext.Item                     // (parent, message.id, index) → item
+	pending      map[msgKey][]*ext.Item                     // streamed items not yet matched by an assistant message
+	inputs       map[string]*strings.Builder                // tool_use id → partial input JSON
+	uuids        map[string][]string                        // assistant message uuid → item IDs (supersedes)
+	tools        map[string]*ToolInfo                       // tool_use id → progress
+	tasks        map[string]string                          // task_id → tool_use id
+	retry        *ext.Item                                  // the live api_retry item, if any
+	hooks        map[string]*ext.Item                       // hook_id → item
+	notes        []string                                   // pending markers for the commit policy
+	rateStatus   string                                     // last rate_limit_event status
+	models       map[string]string                          // item ID → model that wrote it
+	shown        map[string]bool                            // result uuid → its error is already on screen
+	interrupted  map[string]bool                            // result uuid → a tool row shows the interruption
+	waiting      map[string]string                          // tool_use id → permission request id while its prompt is open
+	base         int                                        // first item shown after a clear (a manual compaction starts over)
+	afterCompact bool                                       // the next plain user message is the compaction summary
+	bgRunning    map[string]bool                            // background agents (tool ids) not yet reported finished
+	bgQueue      []*ext.Item                                // their "finished" rows, shown when the next turn starts
+	turnEnded    bool                                       // a result arrived and no new turn has started
+	waitBG       map[string]int                             // result uuid → background agents still running then
+	view         func(ext.Ctx, int) ([]string, []ext.Block) // set by the feature (Lines)
+	_            struct{}
 }
 
 type blockKey struct {
@@ -101,6 +108,12 @@ func (s *Store) reset() {
 	s.shown = map[string]bool{}
 	s.interrupted = map[string]bool{}
 	s.waiting = map[string]string{}
+	s.base = 0
+	s.afterCompact = false
+	s.bgRunning = map[string]bool{}
+	s.bgQueue = nil
+	s.turnEnded = false
+	s.waitBG = map[string]int{}
 	s.retry = nil
 	s.rev++
 }
@@ -124,6 +137,28 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// Base is the index of the first item shown after the screen is cleared: 0,
+// or the boundary of the last manual compaction (which starts the screen over;
+// earlier items stay in the store for ctrl+o).
+func (s *Store) Base() int { return min(s.base, len(s.items)) }
+
+// WaitingAgents returns how many background agents were still running when a
+// turn ended (its result's uuid).
+func (s *Store) WaitingAgents(resultUUID string) int { return s.waitBG[resultUUID] }
+
+// flushBackground shows the "finished" rows of background agents, once the
+// turn that was running when they finished is over.
+func (s *Store) flushBackground() {
+	for _, it := range s.bgQueue {
+		if n, ok := it.Data.(*proto.TaskNotification); ok {
+			delete(s.bgRunning, s.tasks[n.TaskID])
+		}
+		s.add(it)
+	}
+	s.bgQueue = nil
+	s.turnEnded = false
+}
 
 // Waiting reports whether a tool call's permission prompt is open.
 func (s *Store) Waiting(id string) bool { return s.waiting[id] != "" }
@@ -301,6 +336,16 @@ func (s *Store) remove(id string) {
 func (s *Store) Apply(ev proto.Event) bool {
 	before := s.rev
 	switch e := ev.(type) {
+	case *proto.SystemInit, *proto.Assistant, *proto.StreamEvent:
+		if s.turnEnded && len(s.bgQueue) > 0 {
+			s.flushBackground()
+		}
+	case *proto.SessionStateChanged:
+		if e.State == proto.StateIdle && len(s.bgQueue) > 0 {
+			s.flushBackground()
+		}
+	}
+	switch e := ev.(type) {
 	case *proto.StreamEvent:
 		s.applyStream(e)
 	case *proto.Assistant:
@@ -341,11 +386,12 @@ func (s *Store) Apply(ev proto.Event) bool {
 	case *proto.ConversationReset:
 		s.reset()
 	case *proto.CompactBoundary:
-		st := ext.Done
+		s.add(&ext.Item{ID: "sys:" + e.UUID, Key: ext.KeySystemCompactBoundary, Data: e, State: ext.Done})
+		s.afterCompact = true
 		if e.CompactMetadata.Trigger == "manual" {
-			st = ext.Running // waits for the /compact echo; done at the result
+			s.base = len(s.items) - 1
+			s.committed = min(s.committed, s.base)
 		}
-		s.add(&ext.Item{ID: "sys:" + e.UUID, Key: ext.KeySystemCompactBoundary, Data: e, State: st})
 	case *proto.APIRetry:
 		if s.retry != nil {
 			s.retry.Data = e
@@ -399,8 +445,15 @@ func (s *Store) Apply(ev proto.Event) bool {
 			}
 			s.touch(s.byID[id])
 			if info.Async {
-				// A background agent's call ended long ago: say it finished.
-				s.add(&ext.Item{ID: "task:" + e.TaskID + ":" + e.UUID, Key: KeyTaskNotification, Data: e, State: ext.Done})
+				// A background agent finished: its row shows once the turn
+				// running now is over (as its result is fed to the model).
+				it := &ext.Item{ID: "task:" + e.TaskID + ":" + e.UUID, Key: KeyTaskNotification, Data: e, State: ext.Done}
+				if s.turnEnded {
+					s.add(it)
+					delete(s.bgRunning, id)
+				} else {
+					s.bgQueue = append(s.bgQueue, it)
+				}
 			}
 		} else {
 			s.add(&ext.Item{ID: "task:" + e.TaskID + ":" + e.UUID, Key: KeyTaskNotification, Data: e, State: ext.Done})
@@ -673,6 +726,7 @@ func (s *Store) applyUser(e *proto.User) {
 		}
 		if json.Unmarshal(r.Structured, &async) == nil && (async.IsAsync || async.Status == "async_launched") {
 			s.tool(r.ToolUseID).Async = true
+			s.bgRunning[r.ToolUseID] = true
 		}
 		st := ext.Done
 		if r.IsError {
@@ -683,6 +737,11 @@ func (s *Store) applyUser(e *proto.User) {
 		} else {
 			s.finish(it, st)
 		}
+	}
+	if s.afterCompact && !e.IsReplay && e.ParentToolUseID == "" && len(e.ToolResults()) == 0 {
+		s.afterCompact = false
+		s.add(&ext.Item{ID: "summary:" + e.UUID, Key: KeyCompactSummary, Data: e, State: ext.Done})
+		return
 	}
 	if !e.IsReplay || e.IsSynthetic || e.ParentToolUseID != "" {
 		return
@@ -744,7 +803,7 @@ func rejectedResult(it *ext.Item) bool {
 // waitsForEcho reports whether an item is local command output (or a manual
 // compaction) still waiting for the engine to echo its slash command.
 func waitsForEcho(it *ext.Item) bool {
-	return !it.State.Finished() && (it.Key == ext.KeySystemLocalCommand || it.Key == ext.KeySystemCompactBoundary)
+	return !it.State.Finished() && it.Key == ext.KeySystemLocalCommand
 }
 
 // pendingEcho returns where the trailing items waiting for an echo start
@@ -818,6 +877,10 @@ func (s *Store) applyResult(e *proto.Result) {
 	if e.Interrupted() {
 		st = ext.Interrupted
 	}
+	if len(s.bgRunning) > 0 {
+		s.waitBG[e.UUID] = len(s.bgRunning)
+	}
+	s.turnEnded = true
 	// Local command output is complete once its turn ends.
 	for _, it := range s.items[s.committed:] {
 		if waitsForEcho(it) {

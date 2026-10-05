@@ -1,23 +1,23 @@
 ── width 60 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m hi                                                        [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m hi                                                        [m
 
 [38;2;239;122;128m⏺[m [38;2;239;122;128mThe API rejected the request.[m
-  ⎿  [38;2;139;139;147mPrompt is too long · this conversation is a single exch[m
+  ⎿  [38;2;139;139;147mPrompt is too long · this conversation is a single exch[m
      [38;2;139;139;147mange and cannot be compacted — the request size comes m[m
      [38;2;139;139;147mostly from system prompt, tool definitions, or attachme[m
      [38;2;139;139;147m… +1 line (ctrl+o to expand)[m
 ── width 100 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m hi                                                                                                [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m hi                                                                                                [m
 
 [38;2;239;122;128m⏺[m [38;2;239;122;128mThe API rejected the request.[m
-  ⎿  [38;2;139;139;147mPrompt is too long · this conversation is a single exchange and cannot be compacted — the reque[m
+  ⎿  [38;2;139;139;147mPrompt is too long · this conversation is a single exchange and cannot be compacted — the reque[m
      [38;2;139;139;147mst size comes mostly from system prompt, tool definitions, or attachments.[m
 ── width 160 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m hi                                                                                                                                                            [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m hi                                                                                                                                                            [m
 
 [38;2;239;122;128m⏺[m [38;2;239;122;128mThe API rejected the request.[m
-  ⎿  [38;2;139;139;147mPrompt is too long · this conversation is a single exchange and cannot be compacted — the request size comes mostly from system prompt, tool definitions, o[m
+  ⎿  [38;2;139;139;147mPrompt is too long · this conversation is a single exchange and cannot be compacted — the request size comes mostly from system prompt, tool definitions, o[m
      [38;2;139;139;147mr attachments.[m

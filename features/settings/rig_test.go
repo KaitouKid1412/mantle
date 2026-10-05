@@ -301,6 +301,15 @@ func (g *rig) applied() map[patch.Scope]map[string]any {
 	return out
 }
 
+// printed returns what was committed to scrollback, without colours.
+func (g *rig) printed() []string {
+	var out []string
+	for _, p := range g.c.Printed {
+		out = append(out, ansi.Strip(p))
+	}
+	return out
+}
+
 func (g *rig) noticeTexts() []string {
 	var out []string
 	for _, n := range g.c.Notices {

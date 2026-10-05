@@ -10,6 +10,7 @@ import (
 	"github.com/KaitouKid1412/mantle/features/settings/patch"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
+	"github.com/KaitouKid1412/mantle/pkg/theme"
 )
 
 // settingsWrittenMsg reports a settings-file write done by a Cmd.
@@ -57,6 +58,13 @@ func (a *area) apply(c ext.Ctx, effects []action.Effect) tea.Cmd {
 		}
 	}
 	return tea.Sequence(cmds...)
+}
+
+// resultLine prints a command's outcome into the transcript under its echo, in the
+// transcript's result style ("  ⎿  Help closed"), as Claude Code does when a panel
+// closes. Plan 04 prints the "❯ /cmd" echo above it.
+func resultLine(c ext.Ctx, text string) tea.Cmd {
+	return c.Print(c.Theme().Paint(theme.Inactive, "  ⎿  "+text))
 }
 
 // subscribeResults reports failed writes and skipped engine work.

@@ -19,13 +19,17 @@ import (
 // WelcomeID names the welcome feature.
 const WelcomeID = "chrome.welcome"
 
-// welcome prints mantle's banner into scrollback once per session and raises the
-// startup notices (company announcements, invalid settings files, MCP servers that
-// need sign-in).
+// welcome prints mantle's banner into scrollback and raises the startup notices
+// (company announcements, invalid settings files, MCP servers that need sign-in).
+//
+// Like Claude Code it prints the banner at startup, as soon as the engine answers
+// initialize (before any turn, so before the session id is known), and again for each
+// later session (/clear, a resume from the picker).
 type welcome struct {
 	s        sessionState
 	account  proto.Account
-	printed  string // session ID the banner was printed for
+	started  bool   // the startup banner is out
+	printed  string // session ID the last banner was for ("" = the startup one, before an id)
 	mcpShown bool
 	version  string
 	home     string
@@ -45,18 +49,22 @@ func (w *welcome) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 			if json.Unmarshal(m.Resp, &r) == nil {
 				w.account = r.Account
 			}
+			if !w.started {
+				w.observeStartup(ctx)
+				return w.print(ctx, w.s.SessionID)
+			}
 		}
 	case ext.SessionChangedMsg:
 		if !isMain(m.EngineID) || w.s.SessionID == "" || w.s.SessionID == w.printed {
 			return nil
 		}
-		first := w.printed == ""
-		w.printed = w.s.SessionID
-		cmds := []tea.Cmd{ctx.Print(w.banner(ctx, max(20, termWidth(ctx))))}
-		if first {
-			cmds = append(cmds, startupNotices(ctx, w.s.SessionID)...)
+		if w.started && w.printed == "" {
+			// The first session id after the startup banner: that banner was this
+			// session's.
+			w.printed = w.s.SessionID
+			return nil
 		}
-		return tea.Batch(cmds...)
+		return w.print(ctx, w.s.SessionID)
 	case ext.EngineEventMsg:
 		if init, ok := m.Event.(*proto.SystemInit); ok && isMain(m.EngineID) && !w.mcpShown {
 			w.mcpShown = true
@@ -64,6 +72,34 @@ func (w *welcome) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 		}
 	}
 	return nil
+}
+
+// observeStartup fills in what the host knew at launch (working directory, a --model
+// or resumed session) before any engine event.
+func (w *welcome) observeStartup(ctx ext.Ctx) {
+	info := ctx.Session()
+	set(&w.s.Cwd, info.Cwd)
+	set(&w.s.Model, info.Model)
+	set(&w.s.SessionID, info.SessionID)
+	if w.s.Model == "" {
+		w.s.Model = ext.ClaudeString(ctx.Settings(), "model", "")
+	}
+}
+
+// print prints the banner for sessionID ("" before the engine has reported one); the
+// first banner also raises the startup notices.
+func (w *welcome) print(ctx ext.Ctx, sessionID string) tea.Cmd {
+	first := !w.started
+	w.started, w.printed = true, sessionID
+	cmds := []tea.Cmd{ctx.Print(w.banner(ctx, max(20, termWidth(ctx))))}
+	if first {
+		seed := sessionID
+		if seed == "" {
+			seed = ctx.Clock().Now().String() // any per-launch value: it only picks an announcement
+		}
+		cmds = append(cmds, startupNotices(ctx, seed)...)
+	}
+	return tea.Batch(cmds...)
 }
 
 func termWidth(ctx ext.Ctx) int {

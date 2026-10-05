@@ -90,7 +90,7 @@ func (f *Feature) renderPrompt(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		text += st.perm.Render(strings.Join(chips, " "))
 	}
 	bg := render.Style{Bg: st.p.Color(string(tokUserBg))}
-	lines := render.WrapWith(text, render.WrapOptions{Width: rc.Width, First: st.dim.Render(">") + " ", Rest: "  "})
+	lines := render.WrapWith(text, render.WrapOptions{Width: rc.Width, First: st.dim.Render(glyphPrompt) + " ", Rest: "  "})
 	if f.cfg.showTimestamps {
 		if ts := f.clockTime(it.Start); ts != "" {
 			if gap := rc.Width - render.Width(lines[0]) - render.Width(ts); gap >= 2 {
@@ -177,6 +177,9 @@ func (f *Feature) mdOptions(rc ext.RenderCtx, width int) render.MarkdownOptions 
 		Palette:       paletteOf(rc.Theme),
 		NoHighlight:   f.cfg.noHighlight,
 		NoHyperlinks:  f.cfg.noLinks,
+		// Code keeps a terminal's 8-column tab stops, past the 2-column margin.
+		TabWidth:  8,
+		TabColumn: len(dotIndent),
 	}
 }
 

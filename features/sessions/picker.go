@@ -2,7 +2,10 @@ package sessions
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -112,7 +115,7 @@ func newPicker(f *feature, ctx ext.Ctx, a PickerArgs) *picker {
 
 func (p *picker) ID() string               { return DialogResume }
 func (p *picker) KeyContext() string       { return pickerContext }
-func (p *picker) Placement() ext.Placement { return ext.PlaceAltScreen }
+func (p *picker) Placement() ext.Placement { return ext.PlaceInline }
 func (p *picker) Init(ext.Ctx) tea.Cmd     { return p.load() }
 
 // load lists the sessions for the current scope off the UI goroutine.
@@ -191,8 +194,23 @@ func (p *picker) refilter() {
 			p.view = append(p.view, pool[match.Index])
 		}
 	}
+	p.groupByProject()
 	p.sel = min(p.sel, max(len(p.view)-1, 0))
 	p.top = min(p.top, p.sel)
+}
+
+// groupByProject keeps each project's sessions together (most recent first within
+// a project), projects ordered by their most recent session.
+func (p *picker) groupByProject() {
+	rank := map[string]int{}
+	for _, i := range p.view {
+		if _, ok := rank[projectLabel(p.list[i])]; !ok {
+			rank[projectLabel(p.list[i])] = len(rank)
+		}
+	}
+	sort.SliceStable(p.view, func(a, b int) bool {
+		return rank[projectLabel(p.list[p.view[a]])] < rank[projectLabel(p.list[p.view[b]])]
+	})
 }
 
 type fuzzySource []string
@@ -483,80 +501,111 @@ func decodeControl(r ext.ControlResultMsg, out any) error {
 
 func (p *picker) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	th := ctx.Theme()
-	w := max(a.Width, 20)
+	w := max(a.Width, 24)
 	h := a.MaxHeight
 	if h <= 0 {
 		h = 24
 	}
+	const indent = "  "
 
-	scope := "this directory"
+	head := th.Fg(theme.Accent).Bold(true).Render("Resume a conversation")
+	var scope []string
 	switch {
 	case p.scope.all:
-		scope = "all projects"
+		scope = append(scope, "all projects")
 	case p.scope.worktrees:
-		scope = "this repository's worktrees"
+		scope = append(scope, "this repository's worktrees")
 	}
 	if p.byBr && p.branch != "" {
-		scope += " · branch " + p.branch
+		scope = append(scope, "branch "+p.branch)
 	}
-	count := ""
-	if !p.loading {
-		count = " (" + itoa(len(p.view)) + ")"
+	if len(scope) > 0 {
+		head += th.Paint(theme.Inactive, " · "+strings.Join(scope, " · "))
 	}
-	head := th.Fg(theme.Accent).Bold(true).Render("Resume a conversation") + th.Paint(theme.Inactive, " · "+scope+count)
-	search := th.Paint(theme.Inactive, "Search: ") + p.query + th.Paint(theme.Subtle, "▏")
-	if p.renaming {
-		search = th.Paint(theme.Suggestion, "New name: ") + p.rename + th.Paint(theme.Subtle, "▏")
-	}
-	lines := []string{fit(head, w), fit(search, w), ""}
+	lines := []string{fit(indent+head, w)}
+	lines = append(lines, p.searchBox(th, w-2*len(indent), indent)...)
 
-	footer := "↑↓ select · enter resume · tab preview · ctrl+r rename · ctrl+a all projects · ctrl+w worktrees · ctrl+b branch · esc close"
+	footer := "ctrl+a all projects · ctrl+b current branch only · ctrl+w worktrees · space preview · ctrl+r rename · type to search · esc cancel"
 	if p.renaming {
 		footer = "enter save · esc cancel"
 	}
-	footerLines := strings.Split(wrapLines([]string{th.Paint(theme.Inactive, footer)}, w), "\n")
-	body := max(h-len(lines)-len(footerLines)-1, 2)
+	var footerLines []string
+	for _, l := range strings.Split(wrapLines([]string{footer}, w-4), "\n") {
+		footerLines = append(footerLines, "    "+th.Paint(theme.Inactive, l))
+	}
+	body := max(h-len(lines)-len(footerLines)-1, 3)
 
 	switch {
 	case p.loading:
-		lines = append(lines, th.Paint(theme.Inactive, "Loading conversations…"))
+		lines = append(lines, indent+th.Paint(theme.Inactive, "Loading conversations…"))
 	case p.err != nil && len(p.list) == 0:
-		lines = append(lines, th.Paint(theme.Error, "Could not list conversations: "+p.err.Error()))
+		lines = append(lines, indent+th.Paint(theme.Error, "Could not list conversations: "+p.err.Error()))
 	case len(p.view) == 0:
 		msg := "No conversations here yet."
 		if p.query != "" {
 			msg = "No conversations match \"" + p.query + "\"."
 		}
-		lines = append(lines, th.Paint(theme.Inactive, msg))
+		lines = append(lines, indent+th.Paint(theme.Inactive, msg))
 		if !p.scope.all {
-			lines = append(lines, th.Paint(theme.Inactive, "ctrl+a searches every project."))
+			lines = append(lines, indent+th.Paint(theme.Inactive, "ctrl+a searches every project."))
 		}
 	case p.preview != nil:
-		lines = append(lines, p.previewView(ctx, w, body)...)
+		for _, l := range p.previewView(ctx, w-len(indent), body) {
+			lines = append(lines, indent+l)
+		}
 	default:
 		lines = append(lines, p.listView(ctx, w, body)...)
 	}
-	for len(lines) < h-len(footerLines) {
-		lines = append(lines, "")
-	}
+	lines = append(lines, "")
 	lines = append(lines, footerLines...)
+	for i := range lines {
+		lines[i] = fit(lines[i], w)
+	}
 	return ext.Rendered{Text: strings.Join(lines, "\n")}
 }
 
-// listView draws two lines per session around the selection.
+// searchBox draws the search (or rename) field as a rounded box of width bw.
+func (p *picker) searchBox(th *theme.Theme, bw int, indent string) []string {
+	bw = max(bw, 12)
+	inner := bw - 4
+	text := th.Paint(theme.Inactive, "⌕ ") + p.query + th.Paint(theme.Subtle, "▏")
+	if p.query == "" {
+		text = th.Paint(theme.Inactive, "⌕ Search…")
+	}
+	if p.renaming {
+		text = th.Paint(theme.Suggestion, "New name: ") + p.rename + th.Paint(theme.Subtle, "▏")
+	}
+	border := func(s string) string { return th.Paint(theme.Subtle, s) }
+	return []string{
+		indent + border("╭"+strings.Repeat("─", bw-2)+"╮"),
+		indent + border("│") + " " + pad(fit(text, inner), inner) + " " + border("│"),
+		indent + border("╰"+strings.Repeat("─", bw-2)+"╯"),
+	}
+}
+
+// projectLabel names the project a session belongs to (its directory's name).
+func projectLabel(m sessions.SessionMeta) string {
+	if m.Cwd != "" {
+		return filepath.Base(m.Cwd)
+	}
+	return filepath.Base(m.ProjectDir)
+}
+
+// listView draws the sessions grouped by project, two lines each, around the
+// selection.
 func (p *picker) listView(ctx ext.Ctx, w, rows int) []string {
 	th := ctx.Theme()
 	now := ctx.Clock().Now()
-	group := func(vi int) string { return dateGroup(now, p.list[p.view[vi]].Modified) }
-	// end returns the first row index that no longer fits when the window starts at top
-	// (two lines per session, plus a header line where the date group changes).
+	group := func(vi int) string { return projectLabel(p.list[p.view[vi]]) }
+	// end returns the first row index that no longer fits when the window starts at
+	// top: two lines per session, two more (header and gap) where the project changes.
 	end := func(top int) int {
-		used, prev := 0, ""
+		used, prev := 0, "\x00"
 		i := top
 		for ; i < len(p.view); i++ {
 			need := 2
 			if g := group(i); g != prev {
-				need, prev = 3, g
+				need, prev = 4, g
 			}
 			if used+need > rows && i > top {
 				break
@@ -572,10 +621,10 @@ func (p *picker) listView(ctx ext.Ctx, w, rows int) []string {
 		p.top++
 	}
 	var out []string
-	prev := ""
+	prev := "\x00"
 	for vi := p.top; vi < end(p.top); vi++ {
 		if g := group(vi); g != prev {
-			out = append(out, fit(th.Fg(theme.Inactive).Bold(true).Render(g), w))
+			out = append(out, "    "+th.Paint(theme.Inactive, g), "")
 			prev = g
 		}
 		m := p.list[p.view[vi]]
@@ -583,38 +632,38 @@ func (p *picker) listView(ctx ext.Ctx, w, rows int) []string {
 		if title == "" {
 			title = "(no prompt)"
 		}
-		marker, style := "  ", th.Fg(theme.Text)
+		marker, style := "    ", th.Fg(theme.Text)
 		if vi == p.sel {
-			marker, style = th.Paint(theme.Suggestion, "› "), th.Fg(theme.Suggestion).Bold(true)
+			marker, style = "  "+th.Paint(theme.Suggestion, "❯ "), th.Fg(theme.Suggestion).Bold(true)
 		}
 		tags := ""
 		if m.ID == p.live {
-			tags += " (current)"
+			tags = " (current)"
 		}
-		out = append(out, fit(marker+style.Render(oneLine(title))+th.Paint(theme.Inactive, tags), w))
+		out = append(out, marker+style.Render(oneLine(title))+th.Paint(theme.Inactive, tags))
 
-		var meta []string
-		meta = append(meta, relTime(ctx.Clock().Now(), m.Modified))
+		meta := []string{relTime(now, m.Modified)}
 		if m.GitBranch != "" {
 			meta = append(meta, m.GitBranch)
 		}
-		if m.MessageCount > 0 {
-			meta = append(meta, plural(m.MessageCount, "message", "messages"))
-		}
+		meta = append(meta, sizeText(m.Size))
 		if m.PRNumber != 0 {
 			meta = append(meta, "PR #"+itoa(m.PRNumber))
 		}
-		if m.Hidden {
-			meta = append(meta, "headless")
-		}
-		if p.scope.all || p.scope.worktrees {
-			if m.Cwd != "" {
-				meta = append(meta, shortPath(m.Cwd, p.home))
-			}
-		}
-		out = append(out, fit("  "+th.Paint(theme.Inactive, strings.Join(meta, " · ")), w))
+		out = append(out, "    "+th.Paint(theme.Inactive, strings.Join(meta, " · ")))
 	}
 	return out
+}
+
+// sizeText prints a file size like 512B, 133.1KB, 2.4MB.
+func sizeText(n int64) string {
+	switch {
+	case n < 1024:
+		return itoa(int(n)) + "B"
+	case n < 1024*1024:
+		return fmt.Sprintf("%.1fKB", float64(n)/1024)
+	}
+	return fmt.Sprintf("%.1fMB", float64(n)/(1024*1024))
 }
 
 func (p *picker) previewView(ctx ext.Ctx, w, rows int) []string {

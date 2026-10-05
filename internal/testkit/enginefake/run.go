@@ -16,8 +16,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// DefaultExpectTimeout bounds each expect step unless the step sets "timeout".
-const DefaultExpectTimeout = 5 * time.Second
+// DefaultExpectTimeout bounds each expect step unless the step sets "timeout". It is
+// generous so loaded parallel test runs don't flake; a mismatch still fails at once.
+const DefaultExpectTimeout = 15 * time.Second
 
 // ExitError reports a script failure; Code is the exit code fakeclaude uses (3).
 type ExitError struct {

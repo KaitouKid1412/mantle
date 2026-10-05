@@ -1,57 +1,18 @@
 ── width 60 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m first question                                            [m
+[38;2;139;139;147m✻ Conversation compacted (ctrl+o for history)[m
 
-[38;2;230;227;222m⏺[m First answer.
-
-[38;2;139;139;147m✻ Churned for 25ms · done 3:04 PM[m
-
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m second question                                           [m
-
-[38;2;230;227;222m⏺[m Second answer.
-
-[38;2;139;139;147m✻ Simmered for 7ms · done 3:04 PM[m
-
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /compact                                                  [m
-
-[38;2;139;139;147mConversation compacted (30.6k → 817 tokens) · ctrl+o for hi…[m
-
-  ⎿  [38;2;139;139;147mCompacted[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /compact                                                  [m
+  ⎿  [38;2;139;139;147mCompacted[m[38;2;139;139;147m (ctrl+o for the summary)[m
 ── width 100 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m first question                                                                                    [m
+[38;2;139;139;147m✻ Conversation compacted (ctrl+o for history)[m
 
-[38;2;230;227;222m⏺[m First answer.
-
-[38;2;139;139;147m✻ Churned for 25ms · done 3:04 PM[m
-
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m second question                                                                                   [m
-
-[38;2;230;227;222m⏺[m Second answer.
-
-[38;2;139;139;147m✻ Simmered for 7ms · done 3:04 PM[m
-
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /compact                                                                                          [m
-
-[38;2;139;139;147m══════ Conversation compacted (30.6k → 817 tokens) · ctrl+o for history ══════[m
-
-  ⎿  [38;2;139;139;147mCompacted[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /compact                                                                                          [m
+  ⎿  [38;2;139;139;147mCompacted[m[38;2;139;139;147m (ctrl+o for the summary)[m
 ── width 160 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m first question                                                                                                                                                [m
+[38;2;139;139;147m✻ Conversation compacted (ctrl+o for history)[m
 
-[38;2;230;227;222m⏺[m First answer.
-
-[38;2;139;139;147m✻ Churned for 25ms · done 3:04 PM[m
-
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m second question                                                                                                                                               [m
-
-[38;2;230;227;222m⏺[m Second answer.
-
-[38;2;139;139;147m✻ Simmered for 7ms · done 3:04 PM[m
-
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m /compact                                                                                                                                                      [m
-
-[38;2;139;139;147m══════ Conversation compacted (30.6k → 817 tokens) · ctrl+o for history ══════[m
-
-  ⎿  [38;2;139;139;147mCompacted[m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m /compact                                                                                                                                                      [m
+  ⎿  [38;2;139;139;147mCompacted[m[38;2;139;139;147m (ctrl+o for the summary)[m

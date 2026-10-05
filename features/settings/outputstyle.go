@@ -157,13 +157,12 @@ func (p *stylePicker) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 	case ext.ActSelectAccept:
 		name := p.styles[p.cursor]
 		if strings.EqualFold(name, p.cur) {
-			return true, c.CloseDialog(dialogOutputStyle)
+			return true, tea.Sequence(c.CloseDialog(dialogOutputStyle), resultLine(c, "Kept output style as "+p.cur))
 		}
 		return true, tea.Sequence(p.a.apply(c, styleEffects(name)), c.CloseDialog(dialogOutputStyle),
-			c.Notify(ext.Notice{Key: "settings.outputStyle", Level: ext.NoticeSuccess, Source: "settings",
-				Text: "Output style set to " + name + " for this project"}))
+			resultLine(c, "Output style set to "+name+" for this project"))
 	case ext.ActSelectCancel:
-		return true, c.CloseDialog(dialogOutputStyle)
+		return true, tea.Sequence(c.CloseDialog(dialogOutputStyle), resultLine(c, "Kept output style as "+p.cur))
 	default:
 		return false, nil
 	}

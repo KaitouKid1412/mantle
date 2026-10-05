@@ -1,6 +1,6 @@
 ── width 60 ──
 [38;2;111;194;139m⏺[m [1mWrite[m(]8;;file:///work/app/internal/queue/backoff.gointernal/queue/backoff.go]8;;)
-  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
+  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
      [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
      [38;2;139;139;147m2[m 
      [38;2;139;139;147m3[m [38;2;194;123;219mimport[m[38;2;230;227;222m [m[38;2;147;196;125m"time"[m
@@ -11,7 +11,7 @@
      [38;2;139;139;147m8[m [38;2;170;176;188m}[m
 ── width 100 ──
 [38;2;111;194;139m⏺[m [1mWrite[m(]8;;file:///work/app/internal/queue/backoff.gointernal/queue/backoff.go]8;;)
-  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
+  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
      [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
      [38;2;139;139;147m2[m 
      [38;2;139;139;147m3[m [38;2;194;123;219mimport[m[38;2;230;227;222m [m[38;2;147;196;125m"time"[m
@@ -22,7 +22,7 @@
      [38;2;139;139;147m8[m [38;2;170;176;188m}[m
 ── width 160 ──
 [38;2;111;194;139m⏺[m [1mWrite[m(]8;;file:///work/app/internal/queue/backoff.gointernal/queue/backoff.go]8;;)
-  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
+  ⎿  [38;2;230;227;222mWrote 8 lines to internal/queue/backoff.go[m
      [38;2;139;139;147m1[m [38;2;194;123;219mpackage[m[38;2;230;227;222m queue[m
      [38;2;139;139;147m2[m 
      [38;2;139;139;147m3[m [38;2;194;123;219mimport[m[38;2;230;227;222m [m[38;2;147;196;125m"time"[m

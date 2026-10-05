@@ -261,7 +261,11 @@ func isPlain(s string) bool {
 
 // ExpandTabs replaces tabs with spaces up to the next multiple of tabWidth,
 // counting columns per line and ignoring escape sequences.
-func ExpandTabs(s string, tabWidth int) string {
+func ExpandTabs(s string, tabWidth int) string { return ExpandTabsFrom(s, tabWidth, 0) }
+
+// ExpandTabsFrom is ExpandTabs for text whose lines start at column start of
+// the screen, so tab stops land where a terminal would put them.
+func ExpandTabsFrom(s string, tabWidth, start int) string {
 	if !strings.Contains(s, "\t") {
 		return s
 	}
@@ -269,7 +273,7 @@ func ExpandTabs(s string, tabWidth int) string {
 		tabWidth = 4
 	}
 	var b strings.Builder
-	col := 0
+	col := start
 	for i := 0; i < len(s); {
 		c := s[i]
 		switch {
@@ -284,7 +288,7 @@ func ExpandTabs(s string, tabWidth int) string {
 			i++
 		case c == '\n':
 			b.WriteByte('\n')
-			col = 0
+			col = start
 			i++
 		default:
 			g, w := nextGrapheme(s, i)

@@ -49,7 +49,7 @@ var Entries = []Entry{
 	{Name: "design-login", Description: "Sign in for design-system access (opens Claude Code)", Parity: "CL-17"},
 	{Name: "passes", Description: "Share a free week of Claude Code (opens Claude Code)", Parity: "CL-18"},
 	{Name: "usage-credits", Aliases: []string{"extra-usage"}, Description: "Usage credits (opens Claude Code)", Parity: "CL-19"},
-	{Name: "rate-limit-options", Description: "What to do at the usage limit (opens Claude Code)", Parity: "CL-20"},
+	{Name: "rate-limit-options", Hidden: true, Description: "What to do at the usage limit (opens Claude Code)", Parity: "CL-20"},
 	{Name: "setup-bedrock", Description: "Set up Amazon Bedrock (opens Claude Code)", Parity: "CL-21"},
 	{Name: "setup-vertex", Description: "Set up Google Vertex AI (opens Claude Code)", Parity: "CL-21"},
 	{Name: "install-github-app", Description: "Install the Claude GitHub app (opens Claude Code)", Parity: "CL-22"},
@@ -169,6 +169,7 @@ func NewUpgradeDialog(ctx ext.Ctx, _ any) (*eco.Dialog, error) {
 			}},
 		eco.MenuItem{Label: "Upgrade your plan", Detail: "opens Claude Code",
 			Run: func(ctx ext.Ctx, d *eco.Dialog) tea.Cmd {
+				d.CloseLine = ""
 				return tea.Batch(d.Close(ctx), eco.Handoff(ctx, "/upgrade"))
 			}},
 	)
@@ -187,6 +188,7 @@ func (v *upgradeView) Update(ctx ext.Ctx, d *eco.Dialog, msg tea.Msg) tea.Cmd {
 		eco.Fail(ctx, d, m.Err)
 		return nil
 	}
+	d.CloseLine = ""
 	return tea.Batch(d.Close(ctx),
 		ctx.Notify(ext.Notice{Key: "ecosystem.update", Level: ext.NoticeSuccess, Text: "Claude Code update finished"}),
 		eco.RestartEngine(ctx, "to run the updated Claude Code"))

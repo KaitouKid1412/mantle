@@ -10,6 +10,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	xansi "github.com/charmbracelet/x/ansi"
+
 	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -187,8 +189,8 @@ func TestSlashMenu(t *testing.T) {
 	}
 	r.s.ed.Clear()
 	r.keys("'/co'")
-	if r.s.ed.Ghost() == "" {
-		t.Fatal("ghost completes the top match")
+	if r.s.ed.Ghost() != "" {
+		t.Fatal("no ghost text while the menu shows (as claude)")
 	}
 	r.keys("down", "tab")
 	if r.text() != "/"+names[1]+" " || r.s.comp.open() {
@@ -219,6 +221,100 @@ func TestSlashMenu(t *testing.T) {
 		t.Fatalf("enter runs the command: %+v", ps)
 	}
 }
+
+func TestSlashMenuTiersAndLayout(t *testing.T) {
+	r := newRig(t, nil)
+	r.c.CommandList = append(r.c.CommandList,
+		ext.Command{Name: "__remote-workflow", Description: "internal", Source: ext.SourceEngine},
+		ext.Command{Name: "review", Description: "Review changes with the model of your choice, then summarize every finding in a long description that wraps onto a second line and is cut after that", Source: ext.SourceEngine},
+	)
+	r.keys("'/'")
+	for _, it := range r.s.comp.items {
+		if strings.HasPrefix(it.value, "__") {
+			t.Fatal("internal commands never show")
+		}
+	}
+	r.s.ed.Clear()
+	r.keys("'/mod'")
+	names := itemValues(r.s.comp.items)
+	if len(names) != 2 || names[0] != "model" || names[1] != "review" {
+		t.Fatalf("name match, then description matches: %v", names)
+	}
+	lines := r.s.comp.view(r.c.Theme(), 100, 20)
+	plain := ansiStrip(strings.Join(lines, "\n"))
+	if !strings.Contains(plain, "  /model                        Switch model") {
+		t.Fatalf("30-column name field without arg hints:\n%s", plain)
+	}
+	if !strings.Contains(plain, "\n                                ") || !strings.Contains(plain, "…") {
+		t.Fatalf("long description wraps to a second line and is cut:\n%s", plain)
+	}
+	if got := len(r.s.comp.view(r.c.Theme(), 100, 3)); got > 3 {
+		t.Fatalf("menu fits its row budget: %d lines", got)
+	}
+}
+
+func TestPasteAgainExpands(t *testing.T) {
+	r := newRig(t, nil)
+	paste := func(s string) {
+		_, cmd := (&promptComp{s: r.s}).HandlePaste(r.c, tea.PasteMsg{Content: s})
+		r.run(cmd)
+	}
+	long := "a\nb\nc\nd\ne"
+	paste(long)
+	if r.text() != "[Pasted text #1 +4 lines]" || !r.s.pasteHint {
+		t.Fatalf("collapsed with a hint: %q", r.text())
+	}
+	if st, _ := lastMsg[ext.EditorStateMsg](r); !st.Panel {
+		t.Fatal("hint sets Panel")
+	}
+	if v := r.s.viewMenu(r.c, ext.Area{Width: 80}); !strings.Contains(v.Text, "paste again") {
+		t.Fatalf("hint shown: %q", v.Text)
+	}
+	paste(long)
+	if r.text() != long || r.s.pasteHint {
+		t.Fatalf("second paste expands: %q", r.text())
+	}
+	// Typing in between ends the offer.
+	r.s.ed.Clear()
+	paste(long)
+	r.keys("'x'")
+	paste(long)
+	if len(r.s.ed.Chips()) != 2 {
+		t.Fatalf("a later paste collapses again: %q", r.text())
+	}
+}
+
+func TestNativeCommandEcho(t *testing.T) {
+	r := newRig(t, nil)
+	r.c.Renderers[ext.KeyUserPrompt] = func(_ ext.RenderCtx, it *ext.Item) ext.Block {
+		return ext.Block{Lines: []string{"> " + it.Data.(string)}}
+	}
+	r.c.CommandList = append(r.c.CommandList, ext.Command{Name: "panel", Source: ext.SourceBuiltin,
+		Run: func(c ext.Ctx, _ string) tea.Cmd { return c.Print("  result") }})
+	r.keys("'/panel'", "esc", "enter")
+	if got := strings.Join(r.c.Printed, "|"); got != "> /panel|  result" {
+		t.Fatalf("echo before the panel's result: %q", got)
+	}
+	r.keys("'/compact'", "esc", "enter")
+	if got := strings.Join(r.c.Printed, "|"); got != "> /panel|  result" {
+		t.Fatalf("engine commands are echoed by the engine, not here: %q", got)
+	}
+}
+
+func TestSearchIsOneLine(t *testing.T) {
+	r := newRig(t, nil)
+	r.keys("ctrl+r", "'alp'")
+	v := r.s.viewMenu(r.c, ext.Area{Width: 80})
+	if strings.Contains(v.Text, "\n") || !strings.Contains(v.Text, "search history: alp") {
+		t.Fatalf("one line: %q", v.Text)
+	}
+	r.keys("ctrl+s")
+	if v := r.s.viewMenu(r.c, ext.Area{Width: 80}); !strings.Contains(v.Text, "(all projects)") {
+		t.Fatalf("scope shown when not the default: %q", v.Text)
+	}
+}
+
+func ansiStrip(s string) string { return xansi.Strip(s) }
 
 func TestArgumentCompletion(t *testing.T) {
 	r := newRig(t, nil)
@@ -279,6 +375,9 @@ func TestFileMentions(t *testing.T) {
 		return json.Marshal(proto.FileSuggestionsResponse{Suggestions: []proto.FileSuggestion{{Path: q + "in.go"}, {Path: "pkg/"}}})
 	}
 	r.keys("'look at @ma'")
+	if lines := r.s.comp.view(r.c.Theme(), 80, 10); len(lines) == 0 || !strings.HasPrefix(xansi.Strip(lines[0]), "  + main.go") {
+		t.Fatalf("files are marked with +: %q", lines)
+	}
 	cs := r.eng.controlsOf(proto.SubFileSuggestions)
 	if len(cs) != 3 || cs[2].req.(proto.FileSuggestionsRequest).Query != "ma" {
 		t.Fatalf("file_suggestions %+v", cs)
@@ -767,6 +866,51 @@ func TestEditorStateBroadcast(t *testing.T) {
 		if _, ok := m.(ext.EditorStateMsg); ok {
 			t.Fatal("unchanged state is not re-sent")
 		}
+	}
+}
+
+func TestPanelAndFrameTitle(t *testing.T) {
+	r := newRig(t, nil)
+	state := func() ext.EditorStateMsg {
+		st, _ := lastMsg[ext.EditorStateMsg](r)
+		return st
+	}
+	r.keys("'/co'")
+	if !state().Panel {
+		t.Fatal("/ menu sets Panel")
+	}
+	r.keys("esc")
+	if state().Panel {
+		t.Fatal("dismissing clears Panel")
+	}
+	r.s.ed.Clear()
+	r.keys("ctrl+u", "'?'")
+	if !state().Panel {
+		t.Fatal("? help sets Panel")
+	}
+	r.keys("'?'")
+	if state().Panel {
+		t.Fatal("? again hides help")
+	}
+	r.keys("ctrl+r")
+	if !state().Panel {
+		t.Fatal("history search sets Panel")
+	}
+	r.keys("ctrl+c")
+	r.event(historyLoadedMsg{entries: []history.Entry{
+		{Display: "older", Project: "/work/demo"}, {Display: "newer", Project: "/work/demo"},
+	}})
+	r.keys("up")
+	if got := state().FrameTitle; got != "History 1/2" {
+		t.Fatalf("title %q", got)
+	}
+	r.keys("up")
+	if got := state().FrameTitle; got != "History 2/2" {
+		t.Fatalf("title %q", got)
+	}
+	r.keys("down", "down")
+	if got := state().FrameTitle; got != "" {
+		t.Fatalf("back at the draft: %q", got)
 	}
 }
 

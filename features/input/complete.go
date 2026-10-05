@@ -130,105 +130,87 @@ func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) {
 	m.kind = compSlash
 	m.items = slashItems(c, query, leading)
 	m.sel = 0
-	// Ghost-complete the top match while typing a leading command.
-	if leading && len(m.items) > 0 && query != "" && strings.HasPrefix(m.items[0].value, query) && s.ed.AtEnd() {
-		s.ed.SetGhost(m.items[0].value[len(query):])
-	}
 }
 
-// slashItems lists the commands matching query: fuzzy on the leading
-// command, prefix-only for a mid-prompt "/". Hidden commands show only when
-// typed exactly.
-func slashItems(c ext.Ctx, query string, fuzzyMatch bool) []compItem {
-	cmds := c.Commands()
+// slashItems lists the commands matching query, in tiers: names (and
+// aliases) starting with it, names containing it, then descriptions
+// containing it. A leading command falls back to fuzzy name matching when
+// nothing else matches; a mid-prompt "/" only takes name prefixes. Hidden
+// commands show only when typed exactly; internal "__" names never show.
+func slashItems(c ext.Ctx, query string, leading bool) []compItem {
+	var cmds []ext.Command
+	for _, cmd := range c.Commands() {
+		if !cmd.Hidden && !strings.HasPrefix(cmd.Name, "__") {
+			cmds = append(cmds, cmd)
+		}
+	}
 	var out []compItem
-	if hidden, ok := c.Command(query); ok && query != "" && hidden.Hidden && hidden.Name == query {
-		out = append(out, cmdItem(hidden, ""))
+	if query != "" && !strings.HasPrefix(query, "__") {
+		if cmd, ok := c.Command(query); ok && cmd.Hidden && cmd.Name == query {
+			out = append(out, cmdItem(cmd, ""))
+		}
 	}
 	if query == "" {
 		for _, cmd := range cmds {
-			if !cmd.Hidden {
-				out = append(out, cmdItem(cmd, ""))
-			}
+			out = append(out, cmdItem(cmd, ""))
 		}
 		return limit(out)
 	}
-	type cand struct {
-		cmd   ext.Command
-		alias string
+	q := strings.ToLower(query)
+	seen := map[string]bool{}
+	for _, it := range out {
+		seen[it.value] = true
 	}
-	var keys []string
-	var cands []cand
-	for _, cmd := range cmds {
-		if cmd.Hidden {
-			continue
-		}
-		keys = append(keys, cmd.Name)
-		cands = append(cands, cand{cmd, ""})
-		for _, a := range cmd.Aliases {
-			keys = append(keys, a)
-			cands = append(cands, cand{cmd, a})
+	add := func(cmd ext.Command, alias string) {
+		if !seen[cmd.Name] {
+			seen[cmd.Name] = true
+			out = append(out, cmdItem(cmd, alias))
 		}
 	}
-	type scored struct {
-		item   compItem
-		prefix int // 0 name prefix, 1 alias prefix, 2 fuzzy
-		score  int
-	}
-	best := map[string]scored{}
-	consider := func(i, score int) {
-		cd := cands[i]
-		pre := 2
-		switch {
-		case strings.HasPrefix(cd.cmd.Name, query):
-			pre = 0
-		case cd.alias != "" && strings.HasPrefix(cd.alias, query):
-			pre = 1
-		}
-		if pre == 2 && !fuzzyMatch {
-			return
-		}
-		sc := scored{item: cmdItem(cd.cmd, cd.alias), prefix: pre, score: score}
-		if pre == 0 {
-			sc.item.alias = ""
-		}
-		if old, ok := best[cd.cmd.Name]; !ok || sc.prefix < old.prefix || (sc.prefix == old.prefix && sc.score > old.score) {
-			best[cd.cmd.Name] = sc
-		}
-	}
-	if fuzzyMatch {
-		for _, mt := range fuzzy.Find(query, keys) {
-			consider(mt.Index, mt.Score)
-		}
-	} else {
-		for i, k := range keys {
-			if strings.HasPrefix(k, query) {
-				consider(i, 0)
+	tier := func(match func(ext.Command) (bool, string)) {
+		var hits []ext.Command
+		aliases := map[string]string{}
+		for _, cmd := range cmds {
+			if ok, alias := match(cmd); ok && !seen[cmd.Name] {
+				hits = append(hits, cmd)
+				aliases[cmd.Name] = alias
 			}
 		}
+		sort.SliceStable(hits, func(i, j int) bool { return len(hits[i].Name) < len(hits[j].Name) })
+		for _, cmd := range hits {
+			add(cmd, aliases[cmd.Name])
+		}
 	}
-	list := make([]scored, 0, len(best))
-	for _, v := range best {
-		list = append(list, v)
-	}
-	sort.Slice(list, func(i, j int) bool {
-		a, b := list[i], list[j]
-		if a.prefix != b.prefix {
-			return a.prefix < b.prefix
+	tier(func(cmd ext.Command) (bool, string) { return strings.HasPrefix(strings.ToLower(cmd.Name), q), "" })
+	tier(func(cmd ext.Command) (bool, string) {
+		for _, a := range cmd.Aliases {
+			if strings.HasPrefix(strings.ToLower(a), q) {
+				return true, a
+			}
 		}
-		if a.prefix < 2 && len(a.item.value) != len(b.item.value) {
-			return len(a.item.value) < len(b.item.value)
-		}
-		if a.score != b.score {
-			return a.score > b.score
-		}
-		return a.item.value < b.item.value
+		return false, ""
 	})
-	for _, v := range list {
-		if len(out) > 0 && out[0].value == v.item.value {
-			continue
+	if !leading {
+		return limit(out)
+	}
+	tier(func(cmd ext.Command) (bool, string) { return strings.Contains(strings.ToLower(cmd.Name), q), "" })
+	var desc []ext.Command
+	for _, cmd := range cmds {
+		if !seen[cmd.Name] && strings.Contains(strings.ToLower(cmd.Description), q) {
+			desc = append(desc, cmd)
 		}
-		out = append(out, v.item)
+	}
+	for _, cmd := range desc {
+		add(cmd, "")
+	}
+	if len(out) == 0 {
+		names := make([]string, len(cmds))
+		for i, cmd := range cmds {
+			names[i] = cmd.Name
+		}
+		for _, mt := range fuzzy.Find(query, names) {
+			add(cmds[mt.Index], "")
+		}
 	}
 	return limit(out)
 }
@@ -504,47 +486,118 @@ func quotePath(p string) string {
 
 // ---- view ----
 
-func (m *completion) view(t *theme.Theme, width int) []string {
+// nameCol is the width of the menu's name column.
+const nameCol = 30
+
+// view draws the menu: a name column, then the description wrapped to at
+// most two lines (the second cut with "…"), within maxLines rows.
+func (m *completion) view(t *theme.Theme, width, maxLines int) []string {
 	if !m.open() {
 		return nil
 	}
-	first := 0
-	if m.sel >= menuRows {
-		first = m.sel - menuRows + 1
+	if maxLines < 1 {
+		maxLines = menuRows
 	}
-	last := min(first+menuRows, len(m.items))
-	nameW := 0
-	for _, it := range m.items[first:last] {
-		nameW = max(nameW, ansi.StringWidth(itemName(it)))
-	}
-	nameW = min(nameW, width/2)
-	var out []string
-	for i := first; i < last; i++ {
+	type row struct{ lines []string }
+	render := func(i int) row {
 		it := m.items[i]
-		name := ansi.Truncate(itemName(it), nameW, "…")
-		pad := strings.Repeat(" ", max(nameW-ansi.StringWidth(name), 0))
-		line := "  " + name + pad
-		if it.desc != "" {
-			room := width - ansi.StringWidth(line) - 2
-			if room > 4 {
-				line += "  " + t.Paint(theme.Inactive, ansi.Truncate(it.desc, room, "…"))
-			}
+		name := itemName(it, m.kind)
+		col := min(nameCol, max(width/3, 12))
+		if ansi.StringWidth(name) > col-2 {
+			name = ansi.Truncate(name, col-2, "…")
 		}
+		pad := strings.Repeat(" ", col-ansi.StringWidth(name))
+		nameText := name
 		if i == m.sel {
-			line = t.Paint(theme.Suggestion, "  "+name+pad) + strings.TrimPrefix(line, "  "+name+pad)
+			nameText = t.Paint(theme.Suggestion, name)
 		}
-		out = append(out, line)
+		first := "  " + nameText + pad
+		room := width - 4 - col // two-column margin on the right
+		if it.desc == "" || room < 8 {
+			return row{[]string{first}}
+		}
+		desc := wrapDesc(it.desc, room)
+		lines := []string{first + t.Paint(theme.Inactive, desc[0])}
+		if len(desc) > 1 {
+			lines = append(lines, strings.Repeat(" ", 2+col)+t.Paint(theme.Inactive, desc[1]))
+		}
+		return row{lines}
 	}
-	return out
+	// Show a window of items around the selection that fits maxLines.
+	first := 0
+	for {
+		used := 0
+		last := first
+		for last < len(m.items) {
+			n := len(render(last).lines)
+			if used+n > maxLines {
+				break
+			}
+			used += n
+			last++
+		}
+		if m.sel < last || first >= m.sel {
+			var out []string
+			for i := first; i < last; i++ {
+				out = append(out, render(i).lines...)
+			}
+			if len(out) == 0 && len(m.items) > 0 {
+				out = append(out, render(m.sel).lines[0])
+			}
+			return out
+		}
+		first++
+	}
 }
 
-func itemName(it compItem) string {
-	name := it.label
-	if it.alias != "" {
-		name += " (" + it.alias + ")"
+// wrapDesc wraps a description to at most two lines of width w.
+func wrapDesc(desc string, w int) []string {
+	desc = strings.Join(strings.Fields(desc), " ")
+	if ansi.StringWidth(desc) <= w {
+		return []string{desc}
 	}
-	if it.hint != "" {
-		name += " " + it.hint
+	lines := wordWrap(desc, w)
+	if len(lines) == 1 {
+		return []string{ansi.Truncate(desc, w, "…")}
 	}
-	return name
+	second := strings.Join(lines[1:], " ")
+	if len(lines) > 2 || ansi.StringWidth(second) > w {
+		second = ansi.Truncate(second, w-1, "") + "…"
+		if ansi.StringWidth(second) > w {
+			second = ansi.Truncate(second, w, "…")
+		}
+	}
+	return []string{ansi.Truncate(lines[0], w, "…"), second}
+}
+
+// wordWrap breaks text at spaces into lines no wider than w (a word longer
+// than w gets a line of its own).
+func wordWrap(text string, w int) []string {
+	var lines []string
+	cur := ""
+	for _, word := range strings.Fields(text) {
+		switch {
+		case cur == "":
+			cur = word
+		case ansi.StringWidth(cur)+1+ansi.StringWidth(word) <= w:
+			cur += " " + word
+		default:
+			lines = append(lines, cur)
+			cur = word
+		}
+	}
+	if cur != "" {
+		lines = append(lines, cur)
+	}
+	return lines
+}
+
+func itemName(it compItem, kind compKind) string {
+	switch kind {
+	case compFile:
+		return "+ " + it.label
+	case compEmoji, compPath, compArgs:
+		return it.label
+	}
+	return it.label // "/name": no argument hints or aliases, as claude
 }
