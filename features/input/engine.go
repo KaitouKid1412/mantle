@@ -48,6 +48,11 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		return s.spell.result(c, s, m)
 	case editorDoneMsg:
 		return s.externalEditorDone(c, m)
+	case ext.CommandsMsg, ext.CommandVisibilityMsg:
+		// The command list changed: refresh an open / menu.
+		if s.comp.kind == compSlash || s.comp.kind == compArgs {
+			return s.comp.update(c, s)
+		}
 	case ext.EditorSetTextMsg:
 		// Rewind (plan 06) puts the rewound prompt back in the box.
 		s.setText(m.Text)

@@ -42,7 +42,7 @@ func visibleWidth(s string) int { return ansi.StringWidth(s) }
 // oneLine collapses whitespace runs (newlines included) to single spaces.
 func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
-// relTime is a compact age: "just now", "5m ago", "3h ago", "2d ago", or a date.
+// relTime is a compact age: "now", "5m ago", "3h ago", "2d ago", or a date.
 func relTime(now, t time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -50,7 +50,7 @@ func relTime(now, t time.Time) string {
 	d := now.Sub(t)
 	switch {
 	case d < time.Minute:
-		return "just now"
+		return "now"
 	case d < time.Hour:
 		return fmt.Sprintf("%dm ago", int(d/time.Minute))
 	case d < 24*time.Hour:
@@ -61,26 +61,6 @@ func relTime(now, t time.Time) string {
 		return t.Local().Format("Jan 2")
 	}
 	return t.Local().Format("Jan 2, 2006")
-}
-
-// dateGroup is the picker's section for a time: Today, Yesterday, This week, This
-// month or Older (local dates).
-func dateGroup(now, t time.Time) string {
-	y1, m1, d1 := now.Local().Date()
-	y2, m2, d2 := t.Local().Date()
-	day := func(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, time.UTC) }
-	days := int(day(y1, m1, d1).Sub(day(y2, m2, d2)).Hours() / 24)
-	switch {
-	case days <= 0:
-		return "Today"
-	case days == 1:
-		return "Yesterday"
-	case days < 7:
-		return "This week"
-	case days < 30:
-		return "This month"
-	}
-	return "Older"
 }
 
 // shortPath replaces the home directory prefix with "~".

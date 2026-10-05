@@ -193,9 +193,12 @@ func Render(hunks []Hunk, o Options) []string {
 			}
 		}
 	}
-	prefixW := 2 // marker + space
+	// With line numbers: " NN M" then the content (the number right-aligned
+	// one column wider than its digits, the marker right before the text).
+	// Without: "M " then the content.
+	prefixW := 2
 	if gw > 0 {
-		prefixW += gw + 1
+		prefixW = gw + 3
 	}
 	if prefixW >= o.Width { // too narrow for a gutter
 		gw, prefixW = 0, 2
@@ -241,13 +244,13 @@ func countLines(rows []row) int {
 func renderRow(r row, gw int, o Options, st styles) []string {
 	switch r.kind {
 	case kindGap:
-		return []string{st.fold.Render(strings.Repeat(" ", gw) + " ...")}
+		return []string{st.fold.Render(strings.Repeat(" ", gw+1) + " ...")}
 	case kindFold:
 		label := "⋯ " + strconv.Itoa(r.num) + " unchanged line"
 		if r.num != 1 {
 			label += "s"
 		}
-		return []string{render.Truncate(st.fold.Render(strings.Repeat(" ", gw)+" "+label), o.Width, "…")}
+		return []string{render.Truncate(st.fold.Render(strings.Repeat(" ", gw+1)+" "+label), o.Width, "…")}
 	}
 
 	var bg, word, mark render.Style
@@ -259,13 +262,16 @@ func renderRow(r row, gw int, o Options, st styles) []string {
 		bg, word, mark, marker = st.addBg, st.addWord, st.addMark, "+"
 	}
 
-	gutter := ""
+	var first, rest string
 	if gw > 0 {
 		n := strconv.Itoa(r.num)
-		gutter = strings.Repeat(" ", gw-len(n)) + n + " "
+		gutter := strings.Repeat(" ", gw+1-len(n)) + n + " "
+		first = st.gutter.Render(gutter) + bg.Merge(mark).Render(marker)
+		rest = strings.Repeat(" ", len(gutter)) + bg.Render(" ")
+	} else {
+		first = bg.Merge(mark).Render(marker + " ")
+		rest = bg.Render("  ")
 	}
-	first := st.gutter.Render(gutter) + bg.Merge(mark).Render(marker+" ")
-	rest := strings.Repeat(" ", len(gutter)) + bg.Render("  ")
 
 	content := renderContent(r, bg, word, st.text, o.Dimmed)
 	lines := render.WrapWith(content, render.WrapOptions{Width: o.Width, First: first, Rest: rest, Hard: true})

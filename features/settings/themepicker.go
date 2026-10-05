@@ -131,13 +131,13 @@ func (p *themePicker) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 		// Keep previewing until the settings reload carries the new theme, so the
 		// screen doesn't flash back to the old one; a timer covers a failed write.
 		p.a.endPreviewPending = true
-		cmds = append(cmds, c.Notify(ext.Notice{Key: "settings.theme", Level: ext.NoticeSuccess,
-			Source: "settings", Text: "Theme set to " + themes.Label(name)}),
+		cmds = append(cmds, resultLine(c, "Theme set to "+themes.Label(name)),
 			c.Clock().Tick(3*time.Second, func(time.Time) tea.Msg { return themePreviewTimeoutMsg{} }))
 		return true, tea.Sequence(cmds...)
 	case ext.ActSelectCancel:
 		p.picker.Cancel()
-		return true, tea.Sequence(ext.Msg(ext.ThemePreviewMsg{}), c.CloseDialog(dialogTheme))
+		return true, tea.Sequence(ext.Msg(ext.ThemePreviewMsg{}), c.CloseDialog(dialogTheme),
+			resultLine(c, "Kept theme as "+themes.Label(p.picker.Original)))
 	default:
 		return false, nil
 	}

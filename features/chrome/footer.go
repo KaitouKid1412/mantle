@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/internal/term/prbadge"
+	"github.com/KaitouKid1412/mantle/internal/term/statusline"
 	"github.com/KaitouKid1412/mantle/internal/term/terminal"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
@@ -14,9 +15,11 @@ import (
 // FooterID is the footer component's ID.
 const FooterID = "chrome.footer"
 
-// footer is the one-line bar below the prompt: the permission-mode indicator on the
-// left; the vim mode, the PR badge, footer links, background work and the shortcuts
-// hint on the right.
+// footer is the one-line bar below the prompt, laid out like Claude Code's: the
+// permission-mode indicator and one hint on the left (the shortcuts hint in manual
+// mode, the mode-cycle key otherwise); the vim mode, the PR badge, footer links,
+// background work and the reasoning-effort hint on the right. It steps aside while the
+// editor shows a menu or hint below the prompt.
 type footer struct {
 	s       sessionState
 	pr      prWatch
@@ -89,7 +92,7 @@ func (f *footer) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 }
 
 func (f *footer) render(ctx ext.Ctx, w int) string {
-	if w <= 0 {
+	if w <= 0 || f.s.Panel {
 		return ""
 	}
 	t := ctx.Theme()
@@ -98,10 +101,14 @@ func (f *footer) render(ctx ext.Ctx, w int) string {
 	if !ind.Quiet && ind.Token != "" {
 		tok = theme.Token(ind.Token)
 	}
-	cycle := firstKey(ctx, ext.ContextChat, ext.ActChatCycleMode, "shift+tab")
-	left := []segment{
-		seg(t, tok, ind.Text(), 0),
-		seg(t, theme.Inactive, "· "+cycle+" to change", 3),
+	left := []segment{seg(t, tok, ind.Text(), 0)}
+	if ind.Quiet {
+		if !f.statusLine && f.s.EditorEmpty && f.s.EditorMode != "bash" {
+			left = append(left, seg(t, theme.Inactive, "· ? for shortcuts", 4))
+		}
+	} else {
+		cycle := firstKey(ctx, ext.ContextChat, ext.ActChatCycleMode, "shift+tab")
+		left = append(left, seg(t, theme.Inactive, "· "+cycle+" to change", 3))
 	}
 
 	var right []segment
@@ -116,8 +123,43 @@ func (f *footer) render(ctx ext.Ctx, w int) string {
 		}
 		right = append(right, seg(t, theme.Inactive, label+" · /tasks", 2))
 	}
-	if !f.statusLine && f.s.EditorEmpty && f.s.EditorMode != "bash" {
-		right = append(right, seg(t, theme.Inactive, "? for shortcuts", 4))
+	// With a status line the effort hint moves to the status line's first row.
+	if h := effortHint(ctx, f.s); h != "" && !f.statusLine {
+		right = append(right, seg(t, theme.Inactive, h, 5))
 	}
 	return bar(left, right, w, ctx.Accessibility().ScreenReader)
+}
+
+// defaultEffort is the level Claude Code uses when nothing sets one (the engine's init
+// leaves effort out then).
+const defaultEffort = "medium"
+
+// effortHint is the reasoning-effort hint ("◑ medium · /effort"): the effort the engine
+// reported, else the effortLevel setting, else the default when the model takes an
+// effort level; "" when the model doesn't.
+func effortHint(ctx ext.Ctx, s sessionState) string {
+	e := statusline.NormalizeEffort(s.Effort)
+	if e == "" {
+		e = statusline.NormalizeEffort(ext.ClaudeString(ctx.Settings(), "effortLevel", ""))
+	}
+	if e == "" && s.takesEffort() {
+		e = defaultEffort
+	}
+	if e == "" {
+		return ""
+	}
+	return effortGlyph(e) + " " + e + " · /effort"
+}
+
+// effortGlyph fills a circle in quarters as the effort rises.
+func effortGlyph(e string) string {
+	switch e {
+	case "low":
+		return "◔"
+	case "medium":
+		return "◑"
+	case "high":
+		return "◕"
+	}
+	return "●"
 }

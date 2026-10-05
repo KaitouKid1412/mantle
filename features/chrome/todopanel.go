@@ -18,9 +18,9 @@ const TodosID = "chrome.todos"
 // todoMaxItems is how many checklist items the expanded panel shows.
 const todoMaxItems = 5
 
-// todoPanel shows the main conversation's checklist above the prompt. ctrl+t
-// (app:toggleTodos) switches between the full list and a one-line summary; the choice
-// is remembered across sessions.
+// todoPanel shows the main conversation's checklist above the prompt, expanded by
+// default as in Claude Code. ctrl+t (app:toggleTodos) switches between the full list
+// and a one-line summary; the choice is remembered across sessions.
 type todoPanel struct {
 	list      Todos
 	expanded  bool
@@ -28,7 +28,7 @@ type todoPanel struct {
 	sessionID string
 }
 
-func newTodoPanel() *todoPanel { return &todoPanel{enabled: true} }
+func newTodoPanel() *todoPanel { return &todoPanel{enabled: true, expanded: true} }
 
 func (p *todoPanel) ID() string { return TodosID }
 
@@ -137,11 +137,14 @@ func (p *todoPanel) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 
 func (p *todoPanel) header(t *theme.Theme, sr bool) string {
 	done, total := p.list.Counts()
-	h := fmt.Sprintf("Tasks %d/%d done", done, total)
-	if sr {
-		return h
+	counts := fmt.Sprintf(" %d/%d done", done, total)
+	if n := p.list.InProgress(); n > 0 {
+		counts += fmt.Sprintf(" · %d in progress", n)
 	}
-	return t.Paint(theme.Text, "Tasks") + t.Paint(theme.Inactive, fmt.Sprintf(" %d/%d done", done, total))
+	if sr {
+		return "Tasks" + counts
+	}
+	return t.Paint(theme.Text, "Tasks") + t.Paint(theme.Inactive, counts)
 }
 
 // summaryLine is the collapsed view: progress and the current item. A finished list

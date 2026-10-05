@@ -237,7 +237,7 @@ func (p *configPanel) value(c ext.Ctx, r configRow) any {
 func (p *configPanel) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 	if p.tab == tabStatus && id != ext.ActTabsNext && id != ext.ActTabsPrevious {
 		if id == ext.ActConfirmNo || id == ext.ActSelectCancel {
-			return true, c.CloseDialog(dialogConfig)
+			return true, tea.Sequence(c.CloseDialog(dialogConfig), resultLine(c, "Settings closed"))
 		}
 		return p.status.HandleAction(c, id)
 	}
@@ -271,7 +271,7 @@ func (p *configPanel) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 			p.query, p.cursor = "", 0
 			break
 		}
-		return true, c.CloseDialog(dialogConfig)
+		return true, tea.Sequence(c.CloseDialog(dialogConfig), resultLine(c, "Settings closed"))
 	default:
 		return false, nil
 	}

@@ -100,7 +100,7 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		c.Invalidate(LiveID)
 		c.Invalidate(SpinnerID)
 		if oldMode != f.mode() || old.maxProse != f.cfg.maxProse || old.noHighlight != f.cfg.noHighlight {
-			return c.Reprint()
+			return f.requestReprint(c)
 		}
 		return nil
 	})
@@ -126,7 +126,7 @@ func (f *Feature) Setup(r ext.Registrar) error {
 			if f.brief {
 				label = "Brief mode on"
 			}
-			return true, tea.Batch(c.Notify(ext.Notice{Key: "transcript.brief", Text: label, Source: FeatureID}), c.Reprint())
+			return true, tea.Batch(c.Notify(ext.Notice{Key: "transcript.brief", Text: label, Source: FeatureID}), f.requestReprint(c))
 		},
 	})
 	// "⎿ Waiting…" under a tool call while its permission prompt is open.
@@ -163,7 +163,7 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 			old := f.mode()
 			f.engineView = init.ViewMode
 			if f.mode() != old {
-				reprint = c.Reprint()
+				reprint = f.requestReprint(c)
 			}
 		}
 	}
@@ -179,7 +179,15 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 		f.texts, f.views = map[string]*textEntry{}, nil
 		f.commit = commitState{}
 		c.Invalidate(LiveID)
-		return tea.Batch(spin, c.Reprint())
+		return tea.Batch(spin, f.requestReprint(c))
+	}
+	if cb, ok := m.Event.(*proto.CompactBoundary); ok && cb.CompactMetadata.Trigger == "manual" {
+		// /compact starts the screen over from the boundary; ctrl+o keeps
+		// the history.
+		f.store.Apply(m.Event)
+		f.commit = commitState{}
+		c.Invalidate(LiveID)
+		return tea.Batch(spin, f.requestReprint(c))
 	}
 	if !f.store.Apply(m.Event) {
 		return tea.Batch(spin, reprint)
@@ -203,6 +211,14 @@ func engineNotice(n *proto.Notification) ext.Notice {
 		key = "engine.notification"
 	}
 	return ext.Notice{Key: key, Text: oneLine(n.Text), Level: level, Timeout: msToDuration(n.TimeoutMS), Source: FeatureID}
+}
+
+// requestReprint asks the host to clear the screen. Until ScreenClearedMsg
+// arrives nothing is committed: those lines would land after the clear and
+// then be printed again by the reprint.
+func (f *Feature) requestReprint(c ext.Ctx) tea.Cmd {
+	f.commit.awaitClear = true
+	return c.Reprint()
 }
 
 // forEngine reports whether a message for an engine belongs to this feature

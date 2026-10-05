@@ -3,8 +3,9 @@
 **Status:** done by 06 on worktree-mantle-06 (2026-10-05): §2 and §3 (a15d9cb), §4 (d5bbd0e),
 §6 (aadc688), §7 (a7b95ab); §1 sessions part (050d6ea, a15d9cb) and plan 02's tracker
 (5039ccf). Left elsewhere: §1's remaining double banner comes from
-`features/chrome/session.go` adopting `new_conversation_id` (reported to 07); §5 is the
-transcript store's to do atomically (handed to 03, with 12-03 §7). Found by the plan 12 side-by-side suite against claude
+`features/chrome/session.go` adopting `new_conversation_id` (reported to 07). §5 done by
+plan 03 in the transcript store (986023d, with 12-03 §7): a manual compact boundary
+restarts the screen from the boundary; features/sessions needs no change. Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; keep mantle's

@@ -100,9 +100,7 @@ func (a *area) chooseModel(c ext.Ctx, ch model.Choice) tea.Cmd {
 			a.sessionEffort = ch.Effort
 		}
 	}
-	return tea.Batch(a.apply(c, effects), c.Notify(ext.Notice{
-		Key: "settings.model", Level: ext.NoticeSuccess, Source: "settings", Text: modelNotice(ch),
-	}))
+	return tea.Batch(a.apply(c, effects), resultLine(c, modelNotice(ch)))
 }
 
 func modelNotice(ch model.Choice) string {
@@ -146,6 +144,16 @@ func (p *modelPicker) reload(c ext.Ctx) {
 			p.cursor = i
 		}
 	}
+}
+
+// currentLabel names the session's model for "Kept model as …".
+func (p *modelPicker) currentLabel() string {
+	for _, r := range p.rows {
+		if r.Current {
+			return r.Label
+		}
+	}
+	return "the default"
 }
 
 func (p *modelPicker) ID() string               { return modelPickerID }
@@ -242,7 +250,7 @@ func (p *modelPicker) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 	case ext.ActModelPickerThisSessionOnly:
 		return true, p.choose(c, true)
 	case ext.ActSelectCancel, ext.ActConfirmNo:
-		return true, c.CloseDialog(dialogModel)
+		return true, tea.Sequence(c.CloseDialog(dialogModel), resultLine(c, "Kept model as "+p.currentLabel()))
 	default:
 		return false, nil
 	}

@@ -32,7 +32,7 @@ func TestSuspendResumeUnderShell(t *testing.T) {
 	script := filepath.Join(t.TempDir(), "s16.jsonl")
 	// One turn before the suspend.
 	turn := func(n string) string {
-		return `{"expect": {"type":"user"}, "timeout": 30000}
+		return `{"expect": {"type":"user"}, "timeout": 60000}
 {"emit": {"type":"assistant","message":{"id":"m` + n + `","type":"message","role":"assistant","model":"claude-test","content":[{"type":"text","text":"reply ` + n + `"}],"stop_reason":"end_turn"},"parent_tool_use_id":null,"session_id":"s16","uuid":"a` + n + `"}}
 {"emit": {"type":"result","subtype":"success","is_error":false,"result":"reply ` + n + `","duration_ms":1,"duration_api_ms":1,"num_turns":1,"session_id":"s16","uuid":"r` + n + `","total_cost_usd":0,"usage":{"input_tokens":1,"output_tokens":1}}}
 `

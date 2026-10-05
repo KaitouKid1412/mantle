@@ -1,24 +1,24 @@
 ── width 60 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m wait a bit                                                [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m wait a bit                                                [m
 
 [38;2;139;139;147m⏺[m [1mBash[m(sleep 5 && touch done.txt)
-  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
+  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
 
 [38;2;139;139;147m✻ Worked for 1s · done 3:04 PM[m
 ── width 100 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m wait a bit                                                                                        [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m wait a bit                                                                                        [m
 
 [38;2;139;139;147m⏺[m [1mBash[m(sleep 5 && touch done.txt)
-  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
+  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
 
 [38;2;139;139;147m✻ Worked for 1s · done 3:04 PM[m
 ── width 160 ──
 
-[48;2;38;38;44m[38;2;139;139;147m>[m[48;2;38;38;44m wait a bit                                                                                                                                                    [m
+[48;2;38;38;44m[38;2;139;139;147m❯[m[48;2;38;38;44m wait a bit                                                                                                                                                    [m
 
 [38;2;139;139;147m⏺[m [1mBash[m(sleep 5 && touch done.txt)
-  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
+  ⎿  [38;2;239;122;128mInterrupted · tell Claude what to do instead[m
 
 [38;2;139;139;147m✻ Worked for 1s · done 3:04 PM[m

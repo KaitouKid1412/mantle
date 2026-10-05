@@ -22,15 +22,15 @@ func TestRecordDrive(t *testing.T) {
 	}
 	engine := filepath.Join(dir, "engine.jsonl")
 	os.WriteFile(engine, []byte(`{"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": {"commands":[]}}
-{"expect": {"type":"user"}}
+{"expect": {"type":"user"}, "timeout": 30000}
 {"emit": {"type":"assistant","message":{"id":"m","content":[{"type":"text","text":"hello from `+dir+`"}]},"session_id":"1bd4a383-7c8a-49fb-a66b-d55320e41104"}}
 {"emit": {"type":"result","subtype":"success","result":"ok","user_message_uuid":"${uuid}"}}
 `), 0o644)
 	client := filepath.Join(dir, "client.jsonl")
 	os.WriteFile(client, []byte(`{"emit": {"type":"control_request","request_id":"r1","request":{"subtype":"initialize"}}}
-{"expect": {"type":"control_response"}}
+{"expect": {"type":"control_response"}, "timeout": 30000}
 {"emit": {"type":"user","uuid":"${new:u}","message":{"role":"user","content":"hi"}}}
-{"expect": {"type":"result"}}
+{"expect": {"type":"result"}, "timeout": 30000}
 `), 0o644)
 	out := filepath.Join(dir, "rec.jsonl")
 	t.Setenv("FAKECLAUDE_SCRIPT", engine)

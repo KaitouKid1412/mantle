@@ -1,20 +1,20 @@
 ── width 40 ──
-1   a
-2 - b
-2 + B
-3   c
+ 1  a
+ 2 -b
+ 2 +B
+ 3  c
 ── width 60 ──
-1   a
-2 - b
-2 + B
-3   c
+ 1  a
+ 2 -b
+ 2 +B
+ 3  c
 ── width 100 ──
-1   a
-2 - b
-2 + B
-3   c
+ 1  a
+ 2 -b
+ 2 +B
+ 3  c
 ── width 160 ──
-1   a
-2 - b
-2 + B
-3   c
+ 1  a
+ 2 -b
+ 2 +B
+ 3  c

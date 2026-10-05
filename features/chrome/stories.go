@@ -66,10 +66,16 @@ func frameStories() []ext.Story {
 			return f.View(ctx, a)
 		}}
 	}
+	history := ext.Story{ID: "chrome.promptFrame/history-named", Render: func(ctx ext.Ctx, a ext.Area) ext.Rendered {
+		f := wrapFrame(storyEditor{"❯ beta prompt"}).(*promptFrame)
+		f.s.EditorMode, f.s.Mode, f.s.Title, f.s.FrameTitle = "prompt", ModeDefault, "db-migration", "History 2/2"
+		return f.View(ctx, a)
+	}}
 	return []ext.Story{
 		mk("prompt", "❯ refactor the parser", "prompt", ModeDefault, ""),
 		mk("bash", "! git status", "bash", ModeDefault, ""),
 		mk("plan-named", "❯ outline the migration\n  then list the risks", "prompt", ModePlan, "db-migration"),
+		history,
 	}
 }
 

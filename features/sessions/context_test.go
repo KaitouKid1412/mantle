@@ -54,12 +54,16 @@ func TestContextCommand(t *testing.T) {
 
 func TestRenderContextReport(t *testing.T) {
 	th := theme.Default()
-	it := &ext.Item{Key: KeyContextUsage, Data: &ContextReport{Usage: sampleContext(), Model: "opus", Full: true}}
+	rep := &ContextReport{Usage: sampleContext(), Model: "opus"}
+	_ = json.Unmarshal([]byte(`{"memoryFiles":[{"path":"/work/demo/CLAUDE.md","type":"Project","tokens":900}],
+		"autoCompactThreshold":167000,"isAutoCompactEnabled":true}`), &rep.Detail)
+	it := &ext.Item{Key: KeyContextUsage, Data: rep}
 	for _, w := range []int{40, 100} {
 		b := renderContextReport(ext.RenderCtx{Width: w, Theme: &th}, it)
 		text := ansi.Strip(strings.Join(b.Lines, "\n"))
-		for _, want := range []string{"Context usage", "opus · 60k / 200k tokens (30%)", "Messages: 44k tokens (22.0%)",
-			"Free space: 107k tokens", "Memory files", "/work/demo/CLAUDE.md: 900 tokens"} {
+		for _, want := range []string{"  ⎿  Context usage", "opus", "60k/200k tokens (30%)", "Estimated usage by category",
+			"Messages: 44k tokens (22.0%)", "Free space: 107k (53.5%)", "Autocompact buffer: 33k tokens",
+			"Auto-compact window: 167k tokens", "Memory files · /memory", "└ /work/demo/CLAUDE.md: ~900 tokens"} {
 			if !strings.Contains(text, want) {
 				t.Errorf("width %d lacks %q:\n%s", w, want, text)
 			}
@@ -71,13 +75,43 @@ func TestRenderContextReport(t *testing.T) {
 			}
 			cells += strings.Count(ansi.Strip(l), cellUsed) + strings.Count(ansi.Strip(l), cellFree) + strings.Count(ansi.Strip(l), cellBuffer)
 		}
-		// Grid plus one glyph per legend row (4 used, buffer, free).
+		// Grid plus one glyph per legend row (4 used, free, buffer).
 		gridCells := 100
 		if w >= 70 {
 			gridCells = 200
 		}
 		if cells != gridCells+6 {
 			t.Errorf("width %d: %d cells", w, cells)
+		}
+	}
+}
+
+// With the engine's grid and breakdowns: the grid as sent, legend beside it, and the
+// skills, MCP tools and agents sections grouped by source.
+func TestRenderContextEngineDetail(t *testing.T) {
+	th := theme.Default()
+	rep := &ContextReport{Usage: sampleContext()}
+	_ = json.Unmarshal([]byte(`{
+		"model":"claude-opus-5-5",
+		"gridRows":[[{"color":"promptBorder","isFilled":true,"categoryName":"System prompt","squareFullness":1},
+		             {"color":"claude","isFilled":true,"categoryName":"Messages","squareFullness":0.3},
+		             {"color":"","isFilled":false,"categoryName":"Free space","squareFullness":0},
+		             {"color":"","isFilled":true,"categoryName":"Autocompact buffer","squareFullness":1}]],
+		"mcpTools":[{"name":"navigate","serverName":"chrome","tokens":1200},{"name":"find","serverName":"chrome","tokens":800}],
+		"agents":[{"agentType":"reviewer","source":"projectSettings","tokens":300}],
+		"skills":{"tokens":900,"skillFrontmatter":[{"name":"dataviz","source":"bundled","tokens":400},{"name":"init","source":"bundled","tokens":500},{"name":"deploy","source":"plugin","pluginName":"ops","tokens":200}]}
+	}`), &rep.Detail)
+	rep.Model = rep.Detail.Model
+	b := renderContextReport(ext.RenderCtx{Width: 100, Theme: &th}, &ext.Item{Key: KeyContextUsage, Data: rep})
+	text := ansi.Strip(strings.Join(b.Lines, "\n"))
+	for _, want := range []string{
+		"     ■ ▪ □ ▣   claude-opus-5-5",
+		"MCP tools · /mcp", "chrome\n     ├ navigate: ~1.2k tokens\n     └ find: ~800 tokens",
+		"Custom agents · /agents", "Project\n     └ reviewer: ~300 tokens",
+		"Skills · /skills", "Built-in\n     ├ init: ~500 tokens\n     └ dataviz: ~400 tokens", "Plugin · ops\n     └ deploy: ~200 tokens",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("lacks %q:\n%s", want, text)
 		}
 	}
 }

@@ -189,11 +189,16 @@ func highlightAll(t *theme.Theme, s, needle string) string {
 	}
 }
 
+// view is one line where the footer was: the query, plus the scope when it
+// is not this project.
 func (q *search) view(t *theme.Theme, width int) []string {
-	status := "search history (" + scopeNames[q.scope] + "): " + q.query
+	label := "search history"
+	if q.scope != scopeProject {
+		label += " (" + scopeNames[q.scope] + ")"
+	}
+	status := "  " + label + ": " + q.query
 	if q.query != "" && len(q.matches) == 0 {
 		status += t.Paint(theme.Inactive, "  no match")
 	}
-	hint := t.Paint(theme.Inactive, "ctrl+r older · ctrl+s scope · enter run · esc edit")
-	return []string{status, hint}
+	return []string{status}
 }

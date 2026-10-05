@@ -42,18 +42,20 @@ func TestRewindSelector(t *testing.T) {
 		t.Fatalf("aliases = %v", c.Aliases)
 	}
 	d := h.openDialog(DialogRewind, nil).(*rewindSelector)
-	if len(d.entries) != 2 || d.sel != 1 {
+	// The prompts, each with its code-change note, then "(current)", selected.
+	if len(d.entries) != 3 || d.sel != 2 || !d.entries[2].current || d.entries[0].note != "No code changes" {
 		t.Fatalf("entries = %+v sel %d", d.entries, d.sel)
 	}
 	if cs := d.KeyContexts(); !slices.Equal(cs, []string{ext.ContextMessageSelector, ext.ContextSelect}) {
 		t.Fatalf("contexts = %v", cs)
 	}
 	v := ansi.Strip(d.View(h.ctx, ext.Area{Width: 80, MaxHeight: 20}).Text)
-	if !strings.Contains(v, "› And the tests?") || !strings.Contains(v, "  Explain the build") {
+	if !strings.Contains(v, "  ❯ (current)") || !strings.Contains(v, "    Explain the build\n    No code changes") {
 		t.Fatalf("view:\n%s", v)
 	}
 
 	// Choosing the latest prompt runs a dry run and opens the options.
+	h.key(tea.KeyPressMsg{Code: tea.KeyUp})
 	h.key(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if c := h.eng.controls[0]; c.subtype != proto.SubRewindFiles || !c.req.(proto.RewindFilesRequest).DryRun ||
 		c.req.(proto.RewindFilesRequest).UserMessageID != u("1u", 2) {
@@ -147,7 +149,7 @@ func TestRewindRestoresPreClearSession(t *testing.T) {
 	h := rewindHarness(t)
 	h.f.cleared = []string{sidTools}
 	d := h.openDialog(DialogRewind, nil).(*rewindSelector)
-	if len(d.entries) != 3 || d.entries[0].cleared != sidTools {
+	if len(d.entries) != 4 || d.entries[0].cleared != sidTools {
 		t.Fatalf("entries = %+v", d.entries)
 	}
 	h.key(tea.KeyPressMsg{Code: tea.KeyHome})
@@ -156,5 +158,23 @@ func TestRewindRestoresPreClearSession(t *testing.T) {
 	start := find[ext.EngineStartMsg](h)
 	if len(start) != 1 || start[0].Opts.Resume != sidTools || start[0].Opts.ResumeSessionAt != "" {
 		t.Fatalf("start = %+v", start)
+	}
+}
+
+func TestRewindCurrentAndCodeNotes(t *testing.T) {
+	h := rewindHarness(t)
+	edit := toolItem("e1", "Edit", `{"file_path":"/w/a.go"}`, "ok")
+	edit.Result.Structured = json.RawMessage(`{"filePath":"/w/a.go","structuredPatch":[{"oldStart":1,"oldLines":1,"newStart":1,"newLines":2,"lines":["-a","+b","+c"]}]}`)
+	h.ctx.TranscriptV = &fakeTranscript{items: []*ext.Item{
+		uuidPrompt("u1", "first"), edit, uuidPrompt("u2", "second"),
+	}}
+	d := h.openDialog(DialogRewind, nil).(*rewindSelector)
+	if d.entries[0].note != "1 file changed (+2 −1)" || d.entries[1].note != "No code changes" {
+		t.Fatalf("notes = %q, %q", d.entries[0].note, d.entries[1].note)
+	}
+	// Enter on "(current)" just closes.
+	h.key(tea.KeyPressMsg{Code: tea.KeyEnter})
+	if !slices.Equal(h.ctx.Closed, []string{DialogRewind}) || len(h.eng.controls) != 0 {
+		t.Fatalf("closed %v, controls %+v", h.ctx.Closed, h.eng.controls)
 	}
 }

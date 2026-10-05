@@ -35,8 +35,12 @@ func (a *area) setupHelp(r ext.Registrar) error {
 		ID: ext.ActAppHelp, Context: ext.ContextGlobal, Description: "Open help",
 		Run: func(c ext.Ctx) (bool, tea.Cmd) { return true, c.OpenDialog(dialogHelp, nil) },
 	})
-	r.AddStory(ext.Story{ID: "settings.help/commands", Render: func(c ext.Ctx, ar ext.Area) ext.Rendered {
+	r.AddStory(ext.Story{ID: "settings.help/general", Render: func(c ext.Ctx, ar ext.Area) ext.Rendered {
 		h, _ := storyHelpArea().newHelp(c, nil)
+		return h.View(c, ar)
+	}})
+	r.AddStory(ext.Story{ID: "settings.help/commands", Render: func(c ext.Ctx, ar ext.Area) ext.Rendered {
+		h, _ := storyHelpArea().newHelp(c, "commands")
 		return h.View(c, ar)
 	}})
 	r.AddStory(ext.Story{ID: "settings.help/shortcuts-search", Render: func(c ext.Ctx, ar ext.Area) ext.Rendered {
@@ -61,18 +65,31 @@ func storyHelpArea() *area {
 
 type helpDialog struct {
 	a         *area
-	tab       int // 0 commands, 1 shortcuts
+	tab       int // helpGeneral, helpCommands or helpShortcuts
 	query     string
 	searching bool
 	offset    int
 }
 
-var helpTabs = []string{"Commands", "Shortcuts"}
+// Help tabs.
+const (
+	helpGeneral = iota
+	helpCommands
+	helpShortcuts
+)
+
+var helpTabs = []string{"General", "Commands", "Shortcuts"}
+
+// helpDocsURL is Claude Code's documentation, which applies to mantle too.
+const helpDocsURL = "https://code.claude.com/docs"
 
 func (a *area) newHelp(_ ext.Ctx, args any) (ext.Dialog, error) {
 	h := &helpDialog{a: a}
-	if s, _ := args.(string); s == HelpTabShortcuts {
-		h.tab = 1
+	switch s, _ := args.(string); s {
+	case HelpTabShortcuts:
+		h.tab = helpShortcuts
+	case "commands":
+		h.tab = helpCommands
 	}
 	return h, nil
 }
@@ -105,9 +122,12 @@ func (h *helpDialog) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 			h.setQuery(c, "")
 			return true, nil
 		}
-		return true, c.CloseDialog(dialogHelp)
-	case ext.ActTabsNext, ext.ActTabsPrevious:
-		h.tab = 1 - h.tab
+		return true, tea.Sequence(c.CloseDialog(dialogHelp), resultLine(c, "Help closed"))
+	case ext.ActTabsNext:
+		h.tab = (h.tab + 1) % len(helpTabs)
+		h.offset = 0
+	case ext.ActTabsPrevious:
+		h.tab = (h.tab + len(helpTabs) - 1) % len(helpTabs)
 		h.offset = 0
 	case ext.ActSelectNext:
 		h.offset++
@@ -133,6 +153,9 @@ func (h *helpDialog) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 func (h *helpDialog) HandleKey(c ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
 	if !h.searching {
 		if k.String() == "/" {
+			if h.tab == helpGeneral {
+				h.tab = helpCommands // search lists commands
+			}
 			h.searching = true
 			c.Invalidate(h.ID())
 			return true, nil
@@ -243,6 +266,67 @@ func (h *helpDialog) shortcutLines(c ext.Ctx, t *theme.Theme, width int) []strin
 	return out
 }
 
+// generalLines is the first page: what mantle is, the essential keys in three columns,
+// and where the documentation lives.
+func (h *helpDialog) generalLines(c ext.Ctx, t *theme.Theme, width int) []string {
+	out := wrap("mantle runs Claude Code in your terminal. Ask Claude to read, change and run code "+
+		"in this project. Start a line with / for commands, ! to run a shell command, or @ to "+
+		"mention a file.", width)
+	out = append(out, "", lipgloss.NewStyle().Bold(true).Render("Shortcuts"))
+	// The shortest binding reads best in a table ("ctrl+g" rather than "ctrl+x ctrl+e").
+	key := func(ctx string, a ext.ActionID, def string) string {
+		keys := c.KeysFor(ctx, a)
+		if len(keys) == 0 {
+			return def
+		}
+		best := keys[0]
+		for _, k := range keys[1:] {
+			if len(k) < len(best) {
+				best = k
+			}
+		}
+		return keyName([]string{best}, def)
+	}
+	cells := [][2]string{
+		{"/", "commands"},
+		{"!", "shell command"},
+		{"@", "mention a file"},
+		{key(ext.ContextChat, ext.ActChatCancel, "esc"), "interrupt"},
+		{key(ext.ContextChat, ext.ActChatCycleMode, "shift+tab"), "permission mode"},
+		{key(ext.ContextChat, ext.ActChatNewline, "ctrl+j"), "new line"},
+		{key(ext.ContextGlobal, ext.ActAppToggleTranscript, "ctrl+o"), "full transcript"},
+		{key(ext.ContextGlobal, ext.ActHistorySearch, "ctrl+r"), "search history"},
+		{key(ext.ContextGlobal, ext.ActAppToggleTodos, "ctrl+t"), "task list"},
+		{key(ext.ContextChat, ext.ActChatModelPicker, "meta+p"), "choose model"},
+		{key(ext.ContextChat, ext.ActChatExternalEditor, "ctrl+g"), "edit in $EDITOR"},
+		{key(ext.ContextChat, ext.ActChatImagePaste, "ctrl+v"), "paste image"},
+	}
+	cols := 3
+	if width < 60 {
+		cols = 2
+	}
+	colW := width / cols
+	keyW := 0
+	for _, cell := range cells {
+		keyW = max(keyW, ansi.StringWidth(cell[0]))
+	}
+	keyW = min(keyW, colW/2)
+	for i := 0; i < len(cells); i += cols {
+		var line string
+		for j := i; j < i+cols && j < len(cells); j++ {
+			k := fit(cells[j][0], keyW)
+			cell := t.Paint(theme.Suggestion, k) + strings.Repeat(" ", keyW-ansi.StringWidth(k)) + " " + cells[j][1]
+			cell = fit(cell, colW-1)
+			if j < i+cols-1 {
+				cell += strings.Repeat(" ", max(colW-ansi.StringWidth(cell), 0))
+			}
+			line += cell
+		}
+		out = append(out, fit(line, width))
+	}
+	return append(out, "", t.Paint(theme.Inactive, "More in the Shortcuts tab and at "+helpDocsURL))
+}
+
 func (h *helpDialog) View(c ext.Ctx, ar ext.Area) ext.Rendered {
 	t := c.Theme()
 	_, termH := c.Size()
@@ -263,9 +347,12 @@ func (h *helpDialog) View(c ext.Ctx, ar ext.Area) ext.Rendered {
 		head += "   " + t.Paint(theme.Inactive, "Search: "+h.query)
 	}
 	var lines []string
-	if h.tab == 0 {
+	switch h.tab {
+	case helpGeneral:
+		lines = h.generalLines(c, t, inner)
+	case helpCommands:
 		lines = h.commandLines(c, t, inner)
-	} else {
+	default:
 		lines = h.shortcutLines(c, t, inner)
 	}
 	if len(lines) == 0 {

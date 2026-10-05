@@ -17,10 +17,11 @@ import (
 
 // Glyphs of the transcript look.
 const (
-	glyphDot     = "⏺" // assistant text and tool calls
-	glyphResult  = "⎿" // tool results
-	glyphThought = "✻" // thinking
-	resultIndent = "  " + glyphResult + "  "
+	glyphDot     = "⏺"                            // assistant text and tool calls
+	glyphResult  = "⎿"                            // tool results
+	glyphThought = "✻"                            // thinking
+	resultIndent = "  " + glyphResult + " \u00a0" // as claude writes it
+	glyphPrompt  = "❯"                            // user prompts
 	resultHang   = "     "
 	dotIndent    = "  "
 )

@@ -53,6 +53,8 @@ type state struct {
 	stash  *savedDraft
 
 	escAt       time.Time
+	pasteHint   bool        // a paste just collapsed: pasting it again expands it
+	lastPaste   string      // that paste's content
 	lastSent    *savedDraft // restored when the send stage rejects
 	pending     *pendingSubmit
 	pendingHist *history.Entry // set while the pipeline runs for this submit
@@ -184,9 +186,12 @@ func (s *state) applyTheme(t *theme.Theme) {
 
 // editorState is what chrome needs to know about the prompt.
 func (s *state) editorState() ext.EditorStateMsg {
-	m := ext.EditorStateMsg{Mode: s.mode, Empty: s.ed.Empty()}
+	m := ext.EditorStateMsg{Mode: s.mode, Empty: s.ed.Empty(), Panel: s.panelOpen()}
 	if s.ed.VimEnabled() {
 		m.Vim = s.ed.VimMode().String()
+	}
+	if !s.hist.AtDraft() && s.search == nil {
+		m.FrameTitle = "History " + itoa(s.hist.Pos()+1) + "/" + itoa(s.hist.Len())
 	}
 	return m
 }
@@ -199,6 +204,12 @@ func (s *state) stateCmd(force bool) tea.Cmd {
 	}
 	s.lastState, s.stateSent = m, true
 	return ext.Msg(m)
+}
+
+// panelOpen reports whether input.menu shows something below the prompt
+// (chrome hides the footer then).
+func (s *state) panelOpen() bool {
+	return s.comp.open() || s.search != nil || s.help || s.pasteHint
 }
 
 // invalidate re-renders both components.

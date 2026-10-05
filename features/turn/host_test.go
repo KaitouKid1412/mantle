@@ -17,6 +17,10 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
+// hostWait bounds every wait in the real-host tests. Generous: under a full parallel
+// `go test ./...` the pty-driven program can be slow to draw.
+const hostWait = time.Minute
+
 // hostEnv points HOME at a temp dir and clears variables the gates read.
 func hostEnv(t *testing.T) string {
 	t.Helper()
@@ -82,13 +86,13 @@ func hostWithTurn(t *testing.T) (*testkit.Harness, *atomic.Int32, string) {
 // accepted.
 func TestHostNoSpawnBeforeTrust(t *testing.T) {
 	hn, spawned, _ := hostWithTurn(t)
-	hn.WaitForText("Do you trust this folder?", 5*time.Second)
+	hn.WaitForText("Do you trust this folder?", hostWait)
 	hn.Settle(100*time.Millisecond, time.Second)
 	if n := spawned.Load(); n != 0 {
 		t.Fatalf("engine spawned %d times before the gate passed", n)
 	}
 	hn.Send("enter")
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(hostWait)
 	for spawned.Load() == 0 && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -111,9 +115,9 @@ func TestHostNoSpawnBeforeTrust(t *testing.T) {
 
 func TestHostDecliningTrustExitsWithoutSpawn(t *testing.T) {
 	hn, spawned, _ := hostWithTurn(t)
-	hn.WaitForText("Do you trust this folder?", 5*time.Second)
+	hn.WaitForText("Do you trust this folder?", hostWait)
 	hn.Send("esc")
-	if _, err := hn.Wait(5 * time.Second); err != nil {
+	if _, err := hn.Wait(hostWait); err != nil {
 		t.Fatal(err)
 	}
 	if n := spawned.Load(); n != 0 {
@@ -124,11 +128,11 @@ func TestHostDecliningTrustExitsWithoutSpawn(t *testing.T) {
 // A permission prompt through the real host: inline dialog, real keymap, one reply.
 func TestHostPermissionPrompt(t *testing.T) {
 	hn, spawned, _ := hostWithTurn(t)
-	hn.WaitForText("Do you trust this folder?", 5*time.Second)
+	hn.WaitForText("Do you trust this folder?", hostWait)
 	hn.Send("enter")
 	// Keys and program messages travel separately: wait until the gate passed (the
 	// engine spawned) before the engine's first request arrives.
-	for deadline := time.Now().Add(5 * time.Second); spawned.Load() == 0 && time.Now().Before(deadline); {
+	for deadline := time.Now().Add(hostWait); spawned.Load() == 0 && time.Now().Before(deadline); {
 		time.Sleep(10 * time.Millisecond)
 	}
 	replies := make(chan proto.PermissionResult, 2)
@@ -136,9 +140,9 @@ func TestHostPermissionPrompt(t *testing.T) {
 	_ = json.Unmarshal([]byte(`{"tool_name":"Bash","tool_use_id":"t1","input":{"command":"go test ./..."}}`), &req)
 	hn.SendMsg(ext.PermissionMsg{EngineID: ext.MainEngine, RequestID: "r1", Req: req,
 		Reply: func(r proto.PermissionResult) tea.Cmd { replies <- r; return nil }})
-	hn.WaitForText("go test ./...", 5*time.Second)
+	hn.WaitForText("go test ./...", hostWait)
 	hn.Send("down", "enter") // "No, and tell Claude…" opens the feedback field
-	hn.WaitForText("enter to send", 5*time.Second)
+	hn.WaitForText("enter to send", hostWait)
 	hn.Type("use make test")
 	hn.Settle(100*time.Millisecond, 2*time.Second)
 	hn.Send("enter")
@@ -147,7 +151,7 @@ func TestHostPermissionPrompt(t *testing.T) {
 		if r.Behavior != proto.BehaviorDeny || r.Message != "The user denied this tool call and said: use make test" {
 			t.Fatalf("reply = %+v", r)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(hostWait):
 		t.Fatal("no reply")
 	}
 	hn.Settle(100*time.Millisecond, time.Second)

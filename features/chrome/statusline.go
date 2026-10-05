@@ -11,6 +11,7 @@ import (
 	"github.com/KaitouKid1412/mantle/internal/term/statusline"
 	"github.com/KaitouKid1412/mantle/internal/term/terminal"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
 )
 
@@ -90,8 +91,10 @@ type slResultMsg struct {
 
 type slTickMsg struct{ gen int }
 
-// statusLineComp runs the user's statusLine command and shows its output under the
-// footer.
+// statusLineComp runs the user's statusLine command and shows its output in the footer
+// area, above the mode line, as Claude Code does. The command first runs when the engine
+// is ready (before the first turn, so without a session id), and again once the session
+// id is known.
 type statusLineComp struct {
 	d       *slData
 	cfg     slConfig
@@ -176,9 +179,24 @@ func (c *statusLineComp) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 		c.dialogs = max(0, c.dialogs-1)
 		ctx.Invalidate(StatusLineID)
 		return nil
+	case ext.ControlResultMsg:
+		if c.d.s.observe(msg) { // which models take an effort level, for the hint
+			ctx.Invalidate(StatusLineID)
+		}
+		if !isMain(m.EngineID) || m.Subtype != proto.SubInitialize || m.Err != nil ||
+			c.cfg.Command == "" || c.runner != nil {
+			return nil
+		}
+		set(&c.d.s.Cwd, ctx.Session().Cwd)
+		cmd := c.start(ctx)
+		return tea.Batch(cmd, c.push(ctx, true))
 	}
 	hadSession := c.d.s.SessionID != ""
+	before := c.d.s
 	changed, rerun := c.d.observe(ctx.Clock().Now(), msg)
+	if before.Panel != c.d.s.Panel || before.Effort != c.d.s.Effort {
+		ctx.Invalidate(StatusLineID)
+	}
 	if !changed || c.cfg.Command == "" {
 		return nil
 	}
@@ -286,10 +304,32 @@ func waitResult(gen int, ch <-chan statusline.Result) tea.Cmd {
 }
 
 func (c *statusLineComp) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
-	if c.cfg.Command == "" || c.dialogs > 0 || a.Width <= 0 {
+	if c.cfg.Command == "" || c.dialogs > 0 || c.d.s.Panel || a.Width <= 0 {
 		return ext.Rendered{}
 	}
-	return ext.Rendered{Text: renderStatusLines(ctx, c.lines, c.notice, a)}
+	text := renderStatusLines(ctx, c.lines, c.notice, a)
+	if text != "" {
+		// The footer's first row carries the effort hint; with a status line, that's
+		// this one.
+		first, rest, _ := strings.Cut(text, "\n")
+		text = withRightHint(ctx, first, effortHint(ctx, c.d.s), a.Width)
+		if rest != "" {
+			text += "\n" + rest
+		}
+	}
+	return ext.Rendered{Text: text}
+}
+
+// withRightHint right-aligns a dim hint after line when both fit in w.
+func withRightHint(ctx ext.Ctx, line, hint string, w int) string {
+	lw, hw := ansi.StringWidth(line), ansi.StringWidth(hint)
+	if hint == "" || lw+2+hw > w {
+		return line
+	}
+	if !ctx.Accessibility().ScreenReader {
+		hint = ctx.Theme().Paint(theme.Inactive, hint)
+	}
+	return line + strings.Repeat(" ", w-lw-hw) + hint
 }
 
 func renderStatusLines(ctx ext.Ctx, lines []string, notice string, a ext.Area) string {

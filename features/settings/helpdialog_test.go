@@ -31,6 +31,8 @@ func TestHelpCommandsAndSearch(t *testing.T) {
 	if g.dlgID != dialogHelp {
 		t.Fatalf("dialog %q", g.dlgID)
 	}
+	g.mustContain(100, "[General]", "mantle runs Claude Code", "Shortcuts", "permission mode", "meta+p", "code.claude.com/docs")
+	g.press(ext.ActTabsNext)
 	g.mustContain(100, "[Commands]", "Built-in", "/model [model]", "Claude Code", "/compact", "Custom commands", "/review-pr", "mantle mods", "/pirate")
 	if strings.Contains(g.screen(100), "engine twin") || strings.Contains(g.screen(100), "/secret") {
 		t.Errorf("shadowed or hidden command shown:\n%s", g.screen(100))
@@ -56,6 +58,9 @@ func TestHelpCommandsAndSearch(t *testing.T) {
 	if g.dialog != nil {
 		t.Error("second esc did not close help")
 	}
+	if p := g.printed(); len(p) != 1 || p[0] != "  ⎿  Help closed" {
+		t.Errorf("printed %q", p)
+	}
 }
 
 func TestHelpShortcuts(t *testing.T) {
@@ -68,8 +73,10 @@ func TestHelpShortcuts(t *testing.T) {
 	typeText(g, "choose the model")
 	g.mustContain(160, "meta+p, ctrl+m", "Choose the model")
 	g.press(ext.ActHelpDismiss) // clear
-	g.press(ext.ActTabsNext)
+	g.press(ext.ActTabsPrevious)
 	g.mustContain(100, "[Commands]")
+	g.press(ext.ActTabsNext, ext.ActTabsNext) // wraps to General
+	g.mustContain(100, "[General]")
 }
 
 func TestHelpScrollsAndAction(t *testing.T) {
