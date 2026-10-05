@@ -112,6 +112,17 @@ Known gaps (X), as PARITY.md records them:
 | GAP-12 | Push notifications to mobile | needs claude.ai remote |
 | GAP-13 | Internal commands | not user-facing |
 
+Not applicable, and caveats (from the owners' evidence):
+
+- **CL-13 `/stop`** — not applicable: Claude Code enables it only inside a background
+  session (`claude --bg`), which mantle's engine never is, so the engine never lists it;
+  background sessions are stopped from mantle's agent view (`claude stop <id>`). Recorded as
+  "Not applicable" in `docs/parity-evidence/09.md`, which `make parity` reports as its own
+  state.
+- **EC-26, EC-27** — `commit-push-pr`, `commit` and `pr` are gated bundled skills that the
+  test account's engine doesn't offer (not in `initialize` commands, 2.1.288/2.1.289); when
+  an engine offers them they take the same passthrough path as the other skills.
+
 ### Performance
 
 `make perf` (test/e2e/perf), 2026-10-05, on fakeapi, claude 2.1.289 vs mantle on

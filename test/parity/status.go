@@ -216,13 +216,21 @@ func (st *ParityStatus) RowState(r ParityRow) string {
 		return "tagged"
 	case len(st.Scenarios[r.ID]) > 0:
 		return "scenario only"
+	case notApplicable(st.Evidence[r.ID]):
+		return "not applicable"
 	case st.Evidence[r.ID] != "":
 		return "evidenced"
 	}
 	return "untagged"
 }
 
-var rowStates = []string{"compared", "tagged", "evidenced", "scenario only", "untagged", "hand-off", "gap"}
+var rowStates = []string{"compared", "tagged", "evidenced", "scenario only", "untagged", "hand-off", "gap", "not applicable"}
+
+// notApplicable reports evidence that says the row doesn't apply to mantle ("Not
+// applicable: …"): a feature Claude Code offers only where mantle's engine never runs.
+func notApplicable(evidence string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(evidence)), "not applicable")
+}
 
 // LoadEvidenceDir reads every *.md file in dir (docs/parity-evidence/NN.md, one per
 // plan) with LoadEvidence.
@@ -278,7 +286,8 @@ func (st *ParityStatus) Markdown() string {
 		"against Claude Code; **tagged**, a registration names the row; **evidenced**, no registration can " +
 		"name it but docs/parity-evidence/ points at the tests or code that cover it; **scenario only**, a " +
 		"scenario covers it but no registration names it; **untagged**, no evidence yet; **hand-off** (H) and " +
-		"**gap** (X) as PARITY.md classifies them.\n\n")
+		"**gap** (X) as PARITY.md classifies them; **not applicable**, evidence that starts \"Not applicable\" " +
+		"(a feature Claude Code offers only where mantle's engine never runs).\n\n")
 
 	count := func(rows []ParityRow) map[string]int {
 		c := map[string]int{}
