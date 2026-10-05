@@ -1,6 +1,6 @@
 # 12 → 01: after a Reprint the live area keeps a closed dialog's height (inline)
 
-**Status:** open (2026-10-05). Found by the plan 12 side-by-side suite on integration-7
+**Status:** fixed by plan 03 in plan 01's printer (worktree-mantle-03 1a73aab: after a Reprint clear the shrink hold no longer pushes restored history into scrollback); plan 01 to review; verify on the next integration (2026-10-05). Found by the plan 12 side-by-side suite on integration-7
 (`resume-picker`, mantle; it passed on integration-6).
 
 `resume-picker`: start fresh, `/resume`, pick the earlier session. claude shows its header
