@@ -215,6 +215,9 @@ func (r *Root) layoutRequest(m ext.LayoutRequestMsg) tea.Cmd {
 	if m.Mode == ext.Inline {
 		// Back to native scrollback: clear and let the commit policy reprint.
 		cmds = append(cmds, r.enqueueClear())
+	} else {
+		// Items paused behind an inline alt-screen view finish in fullscreen.
+		cmds = append(cmds, r.resumePrinter())
 	}
 	return tea.Batch(cmds...)
 }
