@@ -668,7 +668,7 @@ func TestHandoffArgs(t *testing.T) {
 		{[]string{"--permission-mode", "plan"}, ext.SessionInfo{SessionID: "s", Model: "sonnet", PermissionMode: "acceptEdits"},
 			[]string{"--model=sonnet", "--permission-mode=acceptEdits", "--resume=s"}},
 		{[]string{"--ax-screen-reader", "hi"}, s("s"), []string{"--ax-screen-reader", "--resume=s"}},
-		{[]string{"-n", "my session", "--resume", "old"}, ext.SessionInfo{SessionID: "s", Title: "renamed"}, []string{"--name=renamed", "--resume=s"}},
+		{[]string{"-n", "my session", "--resume", "old"}, ext.SessionInfo{SessionID: "s", Title: "Remember a word for me"}, []string{"--name=my session", "--resume=s"}},
 	}
 	for _, c := range cases {
 		if got := handoffArgs(c.argv, t.TempDir(), c.live); !slices.Equal(got, c.want) {
@@ -905,14 +905,18 @@ func TestInstantRestart(t *testing.T) {
 		t.Errorf("fallback: exits %v, file kept %v", f.exits, fileExists(eng.path))
 	}
 
-	// An engine that cannot hand off (busy) means a normal restart.
+	// A failed hand-off (busy, or the file failed after the engine detached its
+	// pipes) never keeps using the engine: mantle restarts normally.
 	f.exits = nil
 	eng.err = fmt.Errorf("engine busy")
-	if _, ok := f.ctl.instantRestart(f.ctx); ok {
-		t.Error("instant restart with a busy engine")
+	if cmd, ok := f.ctl.instantRestart(f.ctx); !ok || cmd == nil {
+		t.Error("a failed hand-off must end in a normal restart")
 	}
 	f.command("restart")
 	if len(f.exits) != 1 || f.exits[0].Code != ext.ExitRestart {
 		t.Errorf("exits = %v", f.exits)
+	}
+	if fileExists(eng.path) {
+		t.Error("a partial hand-off file was left behind")
 	}
 }

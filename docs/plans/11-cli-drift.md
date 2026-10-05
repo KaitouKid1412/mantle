@@ -227,6 +227,16 @@
   doesn't) fail; `proto-only` ones are reported only when they change. Baseline moved to
   2.1.289 (checked with sdk-diff from plan 02's branch): no flag, subcommand, keybinding,
   settings, command or tool changes since 2.1.288; 11 proto-only, 0 sdk-only.
+  - **Engine UI defaults** (user decision: with `tui` unset, mantle starts in the
+    installed claude's default renderer). `cli.DefaultsFor(version)` reads
+    `cli.DefaultsTable` (`tui`: "default" before 2.1.289, "fullscreen" from 2.1.289); plan
+    01 calls it at startup. Drift's `engine-default` list starts the interactive claude in
+    a pty with a fresh, pre-seeded config (no settings.json, API at a closed port: zero
+    tokens) and reads the renderer from its output (alternate screen or mouse tracking =
+    fullscreen; the prompt drawn without them = default). A difference from the table is
+    a mismatch. Live check: `MANTLE_DRIFT_LIVE=1 go test ./scripts/drift -run Live`
+    (fresh, `tui:"default"` and `tui:"fullscreen"` all recognised on 2.1.289). Managed
+    settings can still set `tui` and would skew the probe.
   - Add collectors that use a zero-token engine session (plan 02's conformance probe
     pattern: `initialize`, then `end_session`): `initialize.commands` (vs mantle's routing
     table: native / E / H), `init.tools` (vs plan 03's renderer keys; tools without a

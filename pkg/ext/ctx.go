@@ -87,6 +87,15 @@ type EditorStateMsg struct {
 	Mode  string // "prompt" | "bash"
 	Vim   string // "" (vim off) | "INSERT" | "NORMAL" | "VISUAL" | "VISUAL LINE" | "REPLACE"
 	Empty bool
+
+	// Since contracts-v1.8.
+
+	// Panel is true while the editor shows a menu, hint or picker panel below the
+	// prompt (the / menu, @ suggestions, history search); chrome hides the footer then,
+	// as Claude Code does.
+	Panel bool
+	// FrameTitle is an optional title for the prompt frame's top rule ("History 2/2").
+	FrameTitle string
 }
 
 // EnvSafe is the environment variable `mantle --safe` sets: the host skips every

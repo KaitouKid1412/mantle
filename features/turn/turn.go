@@ -93,6 +93,7 @@ func newState() *state {
 		seenLim:  map[string]bool{},
 		trusted:  map[string]bool{},
 		env:      gates.FromOS,
+		checker:  engineAdapter{},
 	}
 }
 

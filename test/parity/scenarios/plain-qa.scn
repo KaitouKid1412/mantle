@@ -2,6 +2,7 @@
 name: plain-qa
 size: 100x30
 script: scripts/plain-qa.json
+parity: TR-01, TR-02, TR-05, TR-06, TR-07, TR-50
 ---
 ready
 checkpoint start

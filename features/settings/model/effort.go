@@ -22,7 +22,7 @@ var Levels = []Effort{Low, Medium, High, XHigh, Max}
 
 // DefaultEffort is assumed when nothing sets an effort for a model that supports it.
 // The engine does not report per-model defaults; it is clamped to the model's levels.
-var DefaultEffort = High
+var DefaultEffort = Medium
 
 // ParseEffort accepts a level name in any case.
 func ParseEffort(s string) (Effort, bool) {

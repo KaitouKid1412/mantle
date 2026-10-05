@@ -155,6 +155,7 @@ func newH(t *testing.T) *h {
 	}
 	env := gates.Env{Home: x.home, ManagedDir: filepath.Join(root, "managed"), Getenv: func(k string) string { return x.vars[k] }}
 	x.st.env = func() (gates.Env, error) { return env, nil }
+	x.st.checker = nil // tests opt in with a fakeChecker
 	x.reg.Feature = FeatureID
 	x.st.setup(x.reg)
 	x.c = &tctx{Ctx: exttest.NewCtx(), t: t, reg: x.reg}

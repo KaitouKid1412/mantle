@@ -70,6 +70,15 @@ demo | answer | ^⏺ (4|four)$ | number wording
 	if _, ok := al.Covers("demo", "answer", []string{"⏺ 4", "a"}, []string{"⏺ four", "b"}); ok {
 		t.Error("an uncovered line must fail")
 	}
+	// An extra line (and a blank) on one side shifts the rest; only it needs covering.
+	left := []string{"> hi", "", "⏺ answer", "footer"}
+	right := []string{"> hi", "", "⏺ answer", "", "⏸ manual approval", "footer"}
+	if _, ok := al.Covers("x", "y", left, right); !ok {
+		t.Error("inserted lines are covered without matching the shifted lines below")
+	}
+	if n := changedLines(left, right); n != 2 {
+		t.Errorf("changedLines = %d, want 2", n)
+	}
 	if _, err := ParseAllowlist("* | * | ( | x"); err == nil {
 		t.Error("bad regex")
 	}

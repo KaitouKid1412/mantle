@@ -1,0 +1,39 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Delegating the search."
+        },
+        {
+          "type": "tool_use",
+          "name": "Agent",
+          "input": {
+            "description": "Find greet callers",
+            "prompt": "Find every caller of greet in this repository.",
+            "subagent_type": "general-purpose"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "The only caller of greet is main()."
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "The subagent found one caller: main()."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

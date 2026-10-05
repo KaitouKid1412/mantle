@@ -73,7 +73,11 @@ func (c *controller) prepareHandoff(ctx ext.Ctx, he fileHandoff) (x *execCmd, ha
 	args := append(c.relaunchArgs(), AttachEngineFDsFlag+"="+path)
 	argv := append([]string{v.Binary()}, args...)
 	if err := he.HandoffToFile(path, argv); err != nil {
-		return nil, false, fmt.Errorf("engine hand-off: %w", err)
+		// The engine may already have detached its pipes (the file could not
+		// be written after the hand-off began): never keep using it. The
+		// caller restarts normally (exit 75).
+		os.Remove(path)
+		return nil, true, fmt.Errorf("engine hand-off: %w", err)
 	}
 	c.run.rf.Version = v.ID
 	c.writeRunFile(ctx)

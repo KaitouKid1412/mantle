@@ -124,6 +124,10 @@ type Root struct {
 
 	sidebarDelta map[ext.Slot]int // fullscreen sidebar width adjustments
 
+	cmdHidden map[string]map[string]bool // CommandVisibilityMsg overlays, by source
+
+	pendingPrompts []ext.Prompt // core.send drafts typed before the main engine attached
+
 	exitCode   int
 	exitReason string
 	quitting   bool
@@ -455,6 +459,9 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.log().Debug("engine: attached", "id", m.EngineID)
 		r.engines[m.EngineID] = m.Engine
 		cmds = append(cmds, r.broadcast(msg))
+		if m.EngineID == ext.MainEngine {
+			cmds = append(cmds, r.flushPendingPrompts())
+		}
 	case ext.EngineStartMsg:
 		if e := r.engines[m.EngineID]; e != nil {
 			cmds = append(cmds, e.Restart(m.Opts))
@@ -498,6 +505,23 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// From a feature (e.g. a custom theme file changed): re-resolve.
 		r.invalidateAll()
 		cmds = append(cmds, r.applyTheme())
+	case ext.CommandVisibilityMsg:
+		if r.cmdHidden == nil {
+			r.cmdHidden = map[string]map[string]bool{}
+		}
+		if len(m.Hidden) == 0 {
+			delete(r.cmdHidden, m.Source)
+		} else {
+			hidden := make(map[string]bool, len(m.Hidden))
+			for name, h := range m.Hidden {
+				if h {
+					hidden[strings.TrimPrefix(name, "/")] = true
+				}
+			}
+			r.cmdHidden[m.Source] = hidden
+		}
+		r.invalidateAll()
+		cmds = append(cmds, r.broadcast(msg))
 	case ext.CommandsMsg:
 		r.runtimeCmds[m.Source+"|"+m.EngineID] = m.Commands
 		cmds = append(cmds, r.broadcast(msg))

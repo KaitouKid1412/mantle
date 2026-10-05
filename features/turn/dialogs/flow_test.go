@@ -133,12 +133,12 @@ func TestPermissionDigitPicks(t *testing.T) {
 	}
 }
 
-func TestPermissionEscDeniesWithoutInterrupt(t *testing.T) {
+func TestPermissionEscDeniesAndInterrupts(t *testing.T) {
 	p := NewPermission(toolReq(t, bashReq), PermissionContext{})
 	if eff := press(t, p, "esc"); eff != Answered {
 		t.Fatal("esc should answer")
 	}
-	wantJSON(t, p.Response(), `{"behavior":"deny","message":"The user denied this tool call.","toolUseID":"tu1","decisionClassification":"user_reject"}`)
+	wantJSON(t, p.Response(), `{"behavior":"deny","message":"The user denied this tool call and stopped the turn.","interrupt":true,"toolUseID":"tu1","decisionClassification":"user_reject"}`)
 }
 
 func TestPermissionDenyWithFeedback(t *testing.T) {

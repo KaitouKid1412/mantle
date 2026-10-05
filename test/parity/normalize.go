@@ -51,6 +51,8 @@ var DefaultRules = []Rule{
 		`^(\s*)([`+spinnerGlyphs+`])\s+\p{Lu}[\p{L}'-]*(ed|t)\s+for\b`, "${1}${2} <verb> for"),
 	rule("tmp-path", "Temporary paths (/var/folders, /private/var, /tmp) become <tmp>.",
 		`(?:/private)?/(?:var/folders|tmp|private/tmp)/[^\s│|)'"]*`, "<tmp>"),
+	rule("loopback", "Loopback addresses with a port (the fakeapi server, 127.0.0.1:53211) become <loopback>.",
+		`\b(?:127\.0\.0\.1|localhost|\[::1\]):\d+\b`, "<loopback>"),
 	rule("uuid", "UUIDs (session, message and request ids) become <uuid>.",
 		`\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b`, "<uuid>"),
 	rule("tool-id", "Tool-use ids (toolu_…) become <toolu>.",
@@ -106,11 +108,18 @@ func workspacePaths(s string, ws Workspace) string {
 // ScreenMarker separates the scrollback from the visible screen in a normalized frame.
 const ScreenMarker = "──────── screen ────────"
 
+// AltScreenMarker starts a frame taken while the alternate screen was up (a fullscreen
+// renderer): the scrollback is hidden then, so the frame is the screen alone.
+const AltScreenMarker = "──────── alternate screen ────────"
+
 // Frame normalizes a frame: the scrollback tail, a marker, then the screen, with
 // trailing blank lines dropped from each part.
 func (n *Normalizer) Frame(f Frame, ws Workspace) []string {
 	var out []string
 	sb := trimBlankTail(f.Scrollback)
+	if f.AltScreen {
+		out, sb = []string{AltScreenMarker}, nil
+	}
 	if n.Scrollback == 0 {
 		sb = nil
 	} else if n.Scrollback > 0 && len(sb) > n.Scrollback {
@@ -122,7 +131,7 @@ func (n *Normalizer) Frame(f Frame, ws Workspace) []string {
 	if n.CollapseBlank {
 		out = collapseBlank(out)
 	}
-	if len(out) > 0 {
+	if len(out) > 0 && !f.AltScreen {
 		out = append(out, ScreenMarker)
 	}
 	var screen []string

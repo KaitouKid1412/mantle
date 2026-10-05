@@ -24,6 +24,8 @@ func TestNormalizeLine(t *testing.T) {
 		{"cwd: /r/parity-x-1/work/src", "cwd: <work>/src"},
 		{"cfg /r/parity-x-1/config/.claude.json", "cfg <config>/.claude.json"},
 		{"tmp /var/folders/ab/cd/T/x.txt and /tmp/y", "tmp <tmp> and <tmp>"},
+		{"requests go through 127.0.0.1:56861, which", "requests go through <loopback>, which"},
+		{"at localhost:8080/x", "at <loopback>/x"},
 		{"session 550e8400-e29b-41d4-a716-446655440000", "session <uuid>"},
 		{"tool toolu_fake_3 done", "tool <toolu> done"},
 		{"at 2026-10-03T14:05:09Z", "at <date>"},
@@ -54,6 +56,11 @@ func TestNormalizeFrame(t *testing.T) {
 		t.Errorf("Frame = %q", got)
 	}
 	n.Scrollback = 1
+	alt := f
+	alt.AltScreen = true
+	if got := n.Frame(alt, Workspace{}); !slices.Equal(got, []string{AltScreenMarker, "top", "", "bottom"}) {
+		t.Errorf("alt screen frame = %q", got)
+	}
 	if got := n.Frame(f, Workspace{}); !slices.Equal(got[:2], []string{"old 2", ScreenMarker}) {
 		t.Errorf("tail = %q", got)
 	}

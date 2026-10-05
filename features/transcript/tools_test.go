@@ -55,6 +55,9 @@ var sampleInput = map[string]any{
 	"SendUserMessage": map[string]any{"message": "Done **now**."},
 }
 
+// hiddenRow lists tools with no row in the normal view.
+var hiddenRow = map[string]bool{"TodoWrite": true, "TaskCreate": true, "TaskUpdate": true, "TaskList": true, "TaskGet": true}
+
 func TestEveryToolRenders(t *testing.T) {
 	f, _ := setupFeature(t)
 	f.renderers = f.rendererTable()
@@ -76,6 +79,9 @@ func TestEveryToolRenders(t *testing.T) {
 			}
 			for _, w := range []int{20, 40, 100} {
 				rc := ext.RenderCtx{Width: w}
+				if hiddenRow[name] {
+					rc.Mode = ext.Verbose // shown only there
+				}
 				lines := f.rendererFor(it.Key)(rc, it).Lines
 				if len(lines) == 0 {
 					t.Fatalf("%s (%v) rendered nothing at %d", name, state, w)

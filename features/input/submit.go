@@ -37,11 +37,16 @@ func (s *state) submitAction(c ext.Ctx, priority string) (bool, tea.Cmd) {
 	}
 	if s.comp.open() && priority == "" {
 		kind := s.comp.kind
-		cmd := s.comp.accept(c, s, true)
-		if kind != compSlash {
-			return true, cmd
+		if s.comp.selectedIsTyped() {
+			// Nothing left to complete: Enter submits what is typed.
+			s.comp.close()
+			return true, s.trySubmit(c, priority)
 		}
-		// A command picked from the menu runs right away.
+		cmd := s.comp.accept(c, s, true)
+		if kind != compSlash && kind != compArgs {
+			return true, cmd // @ paths, emoji and ! paths only insert
+		}
+		// A command or argument picked from the menu runs right away.
 		return true, tea.Batch(cmd, s.trySubmit(c, priority))
 	}
 	return true, s.trySubmit(c, priority)
@@ -220,14 +225,14 @@ func (s *state) stagePriority(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 
 // stageSend writes the prompt to the main engine.
 func (s *state) stageSend(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
-	eng := c.Engine(ext.MainEngine)
-	if eng == nil {
+	if c.Engine(ext.MainEngine) == nil && s.startErr != nil {
+		// Claude failed to start: keep the prompt in the box.
 		var restore tea.Cmd
 		if s.ed.Empty() && s.lastSent != nil {
 			s.restore(s.lastSent)
 			restore = s.changed(c)
 		}
-		return ext.Reject, tea.Batch(restore, c.Notify(ext.Notice{Key: "input.send", Text: "Claude is not running yet; the prompt was kept", Level: ext.NoticeWarning, Source: FeatureID}))
+		return ext.Reject, tea.Batch(restore, c.Notify(ext.Notice{Key: "input.send", Text: "Claude is not running (" + s.startErr.Error() + "); the prompt was kept", Level: ext.NoticeError, Source: FeatureID}))
 	}
 	p := ext.Prompt{Blocks: draftBlocks(*d), Priority: d.Priority, UUID: uuid.NewString()}
 	// Paste chips are expanded in place; tell the engine which text was
@@ -237,7 +242,90 @@ func (s *state) stageSend(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 			p.InlinePastes = append(p.InlinePastes, a.Text)
 		}
 	}
-	return ext.Consumed, tea.Batch(s.track(c, p, d.Text), eng.Send(p))
+	return ext.Consumed, s.dispatch(c, p, d.Text, s.lastSent)
+}
+
+// startPending is a prompt sent before the main engine attached.
+type startPending struct {
+	p     ext.Prompt
+	text  string
+	draft *savedDraft
+}
+
+// dispatch sends a prompt to the main engine. While the engine is still
+// starting (startup gates, version check, spawn) the prompt waits, shown
+// as queued, and goes out in order when the engine attaches, as Claude Code
+// holds prompts typed during startup.
+func (s *state) dispatch(c ext.Ctx, p ext.Prompt, text string, draft *savedDraft) tea.Cmd {
+	eng := c.Engine(ext.MainEngine)
+	if eng == nil {
+		s.starting = append(s.starting, startPending{p: p, text: text, draft: draft})
+		if draft != nil {
+			text = draft.Display
+		}
+		s.queue = append(s.queue, queued{uuid: p.UUID, text: text, priority: p.Priority, draft: draft})
+		return s.queueCmd()
+	}
+	if p.ShouldQuery != nil && !*p.ShouldQuery && !s.busy {
+		return eng.Send(p) // recorded without a turn
+	}
+	return tea.Batch(s.track(c, p, text), eng.Send(p))
+}
+
+// flushStarting sends the prompts held during startup, in order: the first
+// runs now, the rest queue behind it.
+func (s *state) flushStarting(eng ext.Engine) tea.Cmd {
+	pend := s.starting
+	s.starting = nil
+	var cmds []tea.Cmd
+	for _, sp := range pend {
+		p := sp.p
+		noTurn := p.ShouldQuery != nil && !*p.ShouldQuery
+		switch {
+		case noTurn && !s.busy:
+			s.dequeue(p.UUID)
+		case !s.busy:
+			p.Priority = ""
+			s.busy = true
+			s.dequeue(p.UUID) // it starts now
+		default:
+			p.Priority = proto.PriorityLater // stays in the queue until it starts
+		}
+		cmds = append(cmds, eng.Send(p))
+	}
+	if len(pend) > 0 {
+		cmds = append(cmds, s.queueCmd())
+	}
+	return tea.Batch(cmds...)
+}
+
+// failStarting gives prompts held during startup back to the editor when
+// Claude could not start.
+func (s *state) failStarting(c ext.Ctx, err error) tea.Cmd {
+	pend := s.starting
+	s.starting = nil
+	if len(pend) == 0 {
+		return nil
+	}
+	var texts []string
+	var chips []*editor.Chip
+	for _, sp := range pend {
+		if sp.draft != nil {
+			texts = append(texts, sp.draft.Display)
+			chips = append(chips, sp.draft.chips...)
+		} else {
+			texts = append(texts, sp.text)
+		}
+	}
+	if !s.ed.Empty() {
+		texts = append(texts, s.ed.Display())
+		chips = append(chips, s.ed.Chips()...)
+	}
+	s.ed.SetValueWithChips(strings.Join(texts, "\n"), chips)
+	return tea.Batch(s.clearQueue(), s.changed(c), c.Notify(ext.Notice{
+		Key: "input.send", Text: "Claude could not start (" + err.Error() + "); your prompt was kept",
+		Level: ext.NoticeError, Source: FeatureID,
+	}))
 }
 
 // draftBlocks turns a draft into content blocks: images first, then text.

@@ -439,6 +439,24 @@ func pathItems(cwd, tok string) []compItem {
 
 // ---- accepting ----
 
+// selectedIsTyped reports whether accepting the selected item would leave
+// the token unchanged (an exact match is already typed).
+func (m *completion) selectedIsTyped() bool {
+	if !m.open() {
+		return false
+	}
+	it := m.items[m.sel]
+	switch m.kind {
+	case compSlash:
+		return m.token == "/"+it.value
+	case compArgs, compPath:
+		return m.token == it.value
+	case compFile:
+		return m.token == "@"+quotePath(it.value)
+	}
+	return false
+}
+
 // accept inserts the selected item. When submitting, a command gets no
 // trailing space.
 func (m *completion) accept(c ext.Ctx, s *state, submitting bool) tea.Cmd {
