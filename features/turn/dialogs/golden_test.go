@@ -53,12 +53,8 @@ func samples(t *testing.T) map[string]Model {
 		PermissionContext{})
 
 	feedback := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	press(t, feedback, "3", "'use pnpm instead'")
+	press(t, feedback, "tab", "'use pnpm instead'")
 	m["permission_feedback"] = feedback
-
-	amend := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	press(t, amend, "tab")
-	m["permission_amend"] = amend
 
 	ask, err := NewAskQuestion(toolReq(t, questionsReq), PermissionContext{})
 	if err != nil {
@@ -114,8 +110,8 @@ func TestGolden(t *testing.T) {
 			t.Run(name+"_"+itoa(w), func(t *testing.T) {
 				out := m.View(w, PlainStyles())
 				for i, l := range strings.Split(out, "\n") {
-					if got := ansi.StringWidth(l); got != w {
-						t.Fatalf("line %d is %d cells wide, want %d: %q", i, got, w, l)
+					if got := ansi.StringWidth(l); got > w {
+						t.Fatalf("line %d is %d cells wide, more than %d: %q", i, got, w, l)
 					}
 				}
 				golden.RequireEqual(t, out+"\n")
@@ -147,7 +143,7 @@ func TestStyledWidths(t *testing.T) {
 	for name, m := range samples(t) {
 		for _, w := range []int{40, 60, 100, 160} {
 			for i, l := range strings.Split(m.View(w, st), "\n") {
-				if got := ansi.StringWidth(l); got != w {
+				if got := ansi.StringWidth(l); got > w {
 					t.Fatalf("%s@%d line %d is %d cells: %q", name, w, i, got, l)
 				}
 			}

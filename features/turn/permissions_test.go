@@ -2,6 +2,9 @@ package turn
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -209,5 +212,34 @@ func TestProtoConversionRoundTrip(t *testing.T) {
 	res := toProtoResult(&dialogs.PermissionResult{Behavior: "deny"})
 	if res.Message == "" {
 		t.Fatal("a deny must carry a message")
+	}
+}
+
+// The Edit preview diffs the whole file: real line numbers and three lines of context,
+// like Claude Code's prompt.
+func TestEditPreviewUsesFileLineNumbers(t *testing.T) {
+	x := newH(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "main.go")
+	src := "package main\n\nimport \"fmt\"\n\nfunc greet(name string) string {\n\treturn \"hello, \" + name\n}\n\nfunc main() {\n\tfmt.Println(greet(\"x\"))\n}\n"
+	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	req, _ := json.Marshal(map[string]any{
+		"tool_name": "Edit", "tool_use_id": "e1",
+		"input": map[string]any{"file_path": path, "old_string": "return \"hello, \" + name", "new_string": "return \"hi there, \" + name"},
+	})
+	x.send(permMsg(ext.MainEngine, "r1", string(req), &replies{}))
+	v := testkitStrip(x.view(100))
+	for _, want := range []string{"import \"fmt\"", "func main() {", "hi there"} {
+		if !strings.Contains(v, want) {
+			t.Fatalf("preview missing %q:\n%s", want, v)
+		}
+	}
+	if !regexp.MustCompile(`(?m)^\s*6\s`).MatchString(v) {
+		t.Fatalf("preview should number the changed line 6:\n%s", v)
+	}
+	if strings.Contains(v, "\t") {
+		t.Fatal("tabs must be expanded")
 	}
 }

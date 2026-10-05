@@ -1,14 +1,12 @@
-╭─ Read file ──────────────────────────────────────────────────────────────────────────────────────╮
-│ Builder mod-a3f · subagent code-reviewer is asking                                               │
-│   /etc/hosts                                                                                     │
-│   lines 10–29                                                                                    │
-│   Outside the allowed directories: /etc/hosts                                                    │
-│   Why: Path is outside the working directory                                                     │
-│                                                                                                  │
-│ Claude wants to read hosts                                                                       │
-│ ❯ 1. Yes                                                                                         │
-│   2. Yes, and allow access to /etc/ for this session                                             │
-│   3. No, and tell Claude what to do differently                                                  │
-│   4. No, and stop                                                                                │
-│ esc to deny · tab to amend · shift+tab to change mode                                            │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Read file
+ Builder mod-a3f · subagent code-reviewer is asking
+ /etc/hosts
+ lines 10–29
+ Why: Path is outside the working directory
+ Claude wants to read hosts
+ ❯ 1. Yes
+   2. Yes, and always allow access to /etc in this project
+   3. No
+ 
+ Esc to cancel · Tab to amend

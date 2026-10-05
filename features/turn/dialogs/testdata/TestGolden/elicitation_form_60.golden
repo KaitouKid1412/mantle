@@ -1,22 +1,22 @@
-╭─ New contact ────────────────────────────────────────────╮
-│ MCP server crm is asking:                                │
-│ Fill in the contact details.                             │
-│                                                          │
-│ ❯ Name *                                                 │
-│   >                                                      │
-│                                                          │
-│   age *                                                  │
-│   >                                                      │
-│                                                          │
-│   subscribe                                              │
-│   [x] Yes                                                │
-│                                                          │
-│   color                                                  │
-│   Red  Green                                             │
-│                                                          │
-│   1. Submit                                              │
-│   2. Decline                                             │
-│   3. Cancel                                              │
-│ tab/↑↓ to move · space to toggle · enter to continue ·   │
-│ esc to cancel                                            │
-╰──────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────
+ New contact
+ MCP server crm is asking:
+ Fill in the contact details.
+ 
+ ❯ Name *
+   >
+ 
+   age *
+   >
+ 
+   subscribe
+   [x] Yes
+ 
+   color
+   Red  Green
+ 
+   1. Submit
+   2. Decline
+   3. Cancel
+ tab/↑↓ to move · space to toggle · enter to continue · esc
+ to cancel

@@ -1,15 +1,16 @@
-╭─ Edit file ──────────────────────────────────────────────────────────────────────────────────────╮
-│   internal/server/handler.go                                                                     │
-│   func handle(w http.ResponseWriter) {                                                           │
-│ -     w.WriteHeader(200)                                                                         │
-│ +     w.WriteHeader(http.StatusOK)                                                               │
-│ +     w.Write(nil)                                                                               │
-│   }                                                                                              │
-│                                                                                                  │
-│ Do you want to make this edit to handler.go?                                                     │
-│ ❯ 1. Yes                                                                                         │
-│   2. Yes, and allow all edits for this session (shift+tab)                                       │
-│   3. No, and tell Claude what to do differently                                                  │
-│   4. No, and stop                                                                                │
-│ esc to deny · tab to amend · shift+tab to change mode                                            │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Edit file
+ internal/server/handler.go
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+   func handle(w http.ResponseWriter) {
+ -     w.WriteHeader(200)
+ +     w.WriteHeader(http.StatusOK)
+ +     w.Write(nil)
+   }
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to make this edit to handler.go?
+ ❯ 1. Yes
+   2. Yes, and switch to accept edits for this session (shift+tab)
+   3. No
+ 
+ Esc to cancel · Tab to amend

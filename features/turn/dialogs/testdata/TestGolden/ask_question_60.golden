@@ -1,17 +1,17 @@
-╭─ Manager ────────────────────────────────────────────────╮
-│ ← ☐ Manager  ☐ Checks  ✔ Submit →                        │
-│                                                          │
-│ Which package manager?                                   │
-│   1. npm                                                 │
-│      Default                                             │
-│ ❯ 2. yarn                                                │
-│      Classic                                             │
-│   3. Other                                               │
-│                                                          │
-│ Preview                                                  │
-│ │ # yarn                                                 │
-│ │ fast                                                   │
-│                                                          │
-│ enter to select · ↑/↓ to move · esc to cancel · tab for  │
-│ next question                                            │
-╰──────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────
+ Manager
+ ← ☐ Manager  ☐ Checks  ✔ Submit →
+ 
+ Which package manager?
+   1. npm
+      Default
+ ❯ 2. yarn
+      Classic
+   3. Other
+ 
+ Preview
+ │ # yarn
+ │ fast
+ 
+ enter to select · ↑/↓ to move · esc to cancel · tab for
+ next question

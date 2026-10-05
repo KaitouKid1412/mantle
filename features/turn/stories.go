@@ -48,7 +48,7 @@ var storyDialogs = []struct {
 	}},
 	{DialogPermission + "/feedback", func() dialogs.Model {
 		p := dialogs.NewPermission(storyRequest(`{"tool_name":"Bash","tool_use_id":"s","input":{"command":"rm -rf build"}}`), dialogs.PermissionContext{})
-		storyKeys(p, tea.KeyPressMsg{Code: '2', Text: "2"})
+		storyKeys(p, tea.KeyPressMsg{Code: tea.KeyTab})
 		p.HandlePaste("clean with make clean instead")
 		return p
 	}},

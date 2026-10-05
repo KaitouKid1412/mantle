@@ -1,11 +1,11 @@
-╭─ Input requested ────────────────────────────────────────────────────────────────────────────────╮
-│ MCP server auth is asking:                                                                       │
-│ Sign in to continue.                                                                             │
-│                                                                                                  │
-│   https://auth.example.com/device?code=ABCD-1234                                                 │
-│                                                                                                  │
-│ ❯ 1. Open the link                                                                               │
-│   2. Decline                                                                                     │
-│   3. Cancel                                                                                      │
-│ esc to cancel                                                                                    │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Input requested
+ MCP server auth is asking:
+ Sign in to continue.
+ 
+   https://auth.example.com/device?code=ABCD-1234
+ 
+ ❯ 1. Open the link
+   2. Decline
+   3. Cancel
+ esc to cancel
