@@ -310,7 +310,7 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   | A2 | | |
   | A3 | | |
   | A4 | | |
-- [ ] **B6 [M2] Close the parity audit.**
+- [x] **B6 [M2] Close the parity audit.**
   - Go through every `docs/PARITY.md` row with `make parity` (generated status from plan
     checklists and `Parity:` tags) plus the side-by-side results.
   - Each row ends as **done** (with a scenario or test reference), **H** (hand-off verified
@@ -318,11 +318,14 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   - Write `docs/parity-audit.md`: the summary, open requests, intentional differences, and
     the engine version audited (2.1.288, plus any newer version `make drift` flagged).
 
-  Status (2026-10-05): `make parity` → `docs/parity-status.md` (572 rows: 58 compared,
-  340 tagged, 2 scenario only, 123 untagged, 36 hand-off, 13 gap) and
-  `docs/parity-audit.md` are written. Open before closing: the round-2 requests (01
-  shipped as contracts-v1.10, 03, 04, 06), the untagged rows to confirm with their owners,
-  and B5's results.
+  Closed on integration-8 (2026-10-05): every row is resolved. `make parity` →
+  `docs/parity-status.md`: 572 rows · 62 compared · 351 tagged · 98 evidenced
+  (`docs/parity-evidence/NN.md`) · 36 hand-off · 24 gap (X or a recorded gap with its
+  reason) · 1 not applicable · 0 untagged. Side-by-side on integration-8: 70/70 runs, 31 of
+  71 checkpoints match or differ only in allowlisted ways; the rest are mantle's own panel
+  layouts and wording plus the minor differences listed in `docs/parity-audit.md`. All
+  requests from both triage rounds are done. B5's manual results are the user's and get
+  recorded under B5.
 - [x] **B7 [M3] Fullscreen renderer** (`features/fullscreen`). When `tui` is `fullscreen`
   (setting, `/tui fullscreen`, plan 08's command), the host switches the layout mode to
   `Fullscreen`.

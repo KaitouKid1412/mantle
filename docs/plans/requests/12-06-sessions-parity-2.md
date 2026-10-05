@@ -1,6 +1,6 @@
 # 12 → 06: sessions differences, round 2 (parity audit on integration-6)
 
-**Status:** §1 done by 06 (worktree-mantle-06 9650866: the hand-off clears screen and scrollback before exec); §2 partly: resumed results carry NumTurns and an end time, headless turns get a derived result, but the resume frames still lack the turn line (with 03 round 2 §4) (2026-10-05). Found by the plan 12 side-by-side suite against claude
+**Status:** done: §1 by 06 (9650866); §2 by 03's turn ledger (14ac009) with 06's resumed results (2026-10-05). Found by the plan 12 side-by-side suite against claude
 2.1.289 on integration-6. Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"`; frames in
 `test/parity/out/<scenario>/<checkpoint>.txt`.

@@ -45,3 +45,7 @@ mcp | closed | ^  ⎿  (MCP dialog dismissed|MCP servers closed)$ | own wording
 * | * | ^  ⎿  Interrupted · (What should Claude do instead\?|tell Claude what to do instead)$ | own wording of the interrupt hint
 ask-user | question | ^  ?[0-9]\. (Type something\.|Type an answer)$ | own wording of the free-text option
 large-paste | pasted | ^  (paste again to expand|paste again to insert the full text)$ | own wording of the paste hint
+
+# Fullscreen: the jump-to-bottom hint at the end of the last visible line (own wording; the
+# transcript line it sits on is compared in the checkpoints that don't scroll).
+fs-scroll | * | ^.*(  +Jump to bottom: \S+ to scroll|  +↓ jump to bottom · ctrl\+end)$ | own wording of the jump-to-bottom hint
