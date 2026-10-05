@@ -32,6 +32,8 @@ type tracker struct {
 	// live is set once an event reported mode/style; the initialize reply (which can
 	// be processed later) must not overwrite newer values.
 	live bool
+	// resetFrom is the session id before the last conversation_reset.
+	resetFrom string
 }
 
 func newTracker(engineID string, o ext.SpawnOpts) *tracker {
@@ -86,7 +88,11 @@ func (t *tracker) Observe(ev proto.Event) bool {
 		}
 		setIf(&i.PermissionMode, e.PermissionMode)
 	case *proto.ConversationReset:
-		setIf(&i.SessionID, e.NewConversationID)
+		// new_conversation_id is NOT the session the engine continues under (verified
+		// on 2.1.288/289): the next system/init reports the real one. Clear the id as
+		// the change signal and ignore late events still carrying the old one.
+		t.resetFrom = i.SessionID
+		i.SessionID = ""
 		i.Title = ""
 	case *proto.SessionTitleChanged:
 		i.Title = e.Title
@@ -99,7 +105,7 @@ func (t *tracker) Observe(ev proto.Event) bool {
 	case *proto.Result:
 		setIf(&t.s.FastModeState, e.FastModeState)
 	default:
-		if env := ev.Env(); env.SessionID != "" && i.SessionID == "" {
+		if env := ev.Env(); env.SessionID != "" && i.SessionID == "" && env.SessionID != t.resetFrom {
 			i.SessionID = env.SessionID
 		}
 	}
