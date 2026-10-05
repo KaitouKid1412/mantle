@@ -49,7 +49,7 @@ var Entries = []Entry{
 	{Name: "design-login", Description: "Sign in for design-system access (opens Claude Code)", Parity: "CL-17"},
 	{Name: "passes", Description: "Share a free week of Claude Code (opens Claude Code)", Parity: "CL-18"},
 	{Name: "usage-credits", Aliases: []string{"extra-usage"}, Description: "Usage credits (opens Claude Code)", Parity: "CL-19"},
-	{Name: "rate-limit-options", Description: "What to do at the usage limit (opens Claude Code)", Parity: "CL-20"},
+	{Name: "rate-limit-options", Hidden: true, Description: "What to do at the usage limit (opens Claude Code)", Parity: "CL-20"},
 	{Name: "setup-bedrock", Description: "Set up Amazon Bedrock (opens Claude Code)", Parity: "CL-21"},
 	{Name: "setup-vertex", Description: "Set up Google Vertex AI (opens Claude Code)", Parity: "CL-21"},
 	{Name: "install-github-app", Description: "Install the Claude GitHub app (opens Claude Code)", Parity: "CL-22"},
