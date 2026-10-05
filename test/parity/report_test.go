@@ -52,6 +52,22 @@ func TestCompare(t *testing.T) {
 	}
 }
 
+func TestPromptGap(t *testing.T) {
+	rule := strings.Repeat("─", 40)
+	for _, tt := range []struct {
+		screen []string
+		want   int
+	}{
+		{[]string{"✻ done", "", "", "", rule, "❯ ", rule, "  footer"}, 3},
+		{[]string{"✻ done", rule, "❯\u00a0", rule}, 0},
+		{[]string{"a", "", rule, "  1. Yes", rule}, -1}, // a dialog's rule, not the prompt
+	} {
+		if got := promptGap(tt.screen); got != tt.want {
+			t.Errorf("promptGap(%q) = %d, want %d", tt.screen, got, tt.want)
+		}
+	}
+}
+
 func TestRepoAllowlist(t *testing.T) {
 	al, err := LoadAllowlist("allowlist.txt")
 	if err != nil {
@@ -137,7 +153,7 @@ func TestReportWrite(t *testing.T) {
 	s := string(sum)
 	for _, want := range []string{
 		"Targets: claude vs mantle", "Engine: claude 2.1.288",
-		"| demo | start | same |", "| demo | answer | diff | 1 | [frames](demo/answer.txt) |",
+		"| demo | start | same |", "| demo | answer | diff | 1 |  | [frames](demo/answer.txt) |",
 		"| demo | end | allowed |", "## Normalization rules", "| spinner |", "farewell differs on purpose",
 	} {
 		if !strings.Contains(s, want) {

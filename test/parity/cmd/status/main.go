@@ -41,9 +41,9 @@ func run(root, out string) error {
 	for _, r := range st.Rows {
 		counts[st.RowState(r)]++
 	}
-	fmt.Printf("%s: %d rows · compared %d · tagged %d · evidenced %d · scenario only %d · untagged %d · hand-off %d · gap %d\n",
+	fmt.Printf("%s: %d rows · compared %d · tagged %d · evidenced %d · scenario only %d · untagged %d · hand-off %d · gap %d · n/a %d\n",
 		out, len(st.Rows), counts["compared"], counts["tagged"], counts["evidenced"], counts["scenario only"],
-		counts["untagged"], counts["hand-off"], counts["gap"])
+		counts["untagged"], counts["hand-off"], counts["gap"], counts["not applicable"])
 	if len(st.Unknown) > 0 {
 		fmt.Printf("unknown IDs: %v\n", st.Unknown)
 	}

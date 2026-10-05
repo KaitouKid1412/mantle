@@ -33,6 +33,10 @@ type CheckpointDiff struct {
 	Right      []string // normalized frame of the second target
 	Unified    string
 	Note       string // why it is missing, or the allowlist reasons
+	// GapLeft and GapRight count the blank screen rows right above the prompt frame
+	// (-1: no prompt frame on screen). Normalized frames fold blank runs, so spacing
+	// differences only show here.
+	GapLeft, GapRight int
 }
 
 // ScenarioRun is one scenario's results, by target.
@@ -63,9 +67,11 @@ func Compare(n *Normalizer, sc *Scenario, a, b *Result, allow *Allowlist) []Chec
 	var out []CheckpointDiff
 	for _, name := range names {
 		d := CheckpointDiff{Scenario: sc.Name, Checkpoint: name}
+		d.GapLeft, d.GapRight = -1, -1
 		ca, okA := a.Checkpoint(name)
 		if okA {
 			d.Left = n.Frame(ca.Frame, a.Workspace)
+			d.GapLeft = promptGap(ca.Frame.Screen)
 		}
 		if b == nil {
 			d.Status = StatusSingle
@@ -78,6 +84,7 @@ func Compare(n *Normalizer, sc *Scenario, a, b *Result, allow *Allowlist) []Chec
 		cb, okB := b.Checkpoint(name)
 		if okB {
 			d.Right = n.Frame(cb.Frame, b.Workspace)
+			d.GapRight = promptGap(cb.Frame.Screen)
 		}
 		switch {
 		case !okA:
@@ -315,14 +322,23 @@ func (r *Report) Summary(diffs []CheckpointDiff) string {
 		}
 	}
 
-	b.WriteString("\n## Checkpoints\n\n| Scenario | Checkpoint | Status | Changed lines | Details |\n|---|---|---|---|---|\n")
+	b.WriteString("\n## Checkpoints\n\nBlank rows above the prompt: raw screen rows between the transcript and the prompt " +
+		"frame, per target (the frames fold blank runs, so spacing differences show only here).\n\n" +
+		"| Scenario | Checkpoint | Status | Changed lines | Blank rows above the prompt | Details |\n|---|---|---|---|---|---|\n")
 	for _, d := range diffs {
 		changed := ""
 		if d.Changed > 0 {
 			changed = fmt.Sprint(d.Changed)
 		}
 		link := sanitizeName(d.Scenario) + "/" + sanitizeName(d.Checkpoint) + ".txt"
-		fmt.Fprintf(&b, "| %s | %s | %s | %s | [frames](%s) |\n", d.Scenario, d.Checkpoint, d.Status, changed, link)
+		gaps := ""
+		if d.GapLeft >= 0 || d.GapRight >= 0 {
+			gaps = gapText(d.GapLeft) + " / " + gapText(d.GapRight)
+			if d.GapLeft != d.GapRight {
+				gaps = "**" + gaps + "**"
+			}
+		}
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | [frames](%s) |\n", d.Scenario, d.Checkpoint, d.Status, changed, gaps, link)
 	}
 
 	var errs []string
@@ -374,4 +390,30 @@ func or(s, def string) string {
 		return def
 	}
 	return s
+}
+
+// promptGap counts the blank rows right above the prompt frame: the last full-width rule
+// whose next line holds the prompt glyph. It returns -1 when no such frame is on screen.
+func promptGap(screen []string) int {
+	for i := len(screen) - 2; i >= 0; i-- {
+		rule := strings.TrimSpace(screen[i])
+		next := strings.TrimSpace(strings.ReplaceAll(screen[i+1], "\u00a0", " "))
+		if len([]rune(rule)) < 20 || strings.Trim(rule, "─") != "" ||
+			!(strings.HasPrefix(next, "❯") || strings.HasPrefix(next, ">")) {
+			continue
+		}
+		n := 0
+		for j := i - 1; j >= 0 && strings.TrimSpace(screen[j]) == ""; j-- {
+			n++
+		}
+		return n
+	}
+	return -1
+}
+
+func gapText(n int) string {
+	if n < 0 {
+		return "–"
+	}
+	return fmt.Sprint(n)
 }
