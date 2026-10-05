@@ -314,7 +314,9 @@ func (s *state) flushStarting(eng ext.Engine) tea.Cmd {
 	if len(pend) > 0 {
 		cmds = append(cmds, s.queueCmd())
 	}
-	return tea.Batch(cmds...)
+	// Engine.Send writes inside its Cmd, and tea.Batch runs Cmds on separate
+	// goroutines: Sequence keeps the prompts in submit order.
+	return tea.Sequence(cmds...)
 }
 
 // failStarting gives prompts held during startup back to the editor when
