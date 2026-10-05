@@ -256,8 +256,10 @@ Everything that decides *whether* and *how* Claude proceeds:
   version is checked through an `engineChecker` (plan 02's `engine.CheckEngine` /
   `engine.Pin`). A failing version opens `dialog.engineCheck`: use the last good version
   (pinned before the spawn), continue anyway, or exit. A check that can't run aborts the
-  launch. The adapter to plan 02's API is wired once `integration-2` brings it onto this
-  branch; until then `state.checker` is nil and the gate is skipped.
+  launch. Wired to plan 02's `engine.CheckEngine` / `engine.Pin` (`features/turn/engine.go`):
+  a known-good version costs one `claude --version`, a new one a zero-token probe in a
+  separate process, and `$MANTLE_CLAUDE_BIN` (development, fakeclaude) checks the version
+  only. A version below the minimum fails as "older than 2.1.288".
 - Tests: `exttest`-based flow tests for every item, plus pty tests on the real host
   (`internal/app`): no spawn before trust is accepted, declining exits, a permission
   prompt through the real keymap. `e2e_test.go` runs host + turn + `internal/engine`

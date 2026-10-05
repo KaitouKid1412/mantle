@@ -1,0 +1,7 @@
+{
+  "turns": [
+    {"reply": [{"type": "text", "text": "Hello from the fake model."}]}
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

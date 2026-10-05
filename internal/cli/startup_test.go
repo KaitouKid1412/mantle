@@ -347,6 +347,19 @@ func TestStartupAttachEngineFDs(t *testing.T) {
 	if _, err := p.Startup("/work/repo", resolver); err == nil {
 		t.Error("want an error for a missing session")
 	}
+
+	// A session ID that isn't a UUID (the resolver would treat it as a search) still
+	// resumes verbatim: no lookup, no picker, MainSpawn kept as the fallback.
+	called := false
+	lookup := ResolverFuncs{
+		ContinueFunc: func(string) (string, error) { called = true; return "", nil },
+		ResolveFunc:  func(_, arg string) (string, string, error) { called = true; return "", arg, nil },
+	}
+	p, _ = Parse([]string{"--resume=sess-not-a-uuid", "--attach-engine-fds=/run/h.json"})
+	r, err = p.Startup("/work/repo", lookup)
+	if err != nil || r.Picker || r.MainSpawn() == nil || r.Spawn.Resume != "sess-not-a-uuid" || called {
+		t.Errorf("non-UUID hand-off: %+v err %v resolver called %v", r, err, called)
+	}
 }
 
 func TestCurrent(t *testing.T) {

@@ -1,0 +1,20 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {"type": "text", "text": "I'll create the marker file."},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "touch parity-marker.txt", "description": "Create a marker file"}}
+      ]
+    },
+    {"reply": [{"type": "text", "text": "Created parity-marker.txt."}]},
+    {
+      "reply": [
+        {"type": "text", "text": "I'll touch parity-marker.txt again."},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "touch parity-marker.txt", "description": "Create a marker file"}}
+      ]
+    },
+    {"reply": [{"type": "text", "text": "Touched it again."}]}
+  ],
+  "side_reply": "Marker file",
+  "default_reply": "OK."
+}

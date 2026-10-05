@@ -1,0 +1,23 @@
+# /resume: after a fresh start, pick the earlier session from the picker.
+name: resume-picker
+size: 100x30
+args: --permission-mode default
+prompt: Remember a word for me
+files: ../../../testdata/fixtures/12/app
+script: scripts/resume.json
+parity: SE-11, SE-12, SE-07
+---
+ready
+wait_for 30s kumquat
+settle
+restart
+ready 20s
+settle 3s
+type /resume
+keys enter
+settle 4s
+checkpoint picker
+keys enter
+wait_for 30s Remember the word kumquat.
+settle 3s
+checkpoint resumed

@@ -370,19 +370,7 @@ func TestNothingBeforeInitialize(t *testing.T) {
 	if r := (<-ctl).(ext.ControlResultMsg); r.Err != nil {
 		t.Errorf("file_suggestions: %v", r.Err)
 	}
-	// initialize's result reaches the UI before anything the held lines caused.
-	var order []string
-	for _, msg := range rec.Msgs() {
-		switch v := msg.(type) {
-		case ext.ControlResultMsg:
-			order = append(order, "result:"+v.Subtype)
-		case ext.EngineEventMsg:
-			order = append(order, "event:"+v.Event.Env().Type)
-		}
-	}
-	if len(order) == 0 || order[0] != "result:initialize" {
-		t.Errorf("UI order: %v", order)
-	}
+	rec.WaitFor(t, isInitialized)
 	e.Stop(context.Background())
 	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
 		t.Fatalf("strict script failed: %d %v", code, err)
@@ -391,6 +379,31 @@ func TestNothingBeforeInitialize(t *testing.T) {
 	want := "control_request/initialize control_request/get_binary_version user control_request/file_suggestions control_request/end_session"
 	if got != want {
 		t.Errorf("stdin order:\n got %s\nwant %s", got, want)
+	}
+}
+
+// TestHeldNotDelayedByVersion: held lines go out as soon as initialize is answered,
+// even when the engine never answers get_binary_version.
+func TestHeldNotDelayedByVersion(t *testing.T) {
+	old := engine.VersionTimeout
+	engine.VersionTimeout = 2 * time.Second
+	defer func() { engine.VersionTimeout = old }()
+	script := enginefake.MustParse(`
+{"on": {"type":"control_request","request":{"subtype":"get_binary_version"}}, "emit": {"type":"keep_alive"}}
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": {"commands":[]}}
+{"expect": {"type":"user","message":{"content":"quick"}}}
+{"emit": {"type":"result","subtype":"success","is_error":false,"result":"ok","user_message_uuid":"${uuid}"}}
+`)
+	m, _, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	start := time.Now()
+	e.Send(ext.Prompt{UUID: "u-q", Blocks: []proto.ContentBlock{proto.Text("quick")}})()
+	rec.WaitFor(t, isResult)
+	if d := time.Since(start); d > time.Second {
+		t.Errorf("prompt waited %v for the version reply", d)
+	}
+	if r := rec.WaitFor(t, isInitialized).(ext.ControlResultMsg); r.Err != nil {
+		t.Errorf("initialize: %v", r.Err)
 	}
 }
 

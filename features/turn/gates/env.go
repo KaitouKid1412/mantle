@@ -24,7 +24,7 @@ type Env struct {
 	// ClaudeConfigDir is $CLAUDE_CONFIG_DIR, or "" when unset. It relocates both
 	// ~/.claude and ~/.claude.json.
 	ClaudeConfigDir string
-	// MantleDir is mantle's state root; "" means Home/.mantle.
+	// MantleDir is mantle's state root ($MANTLE_HOME); "" means Home/.mantle.
 	MantleDir string
 	// ManagedDir holds managed-settings.json and managed-settings.d/; "" means the OS
 	// default. Tests point it at a temp dir.
@@ -42,7 +42,7 @@ func FromOS() (Env, error) {
 	if home == "" {
 		return Env{}, errors.New("gates: no home directory")
 	}
-	return Env{Home: home, ClaudeConfigDir: os.Getenv("CLAUDE_CONFIG_DIR")}, nil
+	return Env{Home: home, ClaudeConfigDir: os.Getenv("CLAUDE_CONFIG_DIR"), MantleDir: os.Getenv("MANTLE_HOME")}, nil
 }
 
 func (e Env) getenv(k string) string {
