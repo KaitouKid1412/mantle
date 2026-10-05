@@ -81,7 +81,8 @@
   can fix that next.
 
 [38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
-[38;2;139;139;147m✻ Churned for 1m 6s[m
+
+[38;2;139;139;147m✻ Churned for 1m 6s · done 3:04 PM[m
 
 [38;2;139;139;147mConversation compacted (48.2k → 7.9k tokens) · ctrl+o for h…[m
 
@@ -166,7 +167,8 @@
   I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I can fix that next.
 
 [38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
-[38;2;139;139;147m✻ Churned for 1m 6s[m
+
+[38;2;139;139;147m✻ Churned for 1m 6s · done 3:04 PM[m
 
 [38;2;139;139;147m══════ Conversation compacted (48.2k → 7.9k tokens) · ctrl+o for history ══════[m
 
@@ -251,7 +253,8 @@
   I also found the same issue in [38;2;158;166;243minternal/sync/client.go[m; I can fix that next.
 
 [38;2;239;122;128m⏺[m [38;2;139;139;147mDenied: Bash(command: "rm -rf build")[m
-[38;2;139;139;147m✻ Churned for 1m 6s[m
+
+[38;2;139;139;147m✻ Churned for 1m 6s · done 3:04 PM[m
 
 [38;2;139;139;147m══════ Conversation compacted (48.2k → 7.9k tokens) · ctrl+o for history ══════[m
 

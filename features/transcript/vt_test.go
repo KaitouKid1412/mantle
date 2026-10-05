@@ -2,6 +2,7 @@ package transcript
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -106,8 +107,8 @@ func checkReplay(t *testing.T, hs *testkit.Harness, want []string) {
 	all := hs.All()
 	// Leading blank rows depend on where the first frame sat; compare from the
 	// first printed text.
-	all = trimLeadingBlank(all)
-	want = trimLeadingBlank(want)
+	all = maskClock(trimLeadingBlank(all))
+	want = maskClock(trimLeadingBlank(want))
 	if len(all) < len(want) {
 		t.Fatalf("only %d lines on the terminal, want at least %d\n--- all ---\n%s", len(all), len(want), strings.Join(all, "\n"))
 	}
@@ -125,6 +126,18 @@ func checkReplay(t *testing.T, hs *testkit.Harness, want []string) {
 			t.Fatalf("ghost live-frame line in scrollback\n--- scrollback ---\n%s", strings.Join(hs.Scrollback(), "\n"))
 		}
 	}
+}
+
+var reDoneTime = regexp.MustCompile(`· done \d{1,2}:\d{2}( [AP]M)?`)
+
+// maskClock hides the time of day on duration lines: the host runs on the real
+// clock, the expected transcript on a fixed one.
+func maskClock(ls []string) []string {
+	out := make([]string, len(ls))
+	for i, l := range ls {
+		out[i] = reDoneTime.ReplaceAllString(l, "· done <time>")
+	}
+	return out
 }
 
 func trimLeadingBlank(ls []string) []string {

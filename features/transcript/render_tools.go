@@ -70,8 +70,8 @@ func (f *Feature) toolFrameOpts(rc ext.RenderCtx, it *ext.Item, name, args strin
 		}
 		lines = append(lines, out...)
 		collapsible = hid
-	case it.State == ext.Interrupted && it.Result == nil:
-		lines = append(lines, result(rc, st.dim, "Interrupted")...)
+	case it.State == ext.Interrupted:
+		lines = append(lines, result(rc, st.err, interruptHint)...)
 	case it.Result == nil:
 		if run := f.runningLine(rc, it); run != "" {
 			lines = append(lines, result(rc, st.dim, run)...)
