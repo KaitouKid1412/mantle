@@ -53,7 +53,8 @@ type Feature struct {
 	live    *liveView
 	spinner *spinner
 
-	views map[string]viewEntry // Store.Lines cache, by item ID
+	views  map[string]viewEntry // Store.Lines cache, by item ID
+	ledger map[string]turnEntry // turn durations by final answer uuid (turns.go)
 	// fullscreen is set while Store.Lines renders for the fullscreen layout,
 	// whose tool rows are condensed (see renderBashTool, viewLines).
 	fullscreen bool
@@ -116,7 +117,7 @@ func (f *Feature) Setup(r ext.Registrar) error {
 			f.texts, f.views = map[string]*textEntry{}, nil
 			f.commit = commitState{}
 		}
-		f.store.AppendHistory(m.Items)
+		f.store.AppendHistory(f.withTurnLines(c, m.Items))
 		c.Invalidate(LiveID)
 		return f.commitReady(c)
 	})
@@ -194,6 +195,9 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	}
 	if !f.store.Apply(m.Event) {
 		return tea.Batch(spin, reprint)
+	}
+	if r, ok := m.Event.(*proto.Result); ok {
+		f.recordTurn(c, r)
 	}
 	c.Invalidate(LiveID)
 	if reprint != nil {

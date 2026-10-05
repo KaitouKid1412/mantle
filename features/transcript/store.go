@@ -50,6 +50,7 @@ type Store struct {
 	notes        []string                                   // pending markers for the commit policy
 	rateStatus   string                                     // last rate_limit_event status
 	models       map[string]string                          // item ID → model that wrote it
+	msgOf        map[string]string                          // item ID → assistant message uuid
 	shown        map[string]bool                            // result uuid → its error is already on screen
 	interrupted  map[string]bool                            // result uuid → a tool row shows the interruption
 	waiting      map[string]string                          // tool_use id → permission request id while its prompt is open
@@ -105,6 +106,7 @@ func (s *Store) reset() {
 	s.tasks = map[string]string{}
 	s.hooks = map[string]*ext.Item{}
 	s.models = map[string]string{}
+	s.msgOf = map[string]string{}
 	s.shown = map[string]bool{}
 	s.interrupted = map[string]bool{}
 	s.waiting = map[string]string{}
@@ -195,6 +197,17 @@ func (s *Store) InterruptShown(resultUUID string) bool { return s.interrupted[re
 // ErrorShown reports whether a failed result's error is already shown by the
 // item before it.
 func (s *Store) ErrorShown(resultUUID string) bool { return s.shown[resultUUID] }
+
+// LastAnswerUUID returns the message uuid of the last top-level answer text
+// ("" when there is none).
+func (s *Store) LastAnswerUUID() string {
+	for i := len(s.items) - 1; i >= 0; i-- {
+		if it := s.items[i]; it.Key == ext.KeyAssistantText {
+			return s.msgOf[it.ID]
+		}
+	}
+	return ""
+}
 
 // Model returns the model that produced an assistant item ("" if unknown).
 func (s *Store) Model(id string) string { return s.models[id] }
@@ -649,6 +662,7 @@ func (s *Store) applyAssistant(e *proto.Assistant) {
 				it.Data = &bb
 			}
 			s.uuids[e.UUID] = append(s.uuids[e.UUID], it.ID)
+			s.msgOf[it.ID] = e.UUID
 			if it.State == ext.Streaming || (it.State == ext.Running && !b.IsToolUse()) {
 				it.State = state
 			}
@@ -695,6 +709,7 @@ func (s *Store) addFor(e *proto.Assistant, it *ext.Item) {
 	s.add(it)
 	if e.UUID != "" {
 		s.uuids[e.UUID] = append(s.uuids[e.UUID], it.ID)
+		s.msgOf[it.ID] = e.UUID
 	}
 	if it.State.Finished() && it.End.IsZero() {
 		it.End = s.now()
