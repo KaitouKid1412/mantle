@@ -99,6 +99,7 @@ func todoStories() []ext.Story {
 			{"content":"Run the full suite","status":"pending","activeForm":"Running the full suite"},
 			{"content":"Open a pull request","status":"pending","activeForm":"Opening a pull request"},
 			{"content":"Tag a release","status":"pending","activeForm":"Tagging a release"}]}`))
+		td.OnToolResult("t", false, "", nil)
 		return td
 	}
 	mk := func(id string, expanded bool) ext.Story {

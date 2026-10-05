@@ -31,6 +31,7 @@ type Term struct {
 	mu  sync.Mutex
 	emu *vt.Emulator
 	raw bytes.Buffer
+	san stringSanitizer
 
 	inMu      sync.Mutex
 	stopping  atomic.Bool
@@ -63,7 +64,7 @@ func StartTerm(cmd *exec.Cmd, w, h int) (*Term, error) {
 			if n > 0 {
 				t.mu.Lock()
 				t.raw.Write(buf[:n])
-				_, _ = t.emu.Write(buf[:n])
+				_, _ = t.emu.Write(t.san.filter(buf[:n]))
 				t.mu.Unlock()
 			}
 			if err != nil {

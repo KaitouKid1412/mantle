@@ -101,15 +101,16 @@ func (a *area) tuiChoices(c ext.Ctx) choiceSet {
 	}}
 }
 
+// setTUI saves the renderer choice and asks the host to switch now. The host refuses
+// fullscreen with its own notice when the alternate screen is disabled or a screen
+// reader is on; the saved choice still applies to later sessions.
 func (a *area) setTUI(c ext.Ctx, v string) tea.Cmd {
-	p := patch.SetKey(patch.User, v, "tui")
-	text := "Inline renderer"
+	p, mode, text := patch.SetKey(patch.User, v, "tui"), ext.Fullscreen, "Renderer set to fullscreen"
 	if v == "default" {
-		p = patch.DeleteKey(patch.User, "tui")
-	} else {
-		text = "Fullscreen renderer saved. mantle's fullscreen view is still being built, so mantle stays inline for now."
+		p, mode, text = patch.DeleteKey(patch.User, "tui"), ext.Inline, "Renderer set to inline"
 	}
 	return tea.Batch(a.apply(c, []action.Effect{action.PatchEffect(p)}),
+		ext.Msg(ext.LayoutRequestMsg{Mode: mode}),
 		c.Notify(ext.Notice{Key: "settings.tui", Level: ext.NoticeSuccess, Source: "settings", Text: text}))
 }
 

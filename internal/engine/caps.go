@@ -62,6 +62,17 @@ func (c *capabilities) AddCapabilities(names []string) {
 	c.mu.Unlock()
 }
 
+// list returns the capability names reported by the engine.
+func (c *capabilities) list() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	out := make([]string, 0, len(c.caps))
+	for n := range c.caps {
+		out = append(out, n)
+	}
+	return out
+}
+
 // SetVersion records the engine version (from system/init).
 func (c *capabilities) SetVersion(v string) {
 	c.mu.Lock()

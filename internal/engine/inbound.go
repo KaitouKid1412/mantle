@@ -35,6 +35,17 @@ func (s *inboundSet) first(id string) bool {
 	return true
 }
 
+// drainPeek returns the pending ids without removing them.
+func (s *inboundSet) drainPeek() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ids := make([]string, 0, len(s.pending))
+	for id := range s.pending {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 func (s *inboundSet) add(id, subtype string) {
 	s.mu.Lock()
 	s.pending[id] = subtype
@@ -146,7 +157,7 @@ func (r *run) answer(id string, resp any, err error) {
 	if merr != nil {
 		line, _ = proto.MarshalControlError(id, "mantle: "+merr.Error())
 	}
-	if serr := r.tr.Send(line); serr != nil {
+	if serr := r.tr.SendNow(line); serr != nil { // answers to the engine never wait behind the handshake hold
 		r.e.mgr.logf("engine %s: reply %s: %v", r.e.id, id, serr)
 	}
 }

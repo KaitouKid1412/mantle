@@ -150,6 +150,7 @@ func (s *Supervisor) Run(opts LaunchOptions) int {
 		}
 		res := s.runOnce(t, args, dir, sigs)
 		s.reapEngines(s.enginesOf(res))
+		t = s.handedOff(store, t, res.runFile)
 		out := Classify(res.status, res.forwarded)
 
 		d := Decision{Abnormal: out == OutcomeCrash || out == OutcomeInterrupted}
@@ -238,6 +239,25 @@ func (s *Supervisor) pickTarget(store Store, opts LaunchOptions) (target, error)
 		probation: true,
 		prev:      LoadProbation(s.Layout, v.ID),
 	}, nil
+}
+
+// handedOff accounts a run to the build that was really running at the end.
+// An in-place restart (fd hand-off: mantle-ui execs the new build under the
+// same pid, so the engine survives) leaves the launcher waiting on a process
+// that now runs another build; the run file's version says which.
+func (s *Supervisor) handedOff(store Store, t target, rf RunFile) target {
+	if !t.probation || rf.Version == "" || rf.Version == t.buildID || !ValidBuildID(rf.Version) {
+		return t
+	}
+	v, err := store.Get(rf.Version)
+	if err != nil {
+		return t
+	}
+	// The new build started during this run: it was on probation then, even
+	// if it has written its healthy marker since.
+	prev := LoadProbation(s.Layout, v.ID)
+	prev.Healthy = false
+	return target{bin: v.Binary(), buildID: v.ID, probation: true, prev: prev}
 }
 
 func notInstalledError(l Layout, err error) error {

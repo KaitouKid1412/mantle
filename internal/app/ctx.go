@@ -177,6 +177,7 @@ func sortedKeys[V any](m map[string]V) []string {
 func (r *Root) submit(d ext.Draft) tea.Cmd {
 	var cmds []tea.Cmd
 	draft := d
+	r.log().Debug("submit", "mode", d.Mode, "len", len(d.Text), "engine", r.engines[ext.MainEngine] != nil)
 	for _, e := range r.stages {
 		var v ext.Verdict
 		var cmd tea.Cmd
@@ -185,6 +186,7 @@ func (r *Root) submit(d ext.Draft) tea.Cmd {
 		}
 		cmds = append(cmds, wrapCmd(e.feature, e.id, cmd))
 		if v != ext.Continue {
+			r.log().Debug("submit: stage decided", "stage", e.id, "verdict", int(v))
 			break
 		}
 	}

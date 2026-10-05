@@ -11,15 +11,37 @@ import (
 
 func TestTUI(t *testing.T) {
 	g := newRig(t)
+	layouts := func() []ext.LayoutMode {
+		var out []ext.LayoutMode
+		for _, m := range g.msgs {
+			if l, ok := m.(ext.LayoutRequestMsg); ok {
+				out = append(out, l.Mode)
+			}
+		}
+		return out
+	}
 	g.command("tui", "fullscreen")
-	if v := g.applied()[patch.User]["tui"]; v != "fullscreen" || !strings.Contains(lastNotice(g), "still being built") {
+	if v := g.applied()[patch.User]["tui"]; v != "fullscreen" || lastNotice(g) != "Renderer set to fullscreen" {
 		t.Errorf("fullscreen: %v %q", v, lastNotice(g))
+	}
+	if l := layouts(); len(l) != 1 || l[0] != ext.Fullscreen {
+		t.Errorf("layout requests %v", l)
 	}
 	g.command("tui", "")
 	g.mustContain(100, "Renderer", "Inline", "Fullscreen")
 	g.press(ext.ActSelectFirst, ext.ActSelectAccept)
 	if _, ok := g.applied()[patch.User]["tui"]; ok {
 		t.Error("inline should unset tui")
+	}
+	if l := layouts(); len(l) != 2 || l[1] != ext.Inline {
+		t.Errorf("layout requests %v", l)
+	}
+	// The /config Renderer row opens the same picker, so it switches live too.
+	g.command("config", "")
+	cursorTo(t, g, "Renderer")
+	g.press(ext.ActSelectAccept)
+	if g.dlgID != dialogTUI {
+		t.Errorf("Renderer row opened %q", g.dlgID)
 	}
 	g.command("tui", "sideways")
 	if !strings.Contains(lastNotice(g), "/tui default") {
