@@ -52,7 +52,7 @@ var Entries = []Entry{
 	{Name: "rate-limit-options", Hidden: true, Description: "What to do at the usage limit (opens Claude Code)", Parity: "CL-20"},
 	{Name: "setup-bedrock", Description: "Set up Amazon Bedrock (opens Claude Code)", Parity: "CL-21"},
 	{Name: "setup-vertex", Description: "Set up Google Vertex AI (opens Claude Code)", Parity: "CL-21"},
-	{Name: "install-github-app", Description: "Install the Claude GitHub app (opens Claude Code)", Parity: "CL-22"},
+	{Name: "install-github-app", Hidden: true, Description: "Install the Claude GitHub app (opens Claude Code)", Parity: "CL-22"},
 	{Name: "install-slack-app", Description: "Install the Claude Slack app (opens Claude Code)", Parity: "CL-23"},
 	{Name: "privacy-settings", Description: "Privacy settings (opens Claude Code)", Parity: "CL-24"},
 	{Name: "cloud-plugins", Description: "Use local plugins in cloud sessions (opens Claude Code)", Parity: "CL-25"},
@@ -64,7 +64,7 @@ var Entries = []Entry{
 	{Name: "powerup", Description: "Interactive lessons (opens Claude Code)", Parity: "EC-37"},
 	{Name: "stickers", Description: "Get Claude Code stickers (opens Claude Code)", Parity: "EC-38"},
 	{Name: "radio", Description: "Lo-fi radio (opens Claude Code)", Parity: "EC-38"},
-	{Name: "wellbeing", Aliases: []string{"breaks", "break-reminder", "downtime"}, Description: "Break reminders and downtime (opens Claude Code)", Parity: "EC-39"},
+	{Name: "wellbeing", Hidden: true, Aliases: []string{"breaks", "break-reminder", "downtime"}, Description: "Break reminders and downtime (opens Claude Code)", Parity: "EC-39"},
 	{Name: "workflows", Description: "Workflow progress (opens Claude Code)", Parity: "EC-40"},
 }
 

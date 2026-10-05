@@ -47,11 +47,11 @@ var tabNames = []string{"Discover", "Installed", "Marketplaces"}
 func Setup(r ext.Registrar) error {
 	r.AddCommand(ext.Command{
 		Name: "plugin", Aliases: []string{"plugins"}, Source: ext.SourceBuiltin,
-		Description: "Discover, install and manage plugins",
+		Description: "Browse and manage plugins and marketplaces",
 		Run:         func(ctx ext.Ctx, args string) tea.Cmd { return ctx.OpenDialog(DialogID, TabDiscover) },
 	})
 	r.AddCommand(ext.Command{
-		Name: "marketplace", Source: ext.SourceBuiltin, Description: "Manage plugin marketplaces",
+		Name: "marketplace", Hidden: true, Source: ext.SourceBuiltin, Description: "Manage plugin marketplaces",
 		Run: func(ctx ext.Ctx, args string) tea.Cmd { return ctx.OpenDialog(DialogID, TabMarketplaces) },
 	})
 	r.AddDialog(DialogID, eco.Factory(New))

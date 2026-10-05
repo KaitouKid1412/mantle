@@ -39,7 +39,8 @@ func init() {
 func Setup(r ext.Registrar) error {
 	open := func(ctx ext.Ctx) tea.Cmd { return ctx.OpenDialog(DialogID, nil) }
 	r.AddCommand(ext.Command{
-		Name: "agent-view", Aliases: []string{"bg-sessions"}, Source: ext.SourceBuiltin,
+		// mantle-only, so kept out of the / menu like Claude Code's; typing it works.
+		Name: "agent-view", Aliases: []string{"bg-sessions"}, Hidden: true, Source: ext.SourceBuiltin,
 		Description: "Background Claude Code sessions: attach, logs, stop",
 		Run:         func(ctx ext.Ctx, args string) tea.Cmd { return open(ctx) },
 	})
