@@ -20,7 +20,7 @@ func TestFeatureRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{DialogPermission, DialogAskUserQuestion, DialogPlanApproval, DialogElicitation,
-		DialogTrust, DialogMcpApproval, DialogBypassWarning, DialogAPIKey, DialogAutoMode, DialogUsageLimit, DialogEngineCheck} {
+		DialogTrust, DialogMcpApproval, DialogBypassWarning, DialogAPIKey, DialogUsageLimit, DialogEngineCheck} {
 		if r.Dialogs[id] == nil {
 			t.Errorf("dialog %s not registered", id)
 		}
@@ -81,39 +81,21 @@ func TestCycleMode(t *testing.T) {
 	}
 }
 
-func TestCycleModeIntoAutoAsksFirst(t *testing.T) {
+// Claude Code 2.1.289 goes from plan straight into auto: no first-use prompt.
+func TestCycleModeIntoAutoDirectly(t *testing.T) {
 	x := newH(t)
 	x.st.mode(ext.MainEngine).auto = true
 	x.c.SessionValue.PermissionMode = proto.ModePlan
 	x.action(ext.ActChatCycleMode)
-	if x.c.topID() != DialogAutoMode || x.eng.count(proto.SubSetPermissionMode) != 0 {
-		t.Fatalf("auto prompt expected, stack=%v controls=%v", x.c.ids, x.eng.controls)
-	}
-	x.press("enter") // default answer is No
-	if x.eng.count(proto.SubSetPermissionMode) != 0 || x.c.topID() != "" {
-		t.Fatal("declining stays in the current mode")
-	}
-	x.action(ext.ActChatCycleMode)
-	x.press("1")
-	if x.c.SessionValue.PermissionMode != proto.ModeAuto {
-		t.Fatalf("mode = %q", x.c.SessionValue.PermissionMode)
-	}
-	env, _ := x.st.env()
-	if gates.LoadGateStore(env).AutoModeAcceptedAt == "" {
-		t.Fatal("acceptance should be recorded")
-	}
-	// Next time there is no prompt.
-	x.c.SessionValue.PermissionMode = proto.ModePlan
-	x.action(ext.ActChatCycleMode)
 	if x.c.topID() != "" || x.c.SessionValue.PermissionMode != proto.ModeAuto {
-		t.Fatalf("second time: stack=%v mode=%q", x.c.ids, x.c.SessionValue.PermissionMode)
+		t.Fatalf("stack=%v mode=%q", x.c.ids, x.c.SessionValue.PermissionMode)
 	}
 }
 
 func TestCycleModeFailureDisablesAuto(t *testing.T) {
 	x := newH(t)
 	ms := x.st.mode(ext.MainEngine)
-	ms.auto, ms.autoOK = true, true
+	ms.auto = true
 	x.c.SessionValue.PermissionMode = proto.ModePlan
 	x.eng.errs[proto.SubSetPermissionMode] = errors.New("invalid_mode")
 	x.action(ext.ActChatCycleMode)
@@ -135,24 +117,37 @@ const autoModels = `{"models":[{"value":"opus","resolvedModel":"claude-x","displ
 func TestStartupModeMirrorsInteractive(t *testing.T) {
 	x := newH(t)
 	x.c.SessionValue.Model = "claude-x"
-	// Without the auto-mode opt-in the session stays in default.
-	x.boot(autoModels)
-	if x.eng.count(proto.SubSetPermissionMode) != 0 {
-		t.Fatalf("no opt-in: controls=%v", x.eng.controls)
-	}
-	// With it, a fresh engine starts in auto.
-	env, _ := x.st.env()
-	_ = gates.RecordAutoModeAccepted(env)
+	// Nothing configured and auto available: start in auto and say so, once.
 	x.boot(autoModels)
 	if got := x.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModeAuto}) {
 		t.Fatalf("startup mode = %#v", got)
 	}
-	// A user's later choice survives an engine restart.
+	if len(x.c.Printed) != 1 || !strings.Contains(x.c.Printed[0], "Auto mode is now the default") {
+		t.Fatalf("notice = %q", x.c.Printed)
+	}
+	env, _ := x.st.env()
+	if gates.LoadGateStore(env).AutoNoticeAt == "" {
+		t.Fatal("the notice should be recorded")
+	}
+	x2 := newH(t)
+	x2.st.env = x.st.env // same HOME: the notice was already shown
+	x2.c.SessionValue.Model = "claude-x"
+	x2.boot(autoModels)
+	if len(x2.c.Printed) != 0 || x2.eng.lastControl(proto.SubSetPermissionMode) == nil {
+		t.Fatalf("second launch: printed=%q", x2.c.Printed)
+	}
+	// A user's later choice survives an engine restart, without the notice.
 	x.action(ext.ActChatCycleMode) // auto → default
 	x.c.SessionValue.PermissionMode = proto.ModeDefault
 	x.boot(autoModels)
 	if got := x.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModeDefault}) {
 		t.Fatalf("restart restores %#v", got)
+	}
+	// No auto support: stay in default, no notice.
+	x3 := newH(t)
+	x3.boot(`{"models":[{"value":"m","displayName":"M"}]}`)
+	if x3.eng.count(proto.SubSetPermissionMode) != 0 || len(x3.c.Printed) != 0 {
+		t.Fatalf("no auto: controls=%v printed=%q", x3.eng.controls, x3.c.Printed)
 	}
 }
 

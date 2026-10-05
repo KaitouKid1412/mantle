@@ -220,23 +220,6 @@ func NewAPIKeyPrompt(suffix string) *Choice {
 	}
 }
 
-// NewAutoModePrompt explains auto mode before its first use. ChoiceNo is the default and
-// esc.
-func NewAutoModePrompt() *Choice {
-	body := func(w int, st Styles) []string {
-		return wrap("In auto mode Claude Code decides which tool calls are safe enough to run "+
-			"without asking, and still asks before risky ones. Its judgement can be wrong; "+
-			"switch back with shift+tab at any time.", w)
-	}
-	return &Choice{
-		title: "Turn on auto mode?",
-		kind:  "permission",
-		body:  body,
-		opts:  optionList{items: []option{{id: ChoiceYes, label: "Yes, use auto mode"}, {id: ChoiceNo, label: "No"}}, cursor: 1},
-		escID: ChoiceNo,
-	}
-}
-
 // McpApproval asks which new .mcp.json servers may run. One server gets three options
 // (all future servers / this one / none); several get a checklist.
 type McpApproval struct {

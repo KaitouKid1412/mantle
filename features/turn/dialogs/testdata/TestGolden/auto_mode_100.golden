@@ -1,8 +1,0 @@
-╭─ Turn on auto mode? ─────────────────────────────────────────────────────────────────────────────╮
-│ In auto mode Claude Code decides which tool calls are safe enough to run without asking, and     │
-│ still asks before risky ones. Its judgement can be wrong; switch back with shift+tab at any      │
-│ time.                                                                                            │
-│                                                                                                  │
-│   1. Yes, use auto mode                                                                          │
-│ ❯ 2. No                                                                                          │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

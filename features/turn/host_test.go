@@ -141,8 +141,8 @@ func TestHostPermissionPrompt(t *testing.T) {
 	hn.SendMsg(ext.PermissionMsg{EngineID: ext.MainEngine, RequestID: "r1", Req: req,
 		Reply: func(r proto.PermissionResult) tea.Cmd { replies <- r; return nil }})
 	hn.WaitForText("go test ./...", hostWait)
-	hn.Send("down", "enter") // "No, and tell Claude…" opens the feedback field
-	hn.WaitForText("enter to send", hostWait)
+	hn.Send("tab") // tab adds instructions to No
+	hn.WaitForText("Enter to send", hostWait)
 	hn.Type("use make test")
 	hn.Settle(100*time.Millisecond, 2*time.Second)
 	hn.Send("enter")

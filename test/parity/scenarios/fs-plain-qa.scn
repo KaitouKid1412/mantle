@@ -1,0 +1,15 @@
+# Fullscreen renderer: a markdown answer.
+name: fs-plain-qa
+size: 100x30
+args: --permission-mode default
+prompt: Explain the plan in markdown
+files: ../../../testdata/fixtures/12/app
+script: scripts/plain-qa.json
+settings: {"tui": "fullscreen"}
+parity: VW-15, TR-01, TR-02
+---
+ready
+wait_for 30s Done.
+wait_gone 30s esc to interrupt
+settle
+checkpoint answered

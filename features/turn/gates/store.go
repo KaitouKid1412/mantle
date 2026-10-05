@@ -15,8 +15,8 @@ type GateStore struct {
 	Version int `json:"version"`
 	// BypassAcceptedAt is set once the user accepted the bypass-permissions warning.
 	BypassAcceptedAt string `json:"bypassAcceptedAt,omitempty"`
-	// AutoModeAcceptedAt is set once the user accepted the auto-mode first-use prompt.
-	AutoModeAcceptedAt string `json:"autoModeAcceptedAt,omitempty"`
+	// AutoNoticeAt is set once mantle told the user auto mode is the default.
+	AutoNoticeAt string `json:"autoNoticeAt,omitempty"`
 	// APIKeys maps sha256(trimmed key) to "approved" or "rejected". mantle stores a hash,
 	// never the key or a slice of it.
 	APIKeys map[string]string `json:"apiKeys,omitempty"`
@@ -89,11 +89,11 @@ func RecordBypassAccepted(env Env) error {
 	})
 }
 
-// RecordAutoModeAccepted remembers that the auto-mode prompt was accepted.
-func RecordAutoModeAccepted(env Env) error {
+// RecordAutoNotice remembers that the auto-mode default notice was shown.
+func RecordAutoNotice(env Env) error {
 	return updateJSON(env.GateStorePath(), func(s *GateStore) error {
 		s.Version = 1
-		s.AutoModeAcceptedAt = time.Now().UTC().Format(time.RFC3339)
+		s.AutoNoticeAt = time.Now().UTC().Format(time.RFC3339)
 		return nil
 	})
 }

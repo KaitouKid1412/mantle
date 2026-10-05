@@ -212,8 +212,8 @@ func (v *transcriptView) paint(t *theme.Theme, a ext.Area) ext.Rendered {
 	}
 	if v.typing || (v.focused && v.search.Query != "") {
 		lines = v.withSearchBar(t, lines, a.Width)
-	} else if p := v.pill(t, a.Width); p != "" && len(lines) > 0 {
-		lines[len(lines)-1] = p
+	} else if p := v.pill(t); p != "" && len(lines) > 0 {
+		lines[len(lines)-1] = withPill(lines[len(lines)-1], p, a.Width)
 	}
 	// Mouse coordinates are relative to the lines returned here (the host places a
 	// short document at the bottom of the band, but the region is only as tall as it).
@@ -243,18 +243,32 @@ func (v *transcriptView) decorate(t *theme.Theme, n int, s string) string {
 	return s
 }
 
-// pill is the "jump to bottom" line shown while scrolled up with new output below.
-func (v *transcriptView) pill(t *theme.Theme, w int) string {
-	if v.vp.Following() || v.vp.Unseen() == 0 {
+// pill is the "jump to bottom" hint shown whenever the reader is scrolled up: with the
+// count of new lines when output arrived below, as a plain hint otherwise.
+func (v *transcriptView) pill(t *theme.Theme) string {
+	switch n := v.vp.Unseen(); {
+	case v.vp.Following():
 		return ""
+	case n == 0:
+		return t.Paint(theme.Inactive, "↓ jump to bottom · ctrl+end")
+	case n == 1:
+		return t.Bg(theme.Suggestion).Foreground(t.Color(theme.InverseText)).Render(" ↓ 1 new line · ctrl+end ")
+	default:
+		return t.Bg(theme.Suggestion).Foreground(t.Color(theme.InverseText)).Render(fmt.Sprintf(" ↓ %d new lines · ctrl+end ", n))
 	}
-	label := fmt.Sprintf(" ↓ %d new lines · ctrl+end ", v.vp.Unseen())
-	if v.vp.Unseen() == 1 {
-		label = " ↓ 1 new line · ctrl+end "
+}
+
+// withPill right-aligns the pill on the last visible line when both fit, and replaces
+// the line otherwise.
+func withPill(line, pill string, w int) string {
+	lw, pw := ansi.StringWidth(line), ansi.StringWidth(pill)
+	if pw > w {
+		return ansi.Truncate(pill, w, "")
 	}
-	label = ansi.Truncate(label, w, "")
-	return strings.Repeat(" ", max(0, w-ansi.StringWidth(label))) +
-		t.Bg(theme.Suggestion).Foreground(t.Color(theme.InverseText)).Render(label)
+	if lw+4+pw <= w {
+		return line + strings.Repeat(" ", w-lw-pw) + pill
+	}
+	return strings.Repeat(" ", w-pw) + pill
 }
 
 func (v *transcriptView) withSearchBar(t *theme.Theme, lines []string, w int) []string {

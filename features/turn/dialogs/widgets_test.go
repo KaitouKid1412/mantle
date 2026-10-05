@@ -110,24 +110,3 @@ func TestPermissionResultShapes(t *testing.T) {
 		t.Fatalf("allow = %s", got)
 	}
 }
-
-func TestSuggestionPhrases(t *testing.T) {
-	cases := []struct {
-		u    PermissionUpdate
-		want string
-	}{
-		{PermissionUpdate{Type: "addRules", Behavior: "allow", Destination: "session",
-			Rules: []PermissionRule{{ToolName: "Bash", RuleContent: "git status"}, {ToolName: "Bash", RuleContent: "git diff:*"}}},
-			"don't ask again for Bash(git status) and Bash(git diff:*) for this session"},
-		{PermissionUpdate{Type: "addRules", Behavior: "deny", Destination: "projectSettings", Rules: []PermissionRule{{ToolName: "WebSearch"}}},
-			"always deny WebSearch in this project (shared)"},
-		{PermissionUpdate{Type: "addDirectories", Directories: []string{"/w/sub", "/tmp"}, Destination: "localSettings"},
-			"allow access to sub/ and /tmp/ in this project"},
-		{PermissionUpdate{Type: "setMode", Mode: "plan", Destination: "session"}, "switch to plan mode for this session"},
-	}
-	for _, c := range cases {
-		if got := suggestionPhrase(c.u, "/w"); got != c.want {
-			t.Errorf("phrase = %q want %q", got, c.want)
-		}
-	}
-}

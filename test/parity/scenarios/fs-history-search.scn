@@ -1,0 +1,27 @@
+# Fullscreen renderer: ctrl+r history search (a dialog in Claude Code's fullscreen mode).
+name: fs-history-search
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+script: scripts/history.json
+settings: {"tui": "fullscreen"}
+parity: VW-15, VW-22, HI-06
+---
+ready
+type alpha prompt
+keys enter
+wait_for 30s First answer.
+wait_gone 30s esc to interrupt
+type beta prompt
+keys enter
+wait_for 30s Second answer.
+wait_gone 30s esc to interrupt
+settle
+keys ctrl+r
+settle
+type alp
+settle
+checkpoint search
+keys esc
+settle
+checkpoint closed

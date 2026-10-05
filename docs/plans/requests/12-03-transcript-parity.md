@@ -1,6 +1,6 @@
 # 12 → 03: transcript rendering differences (parity audit)
 
-**Status:** partly done (§2-3, plan 03 e13a386), rest taken by 03; §9-11 routed from 05 (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** done by 03 (worktree-mantle-03 986023d: §1, §8, §11 e29603f; §9, §10 d55c26c; §4, §5 850aabe; §6, §7 986023d) (2026-10-05). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; keep mantle's

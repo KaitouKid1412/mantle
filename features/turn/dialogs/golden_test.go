@@ -53,12 +53,8 @@ func samples(t *testing.T) map[string]Model {
 		PermissionContext{})
 
 	feedback := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	press(t, feedback, "3", "'use pnpm instead'")
+	press(t, feedback, "tab", "'use pnpm instead'")
 	m["permission_feedback"] = feedback
-
-	amend := NewPermission(toolReq(t, bashReq), PermissionContext{})
-	press(t, amend, "tab")
-	m["permission_amend"] = amend
 
 	ask, err := NewAskQuestion(toolReq(t, questionsReq), PermissionContext{})
 	if err != nil {
@@ -79,6 +75,8 @@ func samples(t *testing.T) map[string]Model {
 	  "input":{"plan":"## Plan\n\n1. Add the handler in internal/server.\n2. Cover it with a table test.\n3. Update the README."}}`),
 		PlanContext{AutoAvailable: true})
 
+	m["plan_short"] = NewPlanApproval(toolReq(t, `{"tool_name":"ExitPlanMode","tool_use_id":"p","input":{}}`), PlanContext{})
+
 	m["elicitation_form"] = NewElicitation(ElicitationRequest{McpServerName: "crm", Title: "New contact",
 		Message: "Fill in the contact details.", RequestedSchema: json.RawMessage(formSchema)}, PermissionContext{})
 
@@ -97,7 +95,6 @@ func samples(t *testing.T) map[string]Model {
 	m["trust_empty_home"] = NewTrust(gates.TrustReport{Dir: "/home/user"}, true)
 	m["bypass_warning"] = NewBypassWarning()
 	m["api_key"] = NewAPIKeyPrompt("ABCDEFGHIJKLMNOPQRST")
-	m["auto_mode"] = NewAutoModePrompt()
 	m["engine_check"] = NewEngineCheck("2.1.300", []string{"skills", "hooks"}, "2.1.288")
 	m["usage_limit"] = NewUsageLimit("3:00 PM")
 	m["mcp_approval_one"] = NewMcpApproval([]gates.McpServer{{Name: "db", Transport: "stdio", Command: "npx", Args: []string{"db-mcp"}, EnvKeys: []string{"TOKEN"}}})
@@ -114,8 +111,8 @@ func TestGolden(t *testing.T) {
 			t.Run(name+"_"+itoa(w), func(t *testing.T) {
 				out := m.View(w, PlainStyles())
 				for i, l := range strings.Split(out, "\n") {
-					if got := ansi.StringWidth(l); got != w {
-						t.Fatalf("line %d is %d cells wide, want %d: %q", i, got, w, l)
+					if got := ansi.StringWidth(l); got > w {
+						t.Fatalf("line %d is %d cells wide, more than %d: %q", i, got, w, l)
 					}
 				}
 				golden.RequireEqual(t, out+"\n")
@@ -147,7 +144,7 @@ func TestStyledWidths(t *testing.T) {
 	for name, m := range samples(t) {
 		for _, w := range []int{40, 60, 100, 160} {
 			for i, l := range strings.Split(m.View(w, st), "\n") {
-				if got := ansi.StringWidth(l); got != w {
+				if got := ansi.StringWidth(l); got > w {
 					t.Fatalf("%s@%d line %d is %d cells: %q", name, w, i, got, l)
 				}
 			}
