@@ -22,9 +22,9 @@ func TestEffortSlider(t *testing.T) {
 	g.loadModels()
 	g.c.SessionValue.Model = "opus"
 	g.command("effort", "")
-	g.mustContain(100, "For Opus", "● high", "Ultracode  off")
+	g.mustContain(100, "For Opus", "● medium", "Ultracode  off")
 	g.press(ext.ActEffortSliderDecreaseEffort, ext.ActEffortSliderToggleUltracode)
-	g.mustContain(100, "● medium", "Ultracode  on")
+	g.mustContain(100, "● low", "Ultracode  on")
 	g.press(ext.ActSelectAccept)
 	if g.dialog != nil {
 		t.Fatal("slider still open")
@@ -33,7 +33,7 @@ func TestEffortSlider(t *testing.T) {
 	if !reflect.DeepEqual(g.eng.subtypes(), want) {
 		t.Fatalf("controls %v", g.eng.subtypes())
 	}
-	if p := jsonOf(g.eng.controls[1].Payload); p != `{"settings":{"effortLevel":"medium"},"source":"userSettings"}` {
+	if p := jsonOf(g.eng.controls[1].Payload); p != `{"settings":{"effortLevel":"low"},"source":"userSettings"}` {
 		t.Errorf("update_settings %s", p)
 	}
 	if p := jsonOf(g.eng.controls[2].Payload); p != `{"settings":{"ultracode":true}}` {
@@ -97,17 +97,18 @@ func TestEffortKeysAreSessionOnly(t *testing.T) {
 	g := newRig(t)
 	g.loadModels()
 	g.c.SessionValue.Model = "opus"
-	g.action(ext.ActChatIncreaseEffort)
-	g.action(ext.ActChatIncreaseEffort)
-	if len(g.eng.controls) != 2 || len(g.writes) != 0 {
+	g.action(ext.ActChatIncreaseEffort) // medium → high
+	g.action(ext.ActChatIncreaseEffort) // xhigh
+	g.action(ext.ActChatIncreaseEffort) // max
+	if len(g.eng.controls) != 3 || len(g.writes) != 0 {
 		t.Fatalf("controls %v writes %v", g.eng.subtypes(), g.writes)
 	}
-	if p := jsonOf(g.eng.controls[1].Payload); p != `{"settings":{"effortLevel":"max"}}` {
-		t.Errorf("second step %s", p)
+	if p := jsonOf(g.eng.controls[2].Payload); p != `{"settings":{"effortLevel":"max"}}` {
+		t.Errorf("third step %s", p)
 	}
 	// At the top already: handled, nothing sent.
 	g.action(ext.ActChatIncreaseEffort)
-	if len(g.eng.controls) != 2 {
+	if len(g.eng.controls) != 3 {
 		t.Error("stepped past max")
 	}
 	// A model without levels lets the key fall through.

@@ -3,6 +3,7 @@ package input
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -229,6 +230,26 @@ func TestArgumentCompletion(t *testing.T) {
 	if r.text() != "/model sonnet " {
 		t.Fatalf("%q", r.text())
 	}
+	// Enter on a partial argument picks it and runs the command.
+	r.s.ed.Clear()
+	r.keys("'/model op'", "enter")
+	// Enter on an exactly typed argument just runs it.
+	r.keys("'/model haiku'", "enter")
+	ps := r.eng.prompts()
+	if len(ps) != 2 || ps[0].Blocks[0].Text != "/model opus" || ps[1].Blocks[0].Text != "/model haiku" {
+		t.Fatalf("enter submits: %+v", ps)
+	}
+	if !r.s.ed.Empty() {
+		t.Fatalf("nothing glued on: %q", r.text())
+	}
+}
+
+func TestEnterOnExactSlashMatchSubmits(t *testing.T) {
+	r := newRig(t, nil)
+	r.keys("'/cost'", "enter")
+	if ps := r.eng.prompts(); len(ps) != 1 || ps[0].Blocks[0].Text != "/cost" {
+		t.Fatalf("exact command: %+v", ps)
+	}
 }
 
 func itemValues(items []compItem) []string {
@@ -354,6 +375,18 @@ func TestEscLadder(t *testing.T) {
 	r.s.busy = true
 	if r.action(ext.ActChatCancel) {
 		t.Fatal("esc while busy must be declined")
+	}
+}
+
+func TestAltEscIsDoubleEsc(t *testing.T) {
+	r := newRig(t, nil)
+	r.keys("alt+esc")
+	if a := r.c.RanActions; len(a) == 0 || a[len(a)-1] != ActRewind {
+		t.Fatalf("alt+esc on an empty prompt opens rewind: %v", a)
+	}
+	r.keys("'text'", "alt+esc")
+	if !r.s.ed.Empty() {
+		t.Fatal("alt+esc clears a non-empty prompt")
 	}
 }
 
@@ -663,15 +696,57 @@ func TestAttachmentsContext(t *testing.T) {
 	}
 }
 
-func TestSendRejectedWithoutEngine(t *testing.T) {
+// Prompts typed while Claude is still starting (gates, version check,
+// spawn) wait and go out in order when the engine attaches.
+func TestPromptsBeforeEngineAttach(t *testing.T) {
+	r := newRig(t, nil)
+	delete(r.c.Engines, ext.MainEngine)
+	r.keys("'first'", "enter", "'second'", "enter")
+	if len(r.eng.prompts()) != 0 || !r.s.ed.Empty() {
+		t.Fatalf("held: prompts %d, editor %q", len(r.eng.prompts()), r.text())
+	}
+	q, _ := lastMsg[ext.QueuedPromptsMsg](r)
+	if len(q.Prompts) != 2 || q.Prompts[0].Text != "first" || q.Prompts[1].Text != "second" {
+		t.Fatalf("shown as queued: %+v", q)
+	}
+	r.c.Engines[ext.MainEngine] = r.eng
+	r.event(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: r.eng})
+	ps := r.eng.prompts()
+	if len(ps) != 2 || ps[0].Blocks[0].Text != "first" || ps[0].Priority != "" ||
+		ps[1].Blocks[0].Text != "second" || ps[1].Priority != proto.PriorityLater {
+		t.Fatalf("sent in order: %+v", ps)
+	}
+	q, _ = lastMsg[ext.QueuedPromptsMsg](r)
+	if len(q.Prompts) != 1 || q.Prompts[0].UUID != ps[1].UUID || !r.s.busy {
+		t.Fatalf("first runs, second stays queued: %+v busy=%v", q, r.s.busy)
+	}
+	es, _ := history.Load(r.s.histPath)
+	if len(es) != 2 {
+		t.Fatalf("history %d", len(es))
+	}
+}
+
+func TestStartupFailureKeepsPrompt(t *testing.T) {
 	r := newRig(t, nil)
 	delete(r.c.Engines, ext.MainEngine)
 	r.keys("'keep me'", "enter")
-	if r.text() != "keep me" {
-		t.Fatalf("draft kept: %q", r.text())
+	r.event(ext.EngineExitedMsg{EngineID: ext.MainEngine, Err: errors.New("claude not found")})
+	if r.text() != "keep me" || len(r.s.queue) != 0 {
+		t.Fatalf("prompt back in the box: %q queue=%d", r.text(), len(r.s.queue))
 	}
-	if len(r.noticeTexts()) == 0 {
-		t.Fatal("notice")
+	if !strings.Contains(strings.Join(r.noticeTexts(), "|"), "could not start") {
+		t.Fatalf("notice: %v", r.noticeTexts())
+	}
+	// Until another engine attaches, submitting keeps the prompt.
+	r.keys("enter")
+	if r.text() != "keep me" || len(r.eng.prompts()) != 0 {
+		t.Fatalf("rejected while down: %q", r.text())
+	}
+	r.c.Engines[ext.MainEngine] = r.eng
+	r.event(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: r.eng})
+	r.keys("enter")
+	if ps := r.eng.prompts(); len(ps) != 1 || ps[0].Blocks[0].Text != "keep me" {
+		t.Fatalf("sent after attach: %+v", ps)
 	}
 }
 

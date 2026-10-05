@@ -1,0 +1,14 @@
+# @ file mention: the file suggestions menu.
+name: at-mention
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+parity: AC-12
+---
+ready
+type Explain @mai
+settle 3s
+checkpoint suggestions
+keys tab
+settle
+checkpoint completed

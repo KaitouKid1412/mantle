@@ -58,8 +58,9 @@ func TestAutoTitle(t *testing.T) {
 	h.eng.reply[proto.SubGenerateSessionTitle] = json.RawMessage(`{"title":"Fix the parser"}`)
 	h.ctx.TranscriptV = &fakeTranscript{items: []*ext.Item{promptItem("p", "the parser drops quotes")}}
 	h.run(ext.Msg(event(&proto.Result{})))
-	if h.ctx.SessionValue.Title != "Fix the parser" || len(h.ctx.Notices) != 0 {
-		t.Fatalf("title %q, notices %+v", h.ctx.SessionValue.Title, h.ctx.Notices)
+	// Recorded for pickers; the prompt bar keeps showing no name.
+	if h.f.titles[h.ctx.SessionValue.SessionID] != "Fix the parser" || h.ctx.SessionValue.Title != "" || len(h.ctx.Notices) != 0 {
+		t.Fatalf("titles %v, title %q, notices %+v", h.f.titles, h.ctx.SessionValue.Title, h.ctx.Notices)
 	}
 	req := h.eng.controls[0].req.(proto.GenerateSessionTitleRequest)
 	if !req.Persist || !strings.Contains(req.Description, "parser drops quotes") {

@@ -1,0 +1,27 @@
+# Intentional differences between claude (left) and mantle (right).
+#
+# scenario | checkpoint | pattern | reason
+#
+# A pattern is a regular expression matched against a line that the line diff marks as
+# added or removed, on either side. A checkpoint shows as "allowed" only when every such
+# line matches an entry, so a real gap on the same line (for example a missing hint at
+# the end of a footer) keeps the checkpoint a "diff". Real gaps are filed as requests in
+# docs/plans/requests/12-*.md, not listed here.
+#
+# Licensing: mantle writes its own wording and art; it never copies Claude Code's
+# strings. Lines that differ only in wording are listed here.
+
+# Banner (CH-20): mantle's own art and text instead of the Claude Code header.
+* | * | ^<logo> (Claude Code|mantle) v\S+ | mantle prints its own banner (own art, names mantle and the engine versions)
+* | * | ^<logo> \S.* · API Usage Billing$ | the banner's model/account line is mantle's own (model only, no billing label for API keys)
+* | * | ^(<logo>)? +(Opus|Sonnet|Haiku|Fable) [0-9.]+$ | the banner's model/account line is mantle's own (model only, no billing label for API keys)
+* | * | ^(<logo>)? +<work>$ | same working-directory line; only the banner art beside it differs
+* | * | ^ +/help for commands · /mantle to change mantle itself$ | mantle's banner hint names /mantle
+* | * | ^<logo>$ | rows of the Claude Code logo art (mantle's banner art is one row)
+
+# mantle-only notices.
+* | * | ^· Claude Code [0-9.]+ adds \d+ tools? mantle doesn't know yet | mantle's engine-drift notice (plan 11): a newer engine works as passthrough
+
+# Own wording for the same information.
+edit-diff | edited | ^ +⎿ +(Added \d+ lines?, removed \d+ lines?|Updated \S+ with \d+ additions? and \d+ removals?)$ | own wording for the Edit result summary
+ask-user | answered | ^⏺ (User answered Claude's questions:|Questions answered)$ | own wording for the AskUserQuestion result header

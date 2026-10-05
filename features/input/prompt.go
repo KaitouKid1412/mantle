@@ -11,7 +11,7 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/ui/editor"
 )
 
-// prefixWidth is the width of the prompt marker ("> " or "! ").
+// prefixWidth is the width of the prompt marker ("❯ " or "! ").
 const prefixWidth = 2
 
 // promptComp is the prompt editor in SlotInput. Chrome wraps it with the
@@ -97,6 +97,11 @@ func (s *state) key(c ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
 			return true, s.changed(c)
 		}
 	}
+	if ks == "alt+esc" {
+		// Two esc bytes in one read: a double esc (rewind or clear).
+		s.escAt = c.Clock().Now()
+		return s.cancel(c)
+	}
 	if s.mode == modeBash && s.ed.Empty() && ks == "backspace" {
 		s.mode = modePrompt
 		return true, s.changed(c)
@@ -155,7 +160,7 @@ func (s *state) viewPrompt(c ext.Ctx, a ext.Area) ext.Rendered {
 	}
 	rows, cur := s.ed.Render()
 
-	marker := "> "
+	marker := "❯ "
 	tok := theme.Inactive
 	if s.mode == modeBash {
 		marker, tok = "! ", theme.BashBorder
@@ -182,10 +187,6 @@ func (s *state) placeholder() string {
 	switch {
 	case s.mode == modeBash:
 		return "Run a shell command"
-	case s.busy:
-		return ""
-	case s.hist.Len() == 0:
-		return `Try "explain how this project is organized"`
 	}
 	return ""
 }

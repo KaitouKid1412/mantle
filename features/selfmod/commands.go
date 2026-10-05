@@ -78,6 +78,7 @@ func parseCommand(args string) (name string, id string, rest string) {
 
 func (c *controller) runCommand(ctx ext.Ctx, args string) tea.Cmd {
 	name, id, rest := parseCommand(args)
+	ctx.Log().Debug("selfmod: /mantle", "args", args, "sub", name, "id", id)
 	switch name {
 	case "":
 		if rest == "" {
@@ -125,7 +126,9 @@ func (c *controller) complete(ctx ext.Ctx, prefix string) []ext.Completion {
 	word, tail, hasSpace := strings.Cut(prefix, " ")
 	if !hasSpace {
 		for _, s := range subcommands {
-			if strings.HasPrefix(s.name, word) {
+			// Nothing to offer once the word is typed in full: the menu closes
+			// and Enter submits.
+			if strings.HasPrefix(s.name, word) && s.name != word {
 				out = append(out, ext.Completion{Value: s.name, Display: strings.TrimSpace(s.name + " " + s.args), Description: s.help})
 			}
 		}
@@ -136,8 +139,9 @@ func (c *controller) complete(ctx ext.Ctx, prefix string) []ext.Completion {
 		return nil
 	}
 	for _, id := range c.order {
-		if strings.HasPrefix(id, strings.TrimSpace(tail)) {
-			out = append(out, ext.Completion{Value: word + " " + id, Display: id, Description: c.builds[id].req.Request})
+		if t := strings.TrimSpace(tail); strings.HasPrefix(id, t) && id != t {
+			// The input replaces the token being typed with Value.
+			out = append(out, ext.Completion{Value: id, Display: id, Description: c.builds[id].req.Request})
 		}
 	}
 	return out
