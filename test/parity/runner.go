@@ -64,6 +64,9 @@ type RunOptions struct {
 	TempDir string
 	// Logf receives progress lines.
 	Logf func(format string, args ...any)
+	// RealAPI, when set, runs against this endpoint instead of the scripted fakeapi (the
+	// opt-in real end-to-end suite). The config directory is still the run's own.
+	RealAPI *Endpoint
 	// Prepare, when set, runs after the workspace is seeded and before the target starts
 	// (to add sessions, files in the config directory and so on).
 	Prepare func(ws Workspace) error
@@ -112,10 +115,15 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		res.Err = err
 		return res
 	}
-	api := fakeapi.New(script)
-	srv := httptest.NewServer(api)
-	defer srv.Close()
-	ws.APIURL, ws.APIKey = srv.URL, fakeapi.FakeAPIKey
+	var api *fakeapi.Server
+	if o.RealAPI != nil {
+		ws.APIURL, ws.APIKey = o.RealAPI.URL, o.RealAPI.Key
+	} else {
+		api = fakeapi.New(script)
+		srv := httptest.NewServer(api)
+		defer srv.Close()
+		ws.APIURL, ws.APIKey = srv.URL, fakeapi.FakeAPIKey
+	}
 	if err := fakeapi.SeedConfig(ws.ConfigDir, ws.APIKey, ws.WorkDir); err != nil {
 		res.Err = err
 		return res
@@ -167,8 +175,10 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		_ = t.Close()
 		res.CPU, res.MaxRSS = t.Usage()
 		saveRaw()
-		res.Requests = api.Consumed()
-		res.Unmatched = api.Unmatched()
+		if api != nil {
+			res.Requests = api.Consumed()
+			res.Unmatched = api.Unmatched()
+		}
 	}()
 
 	for _, st := range sc.Steps {
@@ -368,4 +378,9 @@ func scenarioSettings(raw string) ([]byte, error) {
 		delete(m, "tui") // "tui": null leaves it unset: each target's own default
 	}
 	return json.MarshalIndent(m, "", "  ")
+}
+
+// Endpoint is a real API endpoint and key for RunOptions.RealAPI.
+type Endpoint struct {
+	URL, Key string
 }

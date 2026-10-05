@@ -21,7 +21,7 @@ PKGS_10 = ./cmd/mantle/... ./internal/launcher/... ./internal/selfmod/... \
 PKGS_11 = ./internal/cli/... ./features/cli/... ./scripts/drift/...
 PKGS_12 = ./features/fullscreen/... ./test/...
 
-.PHONY: build test lint vet archtest parity parity-side-by-side perf drift tags sessions install
+.PHONY: build test lint vet archtest parity parity-side-by-side perf e2e-real drift tags sessions install
 
 build:
 	$(GO) build -o bin/ ./cmd/...
@@ -63,6 +63,13 @@ parity-side-by-side:
 # Writes test/parity/out/perf.md. MANTLE_PERF_N sets the startup runs (default 5).
 perf:
 	MANTLE_PERF=1 $(GO) test ./test/e2e/perf -v -count=1 -timeout 30m
+
+# Opt-in real end-to-end check (plan 12): mantle with the real engine and API, an
+# isolated config and the cheapest model; costs a few cents and prints /cost.
+# MANTLE_E2E_REAL=1 ANTHROPIC_API_KEY=... make e2e-real
+e2e-real:
+	@if [ -z "$$MANTLE_E2E_REAL" ]; then echo "e2e-real costs money: set MANTLE_E2E_REAL=1 (and ANTHROPIC_API_KEY)"; exit 1; fi
+	$(GO) test ./test/e2e/real -v -count=1 -timeout 20m
 
 # Compare the installed claude's flags, subcommands, keybindings and settings keys with
 # mantle's tables; writes docs/parity-drift.{md,json}. Exit 1 on unclassified items.
