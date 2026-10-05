@@ -668,7 +668,7 @@ func TestHandoffArgs(t *testing.T) {
 		{[]string{"--permission-mode", "plan"}, ext.SessionInfo{SessionID: "s", Model: "sonnet", PermissionMode: "acceptEdits"},
 			[]string{"--model=sonnet", "--permission-mode=acceptEdits", "--resume=s"}},
 		{[]string{"--ax-screen-reader", "hi"}, s("s"), []string{"--ax-screen-reader", "--resume=s"}},
-		{[]string{"-n", "my session", "--resume", "old"}, ext.SessionInfo{SessionID: "s", Title: "renamed"}, []string{"--name=renamed", "--resume=s"}},
+		{[]string{"-n", "my session", "--resume", "old"}, ext.SessionInfo{SessionID: "s", Title: "Remember a word for me"}, []string{"--name=my session", "--resume=s"}},
 	}
 	for _, c := range cases {
 		if got := handoffArgs(c.argv, t.TempDir(), c.live); !slices.Equal(got, c.want) {

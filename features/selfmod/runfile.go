@@ -59,10 +59,13 @@ func (c *controller) onStart(ctx ext.Ctx) tea.Cmd {
 // handoffArgs are the arguments a relaunch (exit 75, rollback, in-place
 // restart) uses: plan 11's Startup.RestartArgs, which keeps the forwarded
 // flags, -w with the worktree name given at startup and the UI flags, takes
-// the live session name, model and permission mode, and adds --resume. The
-// initial prompt and session selection are never repeated. The startup comes
-// from cmd/mantle-ui (cli.Current); without it, it is rebuilt from argv. On
-// an error it returns nil and the launcher falls back to --resume <session>.
+// the live model and permission mode, and adds --resume. The initial prompt
+// and session selection are never repeated. The live title is not passed as
+// --name: it can be the first prompt or a generated summary, and a name set
+// with /rename is stored in the session, so --resume brings it back. The
+// startup comes from cmd/mantle-ui (cli.Current); without it, it is rebuilt
+// from argv. On an error it returns nil and the launcher falls back to
+// --resume <session>.
 func handoffArgs(argv []string, cwd string, live ext.SessionInfo) []string {
 	if live.SessionID == "" {
 		return nil
@@ -79,7 +82,6 @@ func handoffArgs(argv []string, cwd string, live ext.SessionInfo) []string {
 	}
 	return st.RestartArgs(cli.RestartOpts{
 		SessionID:      live.SessionID,
-		Name:           live.Title,
 		Model:          live.Model,
 		PermissionMode: live.PermissionMode,
 	})
