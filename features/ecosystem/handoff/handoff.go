@@ -80,8 +80,12 @@ var Gaps = []Gap{
 	{Name: "loops", Reason: "/loops is behind a feature flag in this Claude Code version.", Parity: "GAP-09"},
 }
 
+// UpgradeFeatureID is the /upgrade feature's ID.
+const UpgradeFeatureID = "ecosystem.upgrade"
+
 func init() {
-	parity := []string{"EC-19"}
+	ext.Register(ext.Feature{ID: UpgradeFeatureID, Order: 321, Parity: []string{"EC-19"}, Setup: SetupUpgrade})
+	var parity []string
 	for _, e := range Entries {
 		parity = append(parity, e.Parity)
 	}
@@ -91,7 +95,7 @@ func init() {
 	ext.Register(ext.Feature{ID: FeatureID, Order: 320, Parity: parity, Setup: Setup})
 }
 
-// Setup registers the hand-off commands, the gaps and /upgrade.
+// Setup registers the hand-off commands and the gaps.
 func Setup(r ext.Registrar) error {
 	for _, e := range Entries {
 		r.AddCommand(ext.Command{
@@ -105,6 +109,12 @@ func Setup(r ext.Registrar) error {
 			Source: ext.SourceBuiltin, Run: gap(g),
 		})
 	}
+	return nil
+}
+
+// SetupUpgrade registers /upgrade: update the claude binary, or upgrade the plan
+// in Claude Code.
+func SetupUpgrade(r ext.Registrar) error {
 	r.AddCommand(ext.Command{
 		Name: "upgrade", Description: "Update Claude Code, or upgrade your plan", Source: ext.SourceBuiltin,
 		Run: func(ctx ext.Ctx, args string) tea.Cmd { return ctx.OpenDialog(UpgradeDialogID, nil) },

@@ -13,7 +13,12 @@ import (
 )
 
 func TestRegistration(t *testing.T) {
-	r, err := exttest.Setup(ext.Feature{ID: FeatureID, Setup: Setup})
+	r, err := exttest.Setup(ext.Feature{ID: FeatureID, Setup: func(r ext.Registrar) error {
+		if err := Setup(r); err != nil {
+			return err
+		}
+		return SetupUpgrade(r)
+	}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +104,7 @@ func TestUpgrade(t *testing.T) {
 }
 
 func TestUpgradeStory(t *testing.T) {
-	r, _ := exttest.Setup(ext.Feature{ID: FeatureID, Setup: Setup})
+	r, _ := exttest.Setup(ext.Feature{ID: UpgradeFeatureID, Setup: SetupUpgrade})
 	for _, s := range r.Stories {
 		testkit.RunStory(t, s)
 	}
