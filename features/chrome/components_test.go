@@ -649,8 +649,8 @@ func TestEffortLineFullscreenOnly(t *testing.T) {
 	}
 	ctx.LayoutMode = ext.Fullscreen
 	e.Update(ctx, ext.LayoutChangedMsg{Mode: ext.Fullscreen})
-	if got := plainView(e, ctx, 40); got != "\n"+strings.Repeat(" ", 23)+"◔ low · /effort" {
-		t.Errorf("fullscreen effort line (a blank row, then the hint) = %q", got)
+	if got := plainView(e, ctx, 40); got != strings.Repeat(" ", 23)+"◔ low · /effort" {
+		t.Errorf("fullscreen effort line = %q", got)
 	}
 	if strings.Contains(plainView(f, ctx, 100), "/effort") {
 		t.Error("fullscreen: the footer drops the hint")

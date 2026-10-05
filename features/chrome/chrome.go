@@ -18,7 +18,7 @@ func init() {
 		Setup: func(r ext.Registrar) error {
 			r.AddComponent(ext.SlotBelowInput, newFooter(), ext.SlotOpts{Weight: 0, MaxHeight: 1})
 			// Fullscreen only: the effort hint right above the prompt.
-			r.AddComponent(ext.SlotAboveInput, &effortLine{s: newSessionState()}, ext.SlotOpts{Weight: 1000, MaxHeight: 2})
+			r.AddComponent(ext.SlotAboveInput, &effortLine{s: newSessionState()}, ext.SlotOpts{Weight: 1000, MaxHeight: 1})
 			ext.Subscribe(r, "chrome.engineNotices", engineNotice)
 			addStories(r, footerStories())
 			return nil
