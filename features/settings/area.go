@@ -34,6 +34,9 @@ type area struct {
 	// safe claude runner (never hand-built argv); tests replace it.
 	autoModeDefaults func(ctx context.Context, dir string) (AutoModeRules, error)
 
+	// lastVisibility is the command overlay last sent to the host.
+	lastVisibility map[string]bool
+
 	// endPreviewPending: a confirmed /theme preview waits for the settings reload.
 	endPreviewPending bool
 
@@ -116,13 +119,17 @@ func (a *area) subscribe(r ext.Registrar) {
 		}
 		a.observeControl(m)
 		if m.Subtype == proto.SubInitialize || m.Subtype == proto.SubListModels {
-			return a.offerNewerModel(c)
+			return tea.Batch(a.visibilityCmd(), a.offerNewerModel(c))
 		}
 		return nil
 	})
 	ext.Subscribe(r, "settings.engine-events", func(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
-		if isMain(m.EngineID) {
-			a.observeEvent(m.Event)
+		if !isMain(m.EngineID) {
+			return nil
+		}
+		a.observeEvent(m.Event)
+		if _, ok := m.Event.(*proto.CommandsChanged); ok {
+			return a.visibilityCmd()
 		}
 		return nil
 	})

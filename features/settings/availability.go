@@ -1,5 +1,28 @@
 package settings
 
+import (
+	"maps"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/KaitouKid1412/mantle/pkg/ext"
+)
+
+// visibilitySource names plan 08's overlay in ext.CommandVisibilityMsg.
+const visibilitySource = "settings.availability"
+
+// visibilityCmd tells the host which of the area's commands to hide, when that changed.
+// It runs after initialize, list_models and commands_changed, so a /login that
+// restarts the engine re-evaluates it.
+func (a *area) visibilityCmd() tea.Cmd {
+	h := a.commandAvailability()
+	if a.lastVisibility != nil && maps.Equal(h, a.lastVisibility) {
+		return nil
+	}
+	a.lastVisibility = h
+	return ext.Msg(ext.CommandVisibilityMsg{Source: visibilitySource, Hidden: h})
+}
+
 // commandAvailability says which of the area's commands Claude Code would hide for the
 // current account, provider or models, from what the engine reported. A command is
 // only hidden on evidence: before initialize nothing is hidden.
