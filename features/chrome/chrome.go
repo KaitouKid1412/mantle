@@ -91,6 +91,7 @@ func init() {
 		Parity: []string{"CH-08", "CH-09", "CH-20"},
 		Setup: func(r ext.Registrar) error {
 			w := newWelcome()
+			r.OnStart(WelcomeID+".start", w.start)
 			ext.Subscribe(r, WelcomeID+".session", func(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd { return w.Update(ctx, m) })
 			ext.Subscribe(r, WelcomeID+".control", func(ctx ext.Ctx, m ext.ControlResultMsg) tea.Cmd { return w.Update(ctx, m) })
 			ext.Subscribe(r, WelcomeID+".engine", func(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd { return w.Update(ctx, m) })
