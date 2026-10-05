@@ -189,26 +189,26 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   Triaged against claude 2.1.289 on 2026-10-04 (inline renderer). Intentional
   differences: `test/parity/allowlist.txt` (banner, mantle-only notices, own wording);
   the report compares frames with a line diff, so a checkpoint is "allowed" only when
-  every added or removed line is listed. Open requests:
-  - [ ] [12-05](requests/12-05-permission-and-turn-parity.md): esc on a permission prompt
-    ends the turn; dialog shape and option sets; plan approval for 2.1.289; auto mode as
-    the default; AskUserQuestion; interrupt line.
-  - [ ] [12-03](requests/12-03-transcript-parity.md): turn line after every turn; Bash
-    collapse to 3 lines; hide task-tool rows; diff gutter; tab width; background agent
-    rows; compact boundary.
-  - [ ] [12-04](requests/12-04-input-parity.md): esc esc as alt+esc; `/` menu placement,
-    filtering and hidden commands; `@` marker; paste hint; history labels; prompt glyph
-    and placeholder; echo of panel commands.
-  - [ ] [12-06](requests/12-06-sessions-parity.md): /clear publishes a phantom session id
-    (double banner) — bug; /resume picker prints the conversation twice — bug; resume
-    title; picker details; /compact screen; rewind "(current)"; /context skills.
-  - [ ] [12-07](requests/12-07-chrome-parity.md): banner at startup; footer effort hint;
-    status line above the modes and at startup; task panel expanded. (Todo panel fix
-    already in 2052890.)
-  - [ ] [12-08](requests/12-08-panels-parity.md): /model effort default (data); /model
-    layout; /help opens on General; closing echo.
-  - [ ] [12-09](requests/12-09-ecosystem-parity.md): /mcp placement and echo; hand-off
-    confirmation (note).
+  every added or removed line is listed. Requests (status 2026-10-05):
+  - [ ] [12-05](requests/12-05-permission-and-turn-parity.md) (05; §1 done, esc ends the
+    turn): dialog shape and option sets; plan approval for 2.1.289; auto mode as the
+    default; AskUserQuestion. Transcript rows routed to 12-03.
+  - [ ] [12-03](requests/12-03-transcript-parity.md) (03; turn line, 3-line collapse and
+    hidden task rows done): diff gutter; tab width; background agent rows; compact screen
+    (with 06 §5); denial row; "Waiting…"; "Exited plan mode"; interrupt line.
+  - [ ] [12-04](requests/12-04-input-parity.md) (04; esc esc, ❯ and no placeholder done;
+    Panel/FrameTitle sent): `/` menu layout and filtering; `@` marker; paste hint;
+    one-line ctrl+r; echo of panel commands.
+  - [x] [12-06](requests/12-06-sessions-parity.md) (06): phantom session id, resume
+    printing twice, resume title, picker, rewind "(current)", /context — done; chrome's
+    part of the phantom id fixed in plan 07 (f74843a); compact screen with 03.
+  - [x] [12-07](requests/12-07-chrome-parity.md) (07, 006ad5a, f74843a, 2130fa1): banner at
+    startup, footer layout and effort hint, status line above the modes and at startup,
+    task panel expanded, Panel/FrameTitle.
+  - [x] [12-08](requests/12-08-panels-parity.md) (08): effort default, picker, /help on
+    General, closing lines.
+  - [x] [12-09](requests/12-09-ecosystem-parity.md) (09): /mcp closing line; hand-off
+    confirmation kept (note).
 - [ ] **B3 [M2] Performance suite** (`test/e2e/perf`):
   - **startup:** cold launch to first frame for `mantle` vs `claude` (median of N);
   - **long transcripts:** resume a 10k-item session; time to interactive; steady `View()`

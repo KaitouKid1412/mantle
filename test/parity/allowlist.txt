@@ -21,6 +21,7 @@
 
 # mantle-only notices.
 * | * | ^· Claude Code [0-9.]+ adds \d+ tools? mantle doesn't know yet | mantle's engine-drift notice (plan 11): a newer engine works as passthrough
+* | * | ^· claude [0-9.]+ passed mantle's startup checks\.$ | mantle's engine version check (plan 05): shown for 5 s the first time a version is seen, and every parity run starts fresh
 
 # Own wording for the same information.
 edit-diff | edited | ^ +⎿ +(Added \d+ lines?, removed \d+ lines?|Updated \S+ with \d+ additions? and \d+ removals?)$ | own wording for the Edit result summary
