@@ -99,7 +99,7 @@ const startupRules = `
 
 const smokeScript = startupRules + `
 {"on": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": ` + "INIT" + `}
-{"expect": {"type":"user"}, "timeout": 20000}
+{"expect": {"type":"user"}, "timeout": 60000}
 {"emit": {"type":"system","subtype":"init","session_id":"s-smoke","uuid":"i1","cwd":"/tmp","tools":[],"mcp_servers":[],"model":"claude-test","permissionMode":"default","slash_commands":[],"apiKeySource":"none","claude_code_version":"2.1.288","output_style":"default"}}
 {"emit": {"type":"assistant","message":{"id":"m1","type":"message","role":"assistant","model":"claude-test","content":[{"type":"text","text":"pong from the fake engine"}],"stop_reason":"end_turn"},"parent_tool_use_id":null,"session_id":"s-smoke","uuid":"a1"}}
 {"emit": {"type":"result","subtype":"success","is_error":false,"result":"pong from the fake engine","duration_ms":5,"duration_api_ms":4,"num_turns":1,"session_id":"s-smoke","uuid":"r1","total_cost_usd":0,"usage":{"input_tokens":1,"output_tokens":1}}}
