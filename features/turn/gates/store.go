@@ -17,6 +17,9 @@ type GateStore struct {
 	BypassAcceptedAt string `json:"bypassAcceptedAt,omitempty"`
 	// AutoNoticeAt is set once mantle told the user auto mode is the default.
 	AutoNoticeAt string `json:"autoNoticeAt,omitempty"`
+	// BillingNoticeAt is when the user acknowledged the auto-mode classifier billing
+	// notice.
+	BillingNoticeAt string `json:"billingNoticeAt,omitempty"`
 	// APIKeys maps sha256(trimmed key) to "approved" or "rejected". mantle stores a hash,
 	// never the key or a slice of it.
 	APIKeys map[string]string `json:"apiKeys,omitempty"`
@@ -117,4 +120,27 @@ func RecordAPIKey(env Env, key string, approved bool) error {
 func keyHash(key string) string {
 	sum := sha256.Sum256([]byte(strings.TrimSpace(key)))
 	return hex.EncodeToString(sum[:])
+}
+
+// BillingNoticeInterval is how long an acknowledged auto-mode billing notice stays
+// quiet, as in Claude Code.
+const BillingNoticeInterval = 24 * time.Hour
+
+// BillingNoticeDue reports whether the auto-mode billing notice should be shown: never
+// acknowledged, or acknowledged more than BillingNoticeInterval ago. store may be nil.
+func BillingNoticeDue(store *GateStore, now time.Time) bool {
+	if store == nil || store.BillingNoticeAt == "" {
+		return true
+	}
+	at, err := time.Parse(time.RFC3339, store.BillingNoticeAt)
+	return err != nil || now.Sub(at) >= BillingNoticeInterval
+}
+
+// RecordBillingNotice remembers that the auto-mode billing notice was acknowledged.
+func RecordBillingNotice(env Env, now time.Time) error {
+	return updateJSON(env.GateStorePath(), func(s *GateStore) error {
+		s.Version = 1
+		s.BillingNoticeAt = now.UTC().Format(time.RFC3339)
+		return nil
+	})
 }

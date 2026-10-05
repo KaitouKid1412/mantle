@@ -387,3 +387,71 @@ func (m *McpApproval) View(width int, st Styles) string {
 	body = append(body, styleLines(st.Dim, wrap("space to toggle · enter to confirm · esc to use none", w))...)
 	return frame(title, body, width, "warning", st)
 }
+
+// What a Notice was closed with.
+const (
+	NoticeOK      = "ok"
+	NoticeDismiss = "dismiss"
+)
+
+// Notice is an acknowledgement dialog for engine text, in Claude Code's shape: the title,
+// the paragraphs (sanitized, wrapped, a blank line apart) and a key hint, with no option
+// list. Enter closes it with NoticeOK, esc with NoticeDismiss.
+type Notice struct {
+	title, hint string
+	paragraphs  []string
+	chosen      string
+}
+
+// NewNotice builds a Notice; hint is the key line under the text.
+func NewNotice(title string, paragraphs []string, hint string) *Notice {
+	return &Notice{title: SanitizeLine(title), paragraphs: paragraphs, hint: hint}
+}
+
+// Done reports whether the notice was closed.
+func (n *Notice) Done() bool { return n.chosen != "" }
+
+// Chosen returns NoticeOK or NoticeDismiss ("" until Done).
+func (n *Notice) Chosen() string { return n.chosen }
+
+// HandleKey implements Model.
+func (n *Notice) HandleKey(k tea.KeyPressMsg) (bool, Effect) {
+	a, _ := keyAct(k)
+	return n.do(a)
+}
+
+// Action implements Model.
+func (n *Notice) Action(id string) (bool, Effect) { return n.do(actionAct(id)) }
+
+func (n *Notice) do(a act) (bool, Effect) {
+	if n.Done() {
+		return false, None
+	}
+	switch a {
+	case actYes:
+		n.chosen = NoticeOK
+	case actNo:
+		n.chosen = NoticeDismiss
+	default:
+		return false, None
+	}
+	return true, Answered
+}
+
+// HandlePaste implements Model.
+func (n *Notice) HandlePaste(string) (bool, Effect) { return false, None }
+
+// View implements Model.
+func (n *Notice) View(width int, st Styles) string {
+	w := bodyWidth(width)
+	var body []string
+	for i, p := range n.paragraphs {
+		if i > 0 {
+			body = append(body, "")
+		}
+		body = append(body, wrap(Sanitize(p), w)...)
+	}
+	body = append(body, "")
+	body = append(body, styleLines(st.Dim, wrap(n.hint, w))...)
+	return frame(n.title, body, width, "permission", st)
+}
