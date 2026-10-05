@@ -37,6 +37,7 @@ type state struct {
 	starting   []startPending // sent before the main engine attached
 	startErr   error          // the main engine failed to start
 	engineCmds []proto.SlashCommand
+	skills     map[string]bool // engine skills: left out of the unfiltered / menu
 
 	// history
 	histPath  string
@@ -125,6 +126,10 @@ func (s *state) start(c ext.Ctx) tea.Cmd {
 	s.syncSession(c.Session())
 	s.applyTheme(c.Theme())
 	s.loadStash(c)
+	var cached []string
+	if ok, _ := c.Store(FeatureID).Get(skillsKey, &cached); ok {
+		s.addSkills(cached)
+	}
 	if st, ok := cli.Current(); ok && st.Prefill != "" {
 		s.setText(st.Prefill) // --prefill: shown, not sent
 	}

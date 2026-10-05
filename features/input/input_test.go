@@ -285,6 +285,39 @@ func TestPasteAgainExpands(t *testing.T) {
 	}
 }
 
+func TestSkillsAndHeadlessOnlyCommandsInMenu(t *testing.T) {
+	r := newRig(t, nil)
+	r.c.CommandList = append(r.c.CommandList,
+		ext.Command{Name: "batch", Description: "Plan a large change", Source: ext.SourceEngine},
+	)
+	skills, _ := json.Marshal(proto.ReloadSkillsResponse{Skills: []proto.SlashCommand{{Name: "batch"}}})
+	r.event(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubReloadSkills, Resp: skills})
+	r.keys("'/'")
+	for _, v := range itemValues(r.s.comp.items) {
+		if v == "batch" {
+			t.Fatal("skills stay out of the unfiltered menu")
+		}
+	}
+	r.keys("'bat'")
+	if got := itemValues(r.s.comp.items); len(got) == 0 || got[0] != "batch" {
+		t.Fatalf("skills match when filtering: %v", got)
+	}
+	// Bundled skills arrive with system/init and are remembered for the next
+	// session.
+	r.event(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: &proto.SystemInit{Skills: []string{"deep-research"}}})
+	s2 := newState()
+	s2.start(r.c)
+	if !s2.skills["deep-research"] {
+		t.Fatal("init skills are cached across sessions")
+	}
+	resp, _ := json.Marshal(proto.InitializeResponse{Commands: []proto.SlashCommand{{Name: "auto-mode-setup"}, {Name: "compact"}}})
+	r.event(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Resp: resp})
+	m, _ := lastMsg[ext.CommandsMsg](r)
+	if !m.Commands[0].Hidden || m.Commands[1].Hidden {
+		t.Fatalf("headless-only commands are hidden: %+v", m.Commands)
+	}
+}
+
 func TestNativeCommandEcho(t *testing.T) {
 	r := newRig(t, nil)
 	echoes := func() []string {
