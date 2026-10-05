@@ -47,12 +47,16 @@ type state struct {
 	sessionID string
 
 	// panels
-	comp   completion
-	search *search
-	help   bool
-	stash  *savedDraft
+	comp         completion
+	search       *search
+	searchDialog bool // the search is the fullscreen dialog
+	help         bool
+	stash        *savedDraft
 
 	escAt       time.Time
+	echo        string // native command just run, echoed once its panel opens
+	echoClear   bool   // that command was /clear: echo it after the reset
+	echoSeq     int
 	pasteHint   bool        // a paste just collapsed: pasting it again expands it
 	lastPaste   string      // that paste's content
 	lastSent    *savedDraft // restored when the send stage rejects
@@ -191,7 +195,8 @@ func (s *state) editorState() ext.EditorStateMsg {
 		m.Vim = s.ed.VimMode().String()
 	}
 	if !s.hist.AtDraft() && s.search == nil {
-		m.FrameTitle = "History " + itoa(s.hist.Pos()+1) + "/" + itoa(s.hist.Len())
+		// Counted oldest first: the newest recalled entry is N/N.
+		m.FrameTitle = "History " + itoa(s.hist.Len()-s.hist.Pos()) + "/" + itoa(s.hist.Len())
 	}
 	return m
 }

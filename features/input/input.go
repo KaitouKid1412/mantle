@@ -90,6 +90,8 @@ func register(r ext.Registrar, s *state) {
 		})
 	}
 
+	r.AddDialog(DialogHistorySearch, func(ext.Ctx, any) (ext.Dialog, error) { return &searchDialog{s: s}, nil })
+
 	r.AddPromptStage(StageHistory, PrioHistory, s.stageHistory)
 	r.AddPromptStage(StageSlash, PrioSlash, s.stageSlash)
 	r.AddPromptStage(StageBash, PrioBash, s.stageBash)
