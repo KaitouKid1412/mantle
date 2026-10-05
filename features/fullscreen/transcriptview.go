@@ -70,7 +70,9 @@ type transcriptView struct {
 }
 
 func newTranscriptView(env terminal.Env) *transcriptView {
-	return &transcriptView{r: newRenderer(), vp: NewViewport(1), hover: -1, autoScroll: true, virtual: true, env: env}
+	vp := NewViewport(1)
+	vp.Tail = 1 // a blank line under the last item, as Claude Code leaves above its prompt
+	return &transcriptView{r: newRenderer(), vp: vp, hover: -1, autoScroll: true, virtual: true, env: env}
 }
 
 func (v *transcriptView) ID() string { return ViewportID }
@@ -509,13 +511,15 @@ func (v *transcriptView) action(id ext.ActionID) ext.ActionFunc {
 			v.vp.ScrollBy(-v.wheel.Notch(ctx.Clock().Now().UnixMilli()))
 		case ext.ActScrollLineDown:
 			v.vp.ScrollBy(v.wheel.Notch(ctx.Clock().Now().UnixMilli()))
-		case ext.ActScrollPageUp, ext.ActScrollFullPageUp:
+		// PgUp/PgDn move half a window, as Claude Code's do (fs-scroll); the full-page
+		// actions keep a whole window.
+		case ext.ActScrollFullPageUp:
 			v.vp.Page(-1)
-		case ext.ActScrollPageDown, ext.ActScrollFullPageDown:
+		case ext.ActScrollFullPageDown:
 			v.vp.Page(1)
-		case ext.ActScrollHalfPageUp:
+		case ext.ActScrollPageUp, ext.ActScrollHalfPageUp:
 			v.vp.HalfPage(-1)
-		case ext.ActScrollHalfPageDown:
+		case ext.ActScrollPageDown, ext.ActScrollHalfPageDown:
 			v.vp.HalfPage(1)
 		case ext.ActScrollTop:
 			v.vp.Top()
