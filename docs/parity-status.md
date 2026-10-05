@@ -8,23 +8,23 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 
 |  | Rows | compared | tagged | evidenced | scenario only | untagged | hand-off | gap | not applicable |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| All rows | 572 | 58 | 340 | 1 | 2 | 122 | 36 | 13 | 0 |
+| All rows | 572 | 61 | 351 | 97 | 1 | 2 | 36 | 23 | 1 |
 
 ## By owner plan
 
 | Plan | Rows | compared | tagged | evidenced | scenario only | untagged | hand-off | gap | not applicable |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 01 | 29 | 0 | 29 | 0 | 0 | 0 | 0 | 0 | 0 |
-| 02 | 61 | 0 | 0 | 0 | 0 | 59 | 0 | 2 | 0 |
+| 02 | 61 | 0 | 0 | 58 | 0 | 0 | 0 | 3 | 0 |
 | 03 | 74 | 19 | 54 | 0 | 0 | 0 | 0 | 1 | 0 |
-| 04 | 73 | 8 | 56 | 0 | 0 | 8 | 0 | 1 | 0 |
-| 05 | 68 | 11 | 38 | 0 | 1 | 16 | 0 | 2 | 0 |
-| 06 | 53 | 8 | 41 | 0 | 0 | 2 | 2 | 0 | 0 |
-| 07 | 34 | 5 | 21 | 1 | 0 | 4 | 0 | 3 | 0 |
+| 04 | 73 | 8 | 60 | 1 | 0 | 0 | 0 | 4 | 0 |
+| 05 | 68 | 14 | 40 | 6 | 0 | 0 | 0 | 8 | 0 |
+| 06 | 53 | 8 | 42 | 1 | 0 | 0 | 2 | 0 | 0 |
+| 07 | 34 | 5 | 24 | 1 | 0 | 1 | 0 | 3 | 0 |
 | 08 | 37 | 2 | 35 | 0 | 0 | 0 | 0 | 0 | 0 |
-| 09 | 71 | 1 | 24 | 0 | 0 | 18 | 28 | 0 | 0 |
-| 10 | 28 | 0 | 17 | 0 | 0 | 10 | 0 | 1 | 0 |
-| 11 | 33 | 0 | 20 | 0 | 0 | 5 | 6 | 2 | 0 |
+| 09 | 71 | 1 | 25 | 16 | 0 | 0 | 28 | 0 | 1 |
+| 10 | 28 | 0 | 17 | 9 | 0 | 1 | 0 | 1 | 0 |
+| 11 | 33 | 0 | 20 | 5 | 0 | 0 | 6 | 2 | 0 |
 | 12 | 10 | 4 | 5 | 0 | 1 | 0 | 0 | 0 | 0 |
 | – | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 
@@ -32,24 +32,24 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 
 | Area | Rows | compared | tagged | evidenced | scenario only | untagged | hand-off | gap | not applicable |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| ENG: engine plumbing (owner 02) | 59 | 0 | 0 | 0 | 0 | 59 | 0 | 0 | 0 |
-| ED: prompt editor (owner 04) | 40 | 2 | 36 | 0 | 0 | 2 | 0 | 0 | 0 |
-| AC: autocomplete (owner 04) | 22 | 4 | 12 | 0 | 0 | 6 | 0 | 0 | 0 |
+| ENG: engine plumbing (owner 02) | 59 | 0 | 0 | 58 | 0 | 0 | 0 | 1 | 0 |
+| ED: prompt editor (owner 04) | 40 | 2 | 37 | 0 | 0 | 0 | 0 | 1 | 0 |
+| AC: autocomplete (owner 04) | 22 | 4 | 15 | 1 | 0 | 0 | 0 | 2 | 0 |
 | HI: history (owner 04) | 10 | 2 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
-| TC: turn control (owner 05) | 21 | 2 | 11 | 0 | 1 | 7 | 0 | 0 | 0 |
+| TC: turn control (owner 05) | 21 | 5 | 12 | 4 | 0 | 0 | 0 | 0 | 0 |
 | TR: transcript rendering (owner 03) | 60 | 17 | 43 | 0 | 0 | 0 | 0 | 0 | 0 |
-| VW: views (owner 03; screen reader 07; fullscreen 12) | 24 | 6 | 16 | 0 | 1 | 1 | 0 | 0 | 0 |
-| CH: chrome & terminal (owner 07) | 30 | 5 | 21 | 1 | 0 | 3 | 0 | 0 | 0 |
-| PD: permissions, dialogs & startup gates (owner 05) | 45 | 9 | 27 | 0 | 0 | 9 | 0 | 0 | 0 |
+| VW: views (owner 03; screen reader 07; fullscreen 12) | 24 | 6 | 17 | 0 | 1 | 0 | 0 | 0 | 0 |
+| CH: chrome & terminal (owner 07) | 30 | 5 | 23 | 1 | 0 | 1 | 0 | 0 | 0 |
+| PD: permissions, dialogs & startup gates (owner 05) | 45 | 9 | 28 | 2 | 0 | 0 | 0 | 6 | 0 |
 | SE: sessions (owner 06) | 43 | 7 | 34 | 0 | 0 | 0 | 2 | 0 | 0 |
-| CU: context & usage (owner 06) | 11 | 1 | 8 | 0 | 0 | 2 | 0 | 0 | 0 |
+| CU: context & usage (owner 06) | 11 | 1 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
 | ST: settings & model panels (owner 08) | 36 | 2 | 34 | 0 | 0 | 0 | 0 | 0 | 0 |
-| EC: ecosystem panels + engine-passthrough commands (owner 09) | 47 | 1 | 23 | 0 | 0 | 17 | 6 | 0 | 0 |
+| EC: ecosystem panels + engine-passthrough commands (owner 09) | 47 | 1 | 24 | 16 | 0 | 0 | 6 | 0 | 0 |
 | CF: config compatibility (owner 01) | 20 | 0 | 20 | 0 | 0 | 0 | 0 | 0 | 0 |
-| CLI: flags, subcommands, drift (owner 11) | 28 | 0 | 20 | 0 | 0 | 5 | 3 | 0 | 0 |
-| CL: cloud & product hand-offs (owner 09 or 11) | 27 | 0 | 1 | 0 | 0 | 1 | 25 | 0 | 0 |
+| CLI: flags, subcommands, drift (owner 11) | 28 | 0 | 20 | 5 | 0 | 0 | 3 | 0 | 0 |
+| CL: cloud & product hand-offs (owner 09 or 11) | 27 | 0 | 1 | 0 | 0 | 0 | 25 | 0 | 1 |
 | GAP: known gaps (X) | 13 | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 0 |
-| MT: mantle-only (owner 10; extension API 01) | 36 | 0 | 26 | 0 | 0 | 10 | 0 | 0 | 0 |
+| MT: mantle-only (owner 10; extension API 01) | 36 | 0 | 26 | 9 | 0 | 1 | 0 | 0 | 0 |
 
 ## Plan 12 triage requests
 
@@ -62,7 +62,7 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | [12 → 03: streaming-text cache in the fullscreen layout](plans/requests/12-03-fullscreen-text-cache.md) | resolved 2026-10-04 in plan 03 commit 18ce53f: finished text items drop their |
 | [12 → 03: transcript differences, round 2 (parity audit on integration-6)](plans/requests/12-03-transcript-parity-2.md) | done by 03 (worktree-mantle-03 1a73aab: §1, §2, §5 1730cfd; §3 8e345bf; §4 14ac009, the transcript keeps its own turn ledger, plus the printer fix 1a73aab) (2026-10-05). Found by the plan 12 side-by-side suite against claude |
 | [12 → 03: transcript rendering differences (parity audit)](plans/requests/12-03-transcript-parity.md) | done by 03 (worktree-mantle-03 986023d: §1, §8, §11 e29603f; §9, §10 d55c26c; §4, §5 850aabe; §6, §7 986023d) (2026-10-05). Found by the plan 12 side-by-side suite against claude |
-| [12 → 04: input differences, round 2 (parity audit on integration-6)](plans/requests/12-04-input-parity-2.md) | §1-§4 done by 04 (worktree-04-input 672c1fa: history numbering, fullscreen ctrl+r dialog, esc restores the prompt, /clear echo); native panel commands echoed; §5 (menu entries claude hides) open (2026-10-05). Found by the plan 12 side-by-side suite against claude |
+| [12 → 04: input differences, round 2 (parity audit on integration-6)](plans/requests/12-04-input-parity-2.md) | done by plan 04 (2026-10-05, worktree-04-input 672c1fa and b734706), verified with make parity-side-by-side: §1 "History 2/2" counted oldest first; §2 VW-22 fullscreen ctrl+r is dialog.historySearch; §3 esc in that dialog restores the prompt; §4 /clear echoed after the reset; §5 skills stay out of the unfiltered / menu (from reload_skills, system/init and a cache), and the headless auto-mode-setup, /agents (hidden in 2.1.289), heapdump and __* engine commands are Hidden. Left to plan 09: its native /agents, /agent-view and the cloud hand-offs (/cloud-plugins, /daemon, ...) need Command.Hidden or an auth-based CommandVisibilityMsg (asked). Found by the plan 12 side-by-side suite against claude |
 | [12 → 04: prompt, menus, history and esc (parity audit)](plans/requests/12-04-input-parity.md) | plan 04 part done (2026-10-05, worktree-04-input eb8507c): §1, §2 (layout, tiers, no `__` names, no ghost), §3, §4, §5b, §6, §7 (echo of native commands); input.editor sends `EditorStateMsg.Panel` while a menu, hint, help or search shows, and `FrameTitle` "History N/M" (§5a). Left to others: chrome hides the footer on Panel and draws FrameTitle (07); command availability through Command.Hidden or CommandVisibilityMsg (08/09); panel close results (08/09); the transcript's user-prompt glyph (03). Found by the plan 12 side-by-side suite against claude |
 | [12 → 05: permission dialogs, plan approval, esc and auto mode (parity audit)](plans/requests/12-05-permission-and-turn-parity.md) | §1–5 done by plan 05 (worktree-mantle-05, 2026-10-05; verified with the side-by-side suite against claude 2.1.289: dialog layout, option sets, diff lines and mode behaviour match, wording is mantle's own); the "Denied: …" row, "Waiting…" row, "Exited plan mode" row and §6 routed to 03 (12-03 §8-11). Found by the plan 12 side-by-side suite against claude |
 | [12 → 06: `/diff` as a right sidebar in fullscreen](plans/requests/12-06-diff-sidebar.md) | resolved 2026-10-04: plan 06 registers `sessions.diffPanel` in `SlotSidebarR` (fullscreen only), opened by /diff at ≥ 110 columns and on its own at ≥ 144 after a turn that edited files. |
@@ -77,65 +77,65 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 
 | ID | Feature | Code | Plan | State | Evidence |
 |---|---|---|---|---|---|
-| ENG-01 | Headless spawn with SDK-equivalent flags | N | 02 | untagged |  |
-| ENG-02 | Child environment cleanup/set | N | 02 | untagged |  |
-| ENG-03 | NDJSON transport, multi-MB lines | N | 02 | untagged |  |
-| ENG-04 | Typed decoding with raw retention | N | 02 | untagged |  |
-| ENG-05 | `initialize` handshake | N | 02 | untagged |  |
-| ENG-06 | `system/init` per-turn tracking | R | 02 | untagged |  |
-| ENG-07 | Control request correlator | N | 02 | untagged |  |
-| ENG-08 | Capability cache `Supports(subtype)` | N | 02 | untagged |  |
-| ENG-09 | `unstable.go` for undocumented subtypes | N | 02 | untagged |  |
-| ENG-10 | CLI→client requests as messages | N | 02 | untagged |  |
-| ENG-11 | Stream delta coalescing | N | 02 | untagged |  |
-| ENG-12 | `session_state_changed` | R | 02 | untagged |  |
-| ENG-13 | Session tracker | N | 02 | untagged |  |
-| ENG-14 | Supervisor restart variants | N | 02 | untagged |  |
-| ENG-15 | Engine crash recovery | N | 02 | untagged |  |
-| ENG-16 | stderr ring buffer and debug log | N | 02 | untagged |  |
-| ENG-17 | Multiple engines with EngineID | N | 02 | untagged |  |
-| ENG-18 | Process group and shutdown sequence | N | 02 | untagged |  |
-| ENG-19 | Engine binary discovery and minimum version | N | 02 | untagged |  |
-| ENG-20 | Conformance probe (zero tokens) | N | 02 | untagged |  |
-| ENG-21 | Engine version pinning | N | 02 | untagged |  |
-| ENG-22 | `--bare` default guard | N | 02 | untagged |  |
-| ENG-23 | User-message fields | N | 02 | untagged |  |
-| ENG-24 | `--replay-user-messages` acks | N | 02 | untagged |  |
-| ENG-25 | `--include-hook-events` | N | 02 | untagged |  |
-| ENG-26 | `--forward-subagent-text` | N | 02 | untagged |  |
-| ENG-27 | Prompt suggestions channel | N | 02 | untagged |  |
-| ENG-28 | `CLAUDE_CODE_ENTRYPOINT` choice | N | 02 | untagged |  |
-| ENG-29 | `keep_alive` / `update_environment_variables` | N | 02 | untagged |  |
-| ENG-30 | `auth_status` frames | R | 02 | untagged |  |
-| ENG-31 | fakeclaude scripted engine | N | 02 | untagged |  |
-| ENG-32 | fakeapi Messages-API mock | N | 02 | untagged |  |
-| ENG-33 | Sanitizing fixture recorder | N | 02 | untagged |  |
-| ENG-34 | `scripts/sdk-diff` | N | 02 | untagged |  |
-| ENG-35 | Built-in tools execution | E | 02 | untagged |  |
-| ENG-36 | Subagents | E | 02 | untagged |  |
-| ENG-37 | MCP servers | E | 02 | untagged |  |
-| ENG-38 | Hooks execution | E | 02 | untagged |  |
-| ENG-39 | Skills engine | E | 02 | untagged |  |
-| ENG-40 | Plugin loading | E | 02 | untagged |  |
-| ENG-41 | CLAUDE.md and memory | E | 02 | untagged |  |
-| ENG-42 | Compaction | E | 02 | untagged |  |
-| ENG-43 | Sandbox | E | 02 | untagged |  |
-| ENG-44 | Auto mode classifier | E | 02 | untagged |  |
-| ENG-45 | Output styles | E | 02 | untagged |  |
-| ENG-46 | Permission rule evaluation | E | 02 | untagged |  |
-| ENG-47 | File checkpointing | E | 02 | untagged |  |
-| ENG-48 | Background tasks, Monitor, Cron, ScheduleWakeup | E | 02 | untagged |  |
-| ENG-49 | Worktrees | E | 02 | untagged |  |
-| ENG-50 | Workflows | E | 02 | untagged |  |
-| ENG-51 | Cross-session messaging | E | 02 | untagged |  |
-| ENG-52 | Model resolution, fast mode, advisor, fallback chains | E | 02 | untagged |  |
-| ENG-53 | Prompt caching and system-prompt snapshot | E | 02 | untagged |  |
-| ENG-54 | Settings precedence inside the engine | E | 02 | untagged |  |
-| ENG-55 | Providers and auth | E | 02 | untagged |  |
-| ENG-56 | Telemetry and OTEL env | E | 02 | untagged |  |
-| ENG-57 | Shell snapshot / session-env / `CLAUDE_ENV_FILE` | E | 02 | untagged |  |
-| ENG-58 | Structured tool results (`tool_use_result`) | E | 02 | untagged |  |
-| ENG-59 | Engine-side expansion of `@path`, `@server:res`, `/cmd` | E | 02 | untagged |  |
+| ENG-01 | Headless spawn with SDK-equivalent flags | N | 02 | evidenced | evidence: `internal/engine` TestBuildArgs (base stream-json flags, -n, model, mode, resume variants, add-dir, settings, ExtraArgs verbatim); `enginetest` TestTurnFlowsInOrder (spawned args, never `--system-prompt`), TestRealEngine (real claude spawned through Manager) |
+| ENG-02 | Child environment cleanup/set | N | 02 | evidenced | evidence: `internal/engine` TestBuildEnv (drops CLAUDECODE, NODE_OPTIONS, DEBUG, CLAUDE_CODE_SIMPLE, CLAUDE_CODE_SAFE_MODE unless safe mode, UnsetEnv; sets the session-state and checkpointing switches) |
+| ENG-03 | NDJSON transport, multi-MB lines | N | 02 | evidenced | evidence: `internal/engine` TestTransportReadsHugeLinesAndSkipsNoise (9 MB line, non-JSON noise, malformed line, no trailing newline), TestTransportLongLinesReuseDoesNotCorrupt, TestTransportSendNeverBlocksAndKeepsOrder (stuck pipe, 4 concurrent senders), TestTransportWriteErrorSurfaces |
+| ENG-04 | Typed decoding with raw retention | N | 02 | evidenced | evidence: `pkg/proto` TestSamplesDecodeAndRoundTrip (every type; unknown types preserved verbatim), TestDecodeToleratesShapeDrift, TestDecodeKeepsOwnCopy, TestUnmodelledReportsDroppedFields; `internal/engine/fixture` TestFixturesDecodeAndRoundTrip (every recorded real-engine line decodes with no unknown or unmodelled field) |
+| ENG-05 | `initialize` handshake | N | 02 | evidenced | evidence: `enginetest` TestNothingBeforeInitialize (initialize is the first stdin line, held prompts follow), TestHeldNotDelayedByVersion, TestInitializeFailureDropsHeld, TestPendingRequestsFromInitialize (pending_permission_requests re-raised once), TestRealEngine (initialize reply in Snapshot) |
+| ENG-06 | `system/init` per-turn tracking | R | 02 | evidenced | evidence: `enginetest` TestTurnFlowsInOrder and TestRealEngine (session id, version, initialize data in Snapshot; SessionChangedMsg), TestControlCorrelationAndUnsupported (init capabilities feed Supports); consumers render it: features/transcript, features/settings (status), features/input, features/ecosystem |
+| ENG-07 | Control request correlator | N | 02 | evidenced | evidence: `internal/engine` TestCorrelator (reply, timeout sends control_cancel_request, late reply ignored, Close fails pending), TestCorrelatorConcurrent (100 parallel requests, -race); `enginetest` TestControlCorrelationAndUnsupported |
+| ENG-08 | Capability cache `Supports(subtype)` | N | 02 | evidenced | evidence: `enginetest` TestControlCorrelationAndUnsupported (an "Unsupported control request subtype" reply turns the subtype off), TestUnstableFallbacks; `internal/engine` TestVersionAtLeast (version gate for unstable subtypes) |
+| ENG-09 | `unstable.go` for undocumented subtypes | N | 02 | evidenced | evidence: `enginetest` TestUnstableFallbacks (get_workspace_diff → git diff, side_question → private forked engine, rewind_conversation → restart at --resume-session-at), TestRealUnstable (all three native on the real engine) |
+| ENG-10 | CLI→client requests as messages | N | 02 | evidenced | evidence: `enginetest` TestPermissionRoundTripAndCancel (can_use_tool → PermissionMsg, exactly-once Reply, control_cancel_request → ControlCancelMsg, hook_callback answered {}, elicitation → ControlRequestMsg, unknown subtype → error), TestRepliesNotHeld, TestPendingRequestsFromInitialize, TestRealEngine (real can_use_tool approved through PermissionMsg); fixtures ask-user-question, exit-plan-mode, elicitation |
+| ENG-11 | Stream delta coalescing | N | 02 | evidenced | evidence: `internal/engine` TestCoalescerMergesAndKeepsOrder, TestCoalescerTimerFlushAndNoAliasing, TestCoalescerConcurrentOrder (timer vs reader race), TestCoalescingRate, BenchmarkDecodeAndCoalesce; `enginetest` TestSpikeS17DeltaRate (real engine at ~50k deltas/s → ~60 messages/s) |
+| ENG-12 | `session_state_changed` | R | 02 | evidenced | evidence: `enginetest` TestSessionTracking (session_state_changed → Snapshot().State); fixtures carry running/idle around every turn (e.g. queued-priority); consumers: features/transcript (spinner), features/input, features/selfmod |
+| ENG-13 | Session tracker | N | 02 | evidenced | evidence: `enginetest` TestSessionTracking (status mode, title, conversation_reset clears the id and takes the real one from the next system/init, set_model), TestTurnFlowsInOrder |
+| ENG-14 | Supervisor restart variants | N | 02 | evidenced | evidence: `internal/engine` TestBuildArgs (--resume=, --continue, --fork-session, --resume-session-at=, --resume-drops-turn=, --session-id=); `enginetest` TestUnexpectedExitAndRestart (Restart with resume + fork), TestUnstableFallbacks (rewind restart), fixture resume; spikes TestSpikeS7Resume, TestSpikeS7DropsTurn |
+| ENG-15 | Engine crash recovery | N | 02 | evidenced | evidence: `enginetest` TestUnexpectedExitAndRestart (EngineExitedMsg with the stderr tail, Control on a dead engine errors, Restart brings it back), TestSpawnFailure |
+| ENG-16 | stderr ring buffer and debug log | N | 02 | evidenced | evidence: `internal/engine` TestRing (64 KB ring, Tail); `enginetest` TestUnexpectedExitAndRestart (stderr tail in EngineExitedMsg); `--debug-file` reaches the engine through ExtraArgs (TestBuildArgs) |
+| ENG-17 | Multiple engines with EngineID | N | 02 | evidenced | evidence: `enginetest` TestMultipleEngines (main + builder, Remove → EngineDetachMsg), TestHandleStartStopAndCommands (EngineStartMsg/EngineStopMsg for "builder-1"; every message carries its EngineID) |
+| ENG-18 | Process group and shutdown sequence | N | 02 | evidenced | evidence: `internal/engine` ExecSpawner (Setpgid) checked by `cmd/mantle-ui` TestSmokeBoot (engine pgid differs from the UI's); shutdown sequence (end_session → EOF → TERM → KILL) in `enginetest` TestUnexpectedExitAndRestart and TestHandoffAcrossExec (clean exit, err nil) |
+| ENG-19 | Engine binary discovery and minimum version | N | 02 | evidenced | evidence: `enginetest` TestCheckEngine (MinEngineVersion 2.1.288 → TooOld, ErrNoEngine when claude is missing, MANTLE_CLAUDE_BIN override, pinned binary); `internal/engine` TestMantleHomePaths |
+| ENG-20 | Conformance probe (zero tokens) | N | 02 | evidenced | evidence: `enginetest` TestProbeFake (full and --bare-like engines), TestProbeReal (real engine: commands, models, project skill, hook and CLAUDE.md seen, end_session; no model calls), TestCheckEngine (probe only on a new version, results recorded) |
+| ENG-21 | Engine version pinning | N | 02 | evidenced | evidence: `enginetest` TestCheckEngine (failed version → last good version and its ~/.local/share/claude/versions copy, Pin, ResolveBinary uses the pin, Unpin) |
+| ENG-22 | `--bare` default guard | N | 02 | evidenced | evidence: `internal/engine` TestBuildEnv (CLAUDE_CODE_SIMPLE removed); `enginetest` TestProbeFake (an engine missing hooks, skills and memory fails the probe), TestProbeReal |
+| ENG-23 | User-message fields | N | 02 | evidenced | evidence: `pkg/proto` TestUserInputLine (uuid, origin human, priority, string vs block content); `enginetest` TestTurnFlowsInOrder (uuid, origin), TestHandleStartStopAndCommands (shouldQuery, inline_pastes, pasted_content), TestRealPassthrough/expansion (client_composed) |
+| ENG-24 | `--replay-user-messages` acks | N | 02 | evidenced | evidence: `enginetest` TestTurnFlowsInOrder (--replay-user-messages spawned); fixtures queued-priority and plain-answer carry isReplay echoes with the client uuid; spike S2 facts (queue acks via command_lifecycle) |
+| ENG-25 | `--include-hook-events` | N | 02 | evidenced | evidence: `internal/engine` BaseArgs (--include-hook-events) checked by TestBuildArgs; `pkg/proto` TestSamplesDecodeAndRoundTrip (hook_started/hook_response); spike S4 (`scripts/spikes/s04-hooks.py`, facts in the plan) |
+| ENG-26 | `--forward-subagent-text` | N | 02 | evidenced | evidence: BaseArgs (--forward-subagent-text) checked by TestBuildArgs; fixture subagent (subagent assistant messages with parent_tool_use_id); `enginetest` TestSpikeS12Subagent |
+| ENG-27 | Prompt suggestions channel | N | 02 | evidenced | evidence: `enginetest` TestNothingBeforeInitialize (initialize asks promptSuggestions:true); `pkg/proto` TestSamplesDecodeAndRoundTrip (prompt_suggestion); seen live on 2.1.288 (spike S1 capture); rendered as ghost text by features/input. Offline runs get none (the engine gates them server-side) |
+| ENG-28 | `CLAUDE_CODE_ENTRYPOINT` choice | N | 02 | evidenced | evidence: Decision from spike S5 (`enginetest` TestSpikeS5Entrypoint): leave CLAUDE_CODE_ENTRYPOINT unset (sdk-cli); TestBuildEnv sets no entrypoint |
+| ENG-29 | `keep_alive` / `update_environment_variables` | N | 02 | evidenced | evidence: `enginetest` TestUpdateEnv (update_environment_variables), TestTurnFlowsInOrder (engine keep_alive dropped, not forwarded); `pkg/proto` TestSamplesDecodeAndRoundTrip (keep_alive) |
+| ENG-30 | `auth_status` frames | X | 02 | gap |  |
+| ENG-31 | fakeclaude scripted engine | N | 02 | evidenced | evidence: `internal/testkit/enginefake` TestScriptedTurn, TestExpectMismatchFails, TestExpectTimeoutAndEOF, TestRespondErrorAndPatterns, TestClientDrivesEngine, TestBinary (fakeclaude as a process) |
+| ENG-32 | fakeapi Messages-API mock | N | 02 | evidenced | evidence: `internal/testkit/enginefake/fakeapi` TestStreamingTextAndTool, TestSideCallsAndMatching, TestScriptedError, TestSeedConfigAndEnv, TestClaudeAgainstFakeAPI (real claude offline: answer + Bash tool in a temp dir); `enginetest` TestSpikeS14Interactive (interactive TUI) |
+| ENG-33 | Sanitizing fixture recorder | N | 02 | evidenced | evidence: `internal/engine/fixture` TestSanitizer, TestRecorderRoundTrip, TestReplayThroughEngine; `cmd/fakeclaude` TestRecordDrive; `scripts/record-fixture.sh` |
+| ENG-34 | `scripts/sdk-diff` | N | 02 | evidenced | evidence: `scripts/sdk-diff` TestParseSample, TestJSONOutputAndDownload; used by plan 11's drift report |
+| ENG-35 | Built-in tools execution | E | 02 | evidenced | evidence: Side-by-side scenarios bash-output, edit-diff, tool-approval, tool-always; `enginetest` TestRealEngine (Bash), TestRealPassthrough/checkpointing (Write), worktree; fixtures tool-allow, tool-deny, tool-always |
+| ENG-36 | Subagents | E | 02 | evidenced | evidence: Scenario subagent; fixture subagent; `enginetest` TestSpikeS12Subagent (async Task agent, task_* events, forwarded subagent text) |
+| ENG-37 | MCP servers | E | 02 | evidenced | evidence: Scenario mcp (failing server through --mcp-config); fixture elicitation (stdio MCP server: tool call, elicitation, result); `enginetest` TestSpikeS9S10S11ProjectConfig (.mcp.json, disabledMcpjsonServers); TestProbeReal (mcp_status) |
+| ENG-38 | Hooks execution | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/hooks (a project UserPromptSubmit command hook runs), TestProbeReal (project hook listed); spike S4/S10 |
+| ENG-39 | Skills engine | E | 02 | evidenced | evidence: `enginetest` TestProbeReal (a project SKILL.md becomes a command), TestRealPassthrough/expansion (/command expands) |
+| ENG-40 | Plugin loading | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/plugins (--plugin-dir plugin's command appears) |
+| ENG-41 | CLAUDE.md and memory | E | 02 | evidenced | evidence: `enginetest` TestProbeReal (project CLAUDE.md in memoryFiles), TestSpikeS9S10S11ProjectConfig |
+| ENG-42 | Compaction | E | 02 | evidenced | evidence: Scenario compact; fixture compact (compact_boundary); `enginetest` TestRecordFixtures/compact |
+| ENG-43 | Sandbox | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/sandbox (with sandbox.enabled, Bash can't write outside the project; no prompt with autoAllowBashIfSandboxed) |
+| ENG-44 | Auto mode classifier | E | 02 | evidenced | evidence: Scenario footer-modes (mode cycling); `enginetest` TestRealPassthrough/auto-mode (--permission-mode auto accepted, decisions come back through PermissionMsg). The classifier model call itself isn't exercised offline: API-key sessions against fakeapi fall back to asking |
+| ENG-45 | Output styles | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/settings-precedence-output-style (flag outputStyle wins; available_output_styles listed) |
+| ENG-46 | Permission rule evaluation | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/permission-rules (allow rule runs without a prompt, deny rule refused without a prompt, permission_denials in the result); scenario tool-always; fixture tool-always |
+| ENG-47 | File checkpointing | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/checkpointing (rewind_files dry run after a Write), TestRealUnstable (rewind_conversation) |
+| ENG-48 | Background tasks, Monitor, Cron, ScheduleWakeup | E | 02 | evidenced | evidence: Fixture background-task (run_in_background Bash, task_started/task_notification, background_tasks_changed); `enginetest` TestRealPassthrough/cron-and-agents (CronCreate) |
+| ENG-49 | Worktrees | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/worktree (EnterWorktree creates .claude/worktrees/wt1 and moves the session) |
+| ENG-50 | Workflows | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/workflow (Workflow tool launches after approval through can_use_tool; origin human stamped by Engine.Send) |
+| ENG-51 | Cross-session messaging | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/cron-and-agents (ListAgents runs); message delivery between two live sessions is not exercised |
+| ENG-52 | Model resolution, fast mode, advisor, fallback chains | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/model-alias (alias "haiku" resolves to a full claude-haiku-* id in the API request); spike facts list_models; fast mode/advisor not exercised offline |
+| ENG-53 | Prompt caching and system-prompt snapshot | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/prompt-caching (cache_control breakpoints in the API request) |
+| ENG-54 | Settings precedence inside the engine | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/settings-precedence-output-style (flagSettings over projectSettings; get_settings sources); spike S9 |
+| ENG-55 | Providers and auth | E | 02 | evidenced | evidence: `internal/engine` TestBuildEnv (provider env such as CLAUDE_CODE_USE_BEDROCK passes unchanged); fakeapi tests (API key + ANTHROPIC_BASE_URL); spikes S1–S8 ran on a claude.ai subscription. Bedrock, Vertex and Foundry were not exercised (no accounts) |
+| ENG-56 | Telemetry and OTEL env | E | 02 | evidenced | evidence: `internal/engine` TestBuildEnv (CLAUDE_CODE_ENABLE_TELEMETRY and OTEL_* reach the engine unchanged) |
+| ENG-57 | Shell snapshot / session-env / `CLAUDE_ENV_FILE` | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/env-file (Bash sees variables exported by CLAUDE_ENV_FILE) |
+| ENG-58 | Structured tool results (`tool_use_result`) | E | 02 | evidenced | evidence: `enginetest` TestRealEngine (tool_use_result carried as ToolResult.Structured); fixtures tool-allow, background-task; `pkg/proto` TestUserToolResults |
+| ENG-59 | Engine-side expansion of `@path`, `@server:res`, `/cmd` | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/expansion (@path and /command expand in the engine; client_composed turns @ expansion off) |
 | ED-01 | Editing buffer | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-02 | Newline: `\`+Enter | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-03 | Newline: Shift+Enter | N | 04 | tagged | tags: features/input/input.go:54 |
@@ -165,12 +165,12 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | ED-27 | Atomic chips | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-28 | Images sent as base64 blocks | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-29 | Emoji shortcodes | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-30 | Spellcheck | N | 04 | untagged |  |
+| ED-30 | Spellcheck | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-31 | Invisible-character stripping | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-32 | `ultrathink` highlight | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-33 | `ultracode` highlight and toggle | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-34 | Prompt-suggestion ghost text | R | 04 | tagged | tags: features/input/input.go:54 |
-| ED-35 | Initial example prompt | N | 04 | untagged |  |
+| ED-35 | Initial example prompt | X | 04 | gap |  |
 | ED-36 | `?` shortcut help | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-37 | Placeholder and inline hints | N | 04 | tagged | tags: features/input/input.go:54 |
 | ED-38 | Real cursor placement for IME | N | 04 | tagged | tags: features/input/input.go:54 |
@@ -185,17 +185,17 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | AC-07 | Argument hints | R | 04 | tagged | tags: features/input/input.go:54 |
 | AC-08 | Mid-prompt `/` completion | N | 04 | tagged | tags: features/input/input.go:54 |
 | AC-09 | Ghost-text completion | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-10 | Argument completions | N | 04 | untagged |  |
+| AC-10 | Argument completions | N | 04 | tagged | tags: features/input/input.go:54 |
 | AC-11 | Autocomplete keys | N | 04 | tagged | tags: features/input/input.go:54 |
 | AC-12 | `@` file mentions | N | 04 | compared | scenarios: at-mention; tags: features/input/input.go:54 |
 | AC-13 | `respectGitignore` / `fileSuggestion` | E | 04 | tagged | tags: features/input/input.go:54 |
-| AC-14 | `@server:resource` mentions | N | 04 | untagged |  |
-| AC-15 | `@` live-session suggestions | N | 04 | untagged |  |
+| AC-14 | `@server:resource` mentions | X | 04 | gap |  |
+| AC-15 | `@` live-session suggestions | X | 04 | gap |  |
 | AC-16 | `!` shell mode entry | N | 04 | tagged | tags: features/input/input.go:54 |
 | AC-17 | `!` command execution | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-18 | `!` history completion | N | 04 | untagged |  |
-| AC-19 | `!` path completion | N | 04 | untagged |  |
-| AC-20 | `!` backgrounding | N | 04 | untagged |  |
+| AC-18 | `!` history completion | N | 04 | tagged | tags: features/input/input.go:54 |
+| AC-19 | `!` path completion | N | 04 | tagged | tags: features/input/input.go:54 |
+| AC-20 | `!` backgrounding | N | 04 | evidenced | evidence: `features/input` TestBashMode, TestRealEngineBashMode: `!` commands run off the UI goroutine (`bash.go` runBash) and never block the prompt or the turn, so there is no foreground command for ctrl+b to background |
 | AC-21 | Slash dispatch to engine | E | 04 | tagged | tags: features/input/input.go:54 |
 | AC-22 | Native vs engine vs H routing | N | 04 | compared | scenarios: handoff; tags: features/input/input.go:54 |
 | HI-01 | Up/Down recall | N | 04 | compared | scenarios: history; tags: features/input/input.go:54 |
@@ -213,22 +213,22 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | TC-03 | Ctrl+C semantics | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-04 | Ctrl+D double press exits | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-05 | Queue while busy | N | 05 | compared | scenarios: queued; tags: features/turn/turn.go:43 |
-| TC-06 | Mid-turn pickup | E | 05 | untagged |  |
-| TC-07 | Take back queued messages | N | 05 | untagged |  |
-| TC-08 | Send now | N | 05 | untagged |  |
-| TC-09 | Queue submit | N | 05 | untagged |  |
-| TC-10 | Send queued immediately | N | 05 | untagged |  |
+| TC-06 | Mid-turn pickup | E | 05 | compared | scenarios: midturn; tags: features/turn/turn.go:43 |
+| TC-07 | Take back queued messages | N | 05 | evidenced | evidence: Built in `features/input` (plan 04): `features/input` TestQueueWhileBusyAndTakeBack (up on the empty prompt pulls the queued message back and sends `cancel_async_message` for its uuid); the queue above the prompt shows the "↑ to edit queued messages" hint (`features/turn` TestQueueDisplay) |
+| TC-08 | Send now | N | 05 | evidenced | evidence: Built in `features/input` (plan 04): `chat:sendNow` sends `priority:"now"` (`features/input` TestQueueWhileBusyAndTakeBack); every prompt carries `origin:{kind:"human"}` (`internal/engine/engine.go`, user message writer) |
+| TC-09 | Queue submit | N | 05 | evidenced | evidence: Built in `features/input` (plan 04): `chat:queueSubmit` sends `priority:"later"` (`features/input` TestQueueWhileBusyAndTakeBack) |
+| TC-10 | Send queued immediately | N | 05 | compared | scenarios: queue-send; tags: features/turn/turn.go:43 |
 | TC-11 | Background the running task | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-12 | Kill all background agents | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-13 | Mid-turn model, effort or fast switch | E | 05 | untagged |  |
-| TC-14 | Interrupted-turn markers | R | 05 | scenario only | scenarios: interrupt |
+| TC-13 | Mid-turn model, effort or fast switch | E | 05 | evidenced | evidence: Native commands run at once while a turn runs instead of queueing (`features/input` TestNativeCommandRunsMidTurn); `/model`, `/effort` and `/fast` send `set_model` / `apply_flag_settings` (`features/settings` TestModelPickerApplyAndPersist, TestEffortCommandVariants, TestFastMode); the engine applies them from its next request |
+| TC-14 | Interrupted-turn markers | R | 05 | compared | scenarios: interrupt; tags: features/turn/turn.go:43 |
 | TC-15 | Waiting-for-you state | R | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-16 | Usage-limit wait and auto-continue | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-17 | Turn and result tracking | R | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-18 | Exit commands | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-19 | Exit cleanup and resume hint | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-20 | Esc precedence | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-21 | Command lifecycle states | R | 05 | untagged |  |
+| TC-21 | Command lifecycle states | R | 05 | tagged | tags: features/turn/turn.go:43 |
 | TR-01 | Markdown | R | 03 | compared | scenarios: fs-plain-qa, plain-qa; tags: features/transcript/feature.go:26 |
 | TR-02 | Code block highlighting | R | 03 | compared | scenarios: fs-plain-qa, plain-qa; tags: features/transcript/feature.go:26 |
 | TR-03 | `syntaxHighlightingDisabled` | R | 03 | tagged | tags: features/transcript/feature.go:26 |
@@ -302,7 +302,7 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | VW-11 | Brief mode | R | 03 | tagged | tags: features/transcript/feature.go:26 |
 | VW-12 | `defaultView` | N | 03 | compared | scenarios: default-renderer; tags: features/transcript/feature.go:26 |
 | VW-13 | Inline (classic) renderer default | N | 03 | compared | scenarios: default-renderer; tags: features/transcript/feature.go:26 |
-| VW-14 | Screen-reader flat mode | N | 07 | untagged |  |
+| VW-14 | Screen-reader flat mode | N | 07 | tagged | tags: features/chrome/chrome.go:29 |
 | VW-15 | Fullscreen renderer | N | 12 | compared | scenarios: default-renderer, fs-history-search, fs-plain-qa, fs-scroll, fs-slash-menu, fs-tool-approval; tags: features/fullscreen/fullscreen.go:14 |
 | VW-16 | Fullscreen scrolling | N | 12 | compared | scenarios: fs-scroll; tags: features/fullscreen/fullscreen.go:14 |
 | VW-17 | Mouse wheel | N | 12 | tagged | tags: features/fullscreen/fullscreen.go:14 |
@@ -327,22 +327,22 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | CH-12 | `subagentStatusLine` | N | 07 | tagged | tags: features/chrome/chrome.go:68 |
 | CH-13 | `/tasks` (`/bashes`) | N | 07 | tagged | tags: features/chrome/chrome.go:68 |
 | CH-14 | Background tasks indicator | R | 07 | tagged | tags: features/chrome/chrome.go:17, features/chrome/chrome.go:68 |
-| CH-15 | PR/MR badge | N | 07 | untagged |  |
-| CH-16 | Issue and custom footer links | N | 07 | untagged |  |
+| CH-15 | PR/MR badge | N | 07 | tagged | tags: features/chrome/chrome.go:17 |
+| CH-16 | Issue and custom footer links | N | 07 | tagged | tags: features/chrome/chrome.go:17 |
 | CH-17 | Footer navigation | N | 07 | tagged | tags: features/chrome/chrome.go:68 |
 | CH-18 | statusLine runner | N | 07 | compared | scenarios: statusline; tags: features/chrome/chrome.go:43 |
 | CH-19 | statusLine payload | N | 07 | compared | scenarios: statusline; tags: features/chrome/chrome.go:43 |
 | CH-20 | Welcome banner | N | 07 | tagged | tags: features/chrome/chrome.go:91 |
-| CH-21 | Release notes on update | N | 07 | tagged | tags: features/chrome/chrome.go:104 |
-| CH-22 | `/release-notes` | N | 07 | tagged | tags: features/chrome/chrome.go:104 |
-| CH-23 | Terminal title | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
-| CH-24 | Terminal progress bar | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
-| CH-25 | Desktop notifications | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
-| CH-26 | Notification triggers | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| CH-21 | Release notes on update | N | 07 | tagged | tags: features/chrome/chrome.go:105 |
+| CH-22 | `/release-notes` | N | 07 | tagged | tags: features/chrome/chrome.go:105 |
+| CH-23 | Terminal title | N | 07 | tagged | tags: features/chrome/chrome.go:119 |
+| CH-24 | Terminal progress bar | N | 07 | tagged | tags: features/chrome/chrome.go:119 |
+| CH-25 | Desktop notifications | N | 07 | tagged | tags: features/chrome/chrome.go:119 |
+| CH-26 | Notification triggers | N | 07 | tagged | tags: features/chrome/chrome.go:119 |
 | CH-27 | Hook `terminalSequence` | N | 07 | untagged |  |
 | CH-28 | Clipboard service | N | 07 | evidenced | evidence: `internal/term/clipboard` (TestCopyDarwinPbcopy, TestCopyLinuxOrder, TestCopySSHUsesOSC52, TestCopySSHInTmux, TestCopyTooLarge) and `internal/term/clipcmd` (TestCopyLocal, TestCopyOSC52); used by the fullscreen copy-on-select and /copy, /btw |
-| CH-29 | Ctrl+Z suspend | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
-| CH-30 | Redraw / clear screen | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| CH-29 | Ctrl+Z suspend | N | 07 | tagged | tags: features/chrome/chrome.go:119 |
+| CH-30 | Redraw / clear screen | N | 07 | tagged | tags: features/chrome/chrome.go:119 |
 | PD-01 | Generic permission dialog | N | 05 | compared | scenarios: fs-tool-approval, tool-approval; tags: features/turn/turn.go:43 |
 | PD-02 | Bash variant | N | 05 | compared | scenarios: fs-tool-approval, tool-always, tool-approval; tags: features/turn/turn.go:43 |
 | PD-03 | Edit variant | N | 05 | compared | scenarios: edit-diff; tags: features/turn/turn.go:43 |
@@ -357,18 +357,18 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | PD-12 | Shift+Tab inside the dialog | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-13 | Esc declines | N | 05 | compared | scenarios: tool-approval; tags: features/turn/turn.go:43 |
 | PD-14 | One-time-only prompts | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-15 | `.claude` folder session grants | N | 05 | untagged |  |
+| PD-15 | `.claude` folder session grants | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-16 | Attribution | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-17 | Cancelled requests close dialogs | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-18 | Recover pending prompts | N | 05 | untagged |  |
+| PD-18 | Recover pending prompts | N | 05 | evidenced | evidence: Prompts the engine still holds when it answers `initialize` (`pending_permission_requests`, `pending_user_dialog_requests`) are replayed as live prompts and de-duplicated against the live copy (`internal/engine/enginetest` TestPendingRequestsFromInitialize); `features/turn` queues them like any prompt (TestPermissionQueueInOrder). mantle runs the UI and engine client in one process, so there is no reconnect that could drop a prompt |
 | PD-19 | Shift+Tab mode cycle | N | 05 | compared | scenarios: footer-modes; tags: features/turn/turn.go:43 |
 | PD-20 | Bypass availability | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-21 | Plan approval dialog | N | 05 | compared | scenarios: plan-mode; tags: features/turn/turn.go:43 |
 | PD-22 | Edit the plan | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-23 | Clear-context option on approval | N | 05 | untagged |  |
+| PD-23 | Clear-context option on approval | X | 05 | gap |  |
 | PD-24 | AskUserQuestion dialog | N | 05 | compared | scenarios: ask-user; tags: features/turn/turn.go:43 |
 | PD-25 | AskUserQuestion previews | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-26 | `askUserQuestionTimeout` | N | 05 | untagged |  |
+| PD-26 | `askUserQuestionTimeout` | X | 05 | gap |  |
 | PD-27 | MCP elicitation, form mode | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-28 | MCP elicitation, URL mode | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-29 | `request_user_dialog` kinds | N | 05 | tagged | tags: features/turn/turn.go:43 |
@@ -378,70 +378,70 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | PD-33 | Bypass-mode warning | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-34 | Auto-mode first-use prompt | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-35 | `ANTHROPIC_API_KEY` approval | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-36 | External CLAUDE.md import approval | N | 05 | untagged |  |
+| PD-36 | External CLAUDE.md import approval | X | 05 | gap |  |
 | PD-37 | Invalid settings notice | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | PD-38 | Corrupted `~/.claude.json` notice | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-39 | Sandbox network-host prompt | N | 05 | untagged |  |
-| PD-40 | Sandbox unsandboxed-retry prompt | N | 05 | untagged |  |
+| PD-39 | Sandbox network-host prompt | X | 05 | gap |  |
+| PD-40 | Sandbox unsandboxed-retry prompt | X | 05 | gap |  |
 | PD-41 | Confirmation keys | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-42 | `dialogExpiry` | N | 05 | untagged |  |
+| PD-42 | `dialogExpiry` | N | 05 | evidenced | evidence: Engine-enforced: `dialogExpiry` bounds dialogs the engine forwards to a client and withdraws them at the deadline with `control_cancel_request` (local prompts are unaffected, as in Claude Code); `features/turn` closes a withdrawn prompt without replying (TestCancelClosesOpenDialogWithoutReply) |
 | PD-43 | No spawn before gates | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-44 | Workflow launch approval | N | 05 | untagged |  |
+| PD-44 | Workflow launch approval | X | 05 | gap |  |
 | PD-45 | Dialog view-models | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| SE-01 | Tolerant JSONL reader | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-02 | cwd → slug | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-03 | Subagent transcripts | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-04 | Large tool results | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-05 | Session index cache | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-06 | Normalizer to transcript items | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-07 | Resume | N | 06 | compared | scenarios: resume, resume-picker; tags: features/sessions/feature.go:28 |
-| SE-08 | `-c` / `--continue` | N | 06 | compared | scenarios: resume; tags: features/sessions/feature.go:28 |
-| SE-09 | `-r <id\|search>` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-10 | `--fork-session` / `--session-id` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-11 | `/resume` (`/continue`) picker | N | 06 | compared | scenarios: resume-picker; tags: features/sessions/feature.go:28 |
-| SE-12 | Picker extras | N | 06 | compared | scenarios: resume-picker; tags: features/sessions/feature.go:28 |
-| SE-13 | Shows headless sessions | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-14 | Grouping | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-15 | `/clear` (`/reset`, `/new`) | R | 06 | compared | scenarios: clear; tags: features/sessions/feature.go:28 |
-| SE-16 | `/compact [instructions]` | E | 06 | compared | scenarios: compact; tags: features/sessions/feature.go:28 |
-| SE-17 | `/rename [name]` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-18 | Session titles | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-19 | `/branch [name]` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-20 | `/fork [prompt]` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-21 | `/subtask <task>` | H | 06 | hand-off | tags: features/sessions/feature.go:28 |
-| SE-22 | `/rewind` (`/checkpoint`, `/undo`), Esc Esc | N | 06 | compared | scenarios: rewind; tags: features/sessions/feature.go:28 |
-| SE-23 | Rewind: code + conversation | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-24 | Rewind: conversation only | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-25 | Rewind: code only | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-26 | Summarize from here / up to here | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-27 | Restore the pre-`/clear` session | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-28 | `/export [filename]` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-29 | `/copy [N]` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-30 | `/recap` | E | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-31 | Away summary | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-32 | `/btw` side question | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-33 | `/diff` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-34 | Diff dialog/panel keys | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-35 | `/goal [condition\|clear]` | E | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-36 | `/plan [open\|desc]` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-37 | `/add-dir <path>` | E | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-38 | `/cd <path>` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-39 | Resume-from-summary dialog | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-40 | Generic H handoff | H | 06 | hand-off | scenarios: handoff; tags: features/sessions/feature.go:28 |
-| SE-41 | Session switch = engine restart | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-42 | Permission mode on resume | E | 06 | tagged | tags: features/sessions/feature.go:28 |
-| SE-43 | Conversation tree resolution | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| CU-01 | `/context` grid | N | 06 | compared | scenarios: context; tags: features/sessions/feature.go:28 |
-| CU-02 | `/context all` | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| CU-03 | `/usage` (`/cost`, `/stats`) | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| CU-04 | Usage panel keys | N | 06 | tagged | tags: features/sessions/feature.go:28 |
-| CU-05 | Cost display | R | 06 | tagged | tags: features/sessions/feature.go:28 |
-| CU-06 | Rate-limit state | R | 06 | tagged | tags: features/sessions/feature.go:28 |
-| CU-07 | Auto-compact warning | R | 06 | tagged | tags: features/sessions/feature.go:28 |
+| SE-01 | Tolerant JSONL reader | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-02 | cwd → slug | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-03 | Subagent transcripts | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-04 | Large tool results | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-05 | Session index cache | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-06 | Normalizer to transcript items | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-07 | Resume | N | 06 | compared | scenarios: resume, resume-picker; tags: features/sessions/feature.go:27 |
+| SE-08 | `-c` / `--continue` | N | 06 | compared | scenarios: resume; tags: features/sessions/feature.go:27 |
+| SE-09 | `-r <id\|search>` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-10 | `--fork-session` / `--session-id` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-11 | `/resume` (`/continue`) picker | N | 06 | compared | scenarios: resume-picker; tags: features/sessions/feature.go:27 |
+| SE-12 | Picker extras | N | 06 | compared | scenarios: resume-picker; tags: features/sessions/feature.go:27 |
+| SE-13 | Shows headless sessions | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-14 | Grouping | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-15 | `/clear` (`/reset`, `/new`) | R | 06 | compared | scenarios: clear; tags: features/sessions/feature.go:27 |
+| SE-16 | `/compact [instructions]` | E | 06 | compared | scenarios: compact; tags: features/sessions/feature.go:27 |
+| SE-17 | `/rename [name]` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-18 | Session titles | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-19 | `/branch [name]` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-20 | `/fork [prompt]` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-21 | `/subtask <task>` | H | 06 | hand-off | tags: features/sessions/feature.go:27 |
+| SE-22 | `/rewind` (`/checkpoint`, `/undo`), Esc Esc | N | 06 | compared | scenarios: rewind; tags: features/sessions/feature.go:27 |
+| SE-23 | Rewind: code + conversation | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-24 | Rewind: conversation only | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-25 | Rewind: code only | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-26 | Summarize from here / up to here | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-27 | Restore the pre-`/clear` session | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-28 | `/export [filename]` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-29 | `/copy [N]` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-30 | `/recap` | E | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-31 | Away summary | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-32 | `/btw` side question | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-33 | `/diff` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-34 | Diff dialog/panel keys | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-35 | `/goal [condition\|clear]` | E | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-36 | `/plan [open\|desc]` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-37 | `/add-dir <path>` | E | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-38 | `/cd <path>` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-39 | Resume-from-summary dialog | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-40 | Generic H handoff | H | 06 | hand-off | scenarios: handoff; tags: features/sessions/feature.go:27 |
+| SE-41 | Session switch = engine restart | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-42 | Permission mode on resume | E | 06 | tagged | tags: features/sessions/feature.go:27 |
+| SE-43 | Conversation tree resolution | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-01 | `/context` grid | N | 06 | compared | scenarios: context; tags: features/sessions/feature.go:27 |
+| CU-02 | `/context all` | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-03 | `/usage` (`/cost`, `/stats`) | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-04 | Usage panel keys | N | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-05 | Cost display | R | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-06 | Rate-limit state | R | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-07 | Auto-compact warning | R | 06 | tagged | tags: features/sessions/feature.go:27 |
 | CU-08 | `/autocompact [auto\|tokens]` | E | 08 | tagged | tags: features/settings/settings.go:46 |
-| CU-09 | Context % for the statusLine | R | 06 | untagged |  |
-| CU-10 | Cost warnings | R | 06 | untagged |  |
-| CU-11 | Local JSONL activity stats | N | 06 | tagged | tags: features/sessions/feature.go:28 |
+| CU-09 | Context % for the statusLine | R | 06 | evidenced | evidence: `internal/term/statusline` (plan 07's status line, fed by the engine's usage) TestContextWindowMath (`context_window.used_percentage` and `remaining_percentage` from the last turn's usage and the window size, 200k and 1M, clamped at 100) and TestPayloadFreshSession (both are null before the first turn) |
+| CU-10 | Cost warnings | R | 06 | tagged | tags: features/sessions/feature.go:27 |
+| CU-11 | Local JSONL activity stats | N | 06 | tagged | tags: features/sessions/feature.go:27 |
 | ST-01 | `/model` picker | N | 08 | compared | scenarios: model-picker; tags: features/settings/settings.go:24 |
 | ST-02 | Effort and session-only in the picker | N | 08 | tagged | tags: features/settings/settings.go:24 |
 | ST-03 | `/model <name>` | E | 08 | tagged | tags: features/settings/settings.go:24 |
@@ -486,9 +486,9 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | EC-06 | `/plugin` manager | N | 09 | tagged | tags: features/ecosystem/plugins/plugins.go:34 |
 | EC-07 | Plugin keys | N | 09 | tagged | tags: features/ecosystem/plugins/plugins.go:34 |
 | EC-08 | Plugin actions | N | 09 | tagged | tags: features/ecosystem/plugins/plugins.go:34 |
-| EC-09 | `/reload-plugins [--force]`, `/reload-skills` | E | 09 | untagged |  |
+| EC-09 | `/reload-plugins [--force]`, `/reload-skills` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `reload-plugins` and `reload-skills` headlessly (spike). Plan 09's panels call the same control requests directly (`reload_plugins`, `reload_skills`: `features/ecosystem/plugins` TestInstallAndReload, `features/ecosystem/skills` TestCycleVisibility) |
 | EC-10 | `/skills` | N | 09 | tagged | tags: features/ecosystem/skills/skills.go:32 |
-| EC-11 | `/skill-doctor` | E | 09 | untagged |  |
+| EC-11 | `/skill-doctor` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `skill-doctor` headlessly (spike) |
 | EC-12 | `/hooks` | N | 09 | tagged | tags: features/ecosystem/hooks/hooks.go:31 |
 | EC-13 | `/agents` | N | 09 | tagged | tags: features/ecosystem/agents/agents.go:40 |
 | EC-14 | `/memory` | N | 09 | tagged | tags: features/ecosystem/memory/memory.go:32 |
@@ -496,24 +496,24 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | EC-16 | `/doctor` (`/checkup`) | N | 09 | tagged | tags: features/ecosystem/doctor/doctor.go:31 |
 | EC-17 | `/login` | N | 09 | tagged | tags: features/ecosystem/auth/auth.go:30 |
 | EC-18 | `/logout` | N | 09 | tagged | tags: features/ecosystem/auth/auth.go:30 |
-| EC-19 | `/upgrade` | N | 09 | untagged |  |
+| EC-19 | `/upgrade` | N | 09 | tagged | tags: features/ecosystem/handoff/handoff.go:87 |
 | EC-20 | `/feedback`, `/bug` (`/share`, `/report`) | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:62, features/ecosystem/handoff/handoff.go:63 |
 | EC-21 | `/import [codex\|gemini\|cursor]` | E | 09 | tagged | tags: features/ecosystem/importcfg/importcfg.go:31 |
-| EC-22 | `/init` | E | 09 | untagged |  |
-| EC-23 | `/insights` | E | 09 | untagged |  |
+| EC-22 | `/init` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `init` headlessly (spike) |
+| EC-23 | `/insights` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `insights` headlessly (spike) |
 | EC-24 | `/statusline` | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:61 |
-| EC-25 | `/team-onboarding` | E | 09 | untagged |  |
-| EC-26 | `/commit-push-pr`, `/security-review` | E | 09 | untagged |  |
-| EC-27 | Bundled skills | E | 09 | untagged |  |
-| EC-28 | Custom commands and skills | E | 09 | untagged |  |
-| EC-29 | Plugin commands | E | 09 | untagged |  |
-| EC-30 | MCP prompts as commands | E | 09 | untagged |  |
-| EC-31 | Synced claude.ai skills | E | 09 | untagged |  |
-| EC-32 | `/list-agents` (`/peers`) | E | 09 | untagged |  |
-| EC-33 | `/auto-mode-setup` | E | 09 | untagged |  |
-| EC-34 | `/ultrareview` | E | 09 | untagged |  |
-| EC-35 | `/heapdump` (hidden) | E | 09 | untagged |  |
-| EC-36 | `/design-consent`, `/design-revoke` (hidden) | E | 09 | untagged |  |
+| EC-25 | `/team-onboarding` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `team-onboarding` headlessly (spike) |
+| EC-26 | `/commit-push-pr`, `/security-review` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `security-review` headlessly (spike). `commit-push-pr` is a gated bundled skill that this account's engine does not offer (not in initialize `commands` in or outside a git repo, 2.1.288/2.1.289); when an engine offers it, it takes the same path |
+| EC-27 | Bundled skills | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists the bundled skills headlessly (`code-review`/`review`, `simplify`, `verify`, `debug`, `batch`, `loop`/`proactive`, `schedule`/`routines`, `run`, `fewer-permission-prompts`; spike). `/doctor` is mantle's native panel, so the bundled doctor skill is reached through `/checkup` (passthrough, request 09-04) or the panel's "Ask Claude to diagnose" (`features/ecosystem/doctor` TestPanel). `commit` and `pr` are not offered to this account (gated) |
+| EC-28 | Custom commands and skills | E | 09 | evidenced | evidence: Engine passthrough path above for custom commands and project/user skills; plan 09's `/skills` panel lists and edits their files (`features/ecosystem/skills` TestList, TestEdit; `internal/claudecli/discovery` TestSkills) |
+| EC-29 | Plugin commands | E | 09 | evidenced | evidence: Engine passthrough path above; plugin commands arrive as `<plugin>:<name>` in initialize `commands` (spike: `file-baton:status`, `file-baton:release`) |
+| EC-30 | MCP prompts as commands | E | 09 | evidenced | evidence: Engine passthrough path above; MCP prompts reach the menu through `commands_changed` (TestEngineCommandsPublished replaces the list on commands_changed). No scenario runs an MCP prompt: the test environments have no MCP server with prompts |
+| EC-31 | Synced claude.ai skills | E | 09 | evidenced | evidence: Engine passthrough path above; the headless engine lists synced claude.ai skills by name in its skills (`reload_skills` spike: `docs`, `pdf`, `xlsx`), and unclaimed names go to the engine as text (TestSlashRouting); `internal/claudecli/discovery` TestSkills finds them on disk as `anthropic-skills:*` |
+| EC-32 | `/list-agents` (`/peers`) | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `list-agents` (alias `peers`) headlessly (spike) |
+| EC-33 | `/auto-mode-setup` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `auto-mode-setup` headlessly (spike); plan 04 keeps it out of the menu as Claude Code does (request 12-04) |
+| EC-34 | `/ultrareview` | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `ultrareview` headlessly (spike). It starts a billed cloud review, so no test runs it |
+| EC-35 | `/heapdump` (hidden) | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `heapdump` headlessly (spike); hidden from the menu like Claude Code (plan 04) |
+| EC-36 | `/design-consent`, `/design-revoke` (hidden) | E | 09 | evidenced | evidence: Engine passthrough path above; the engine lists `design-consent` and `design-revoke` headlessly (spike) |
 | EC-37 | `/powerup` | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:64 |
 | EC-38 | `/stickers`, `/radio` | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:65, features/ecosystem/handoff/handoff.go:66 |
 | EC-39 | `/wellbeing` (`/breaks`, `/break-reminder`, `/downtime`) | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:67 |
@@ -564,11 +564,11 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | CLI-17 | `--bg` / `--background` | H | 11 | hand-off | tags: internal/cli/flags.go:163 |
 | CLI-18 | `--remote-control`, `--teleport`, `--cloud`, `--environment`, `--desktop`, `--from-pr`, `--file`, `--brief` | H | 11 | hand-off | tags: internal/cli/flags.go:162, internal/cli/flags.go:216, +22 |
 | CLI-19 | Subcommand passthrough | N | 11 | tagged | tags: internal/cli/subcommands.go:25, internal/cli/subcommands.go:26, +22 |
-| CLI-20 | Drift: `claude --help` flags | N | 11 | untagged |  |
-| CLI-21 | Drift: `initialize.commands` vs slash index | N | 11 | untagged |  |
-| CLI-22 | Drift: keybinding action IDs from the binary | N | 11 | untagged |  |
-| CLI-23 | Drift: SDK control/message subtypes | N | 11 | untagged |  |
-| CLI-24 | Drift: settings schema | N | 11 | untagged |  |
+| CLI-20 | Drift: `claude --help` flags | N | 11 | evidenced | evidence: `scripts/drift` TestParseHelp, TestHelpIsFor (commander help → normalized flags and subcommands; root help for an unknown subcommand is rejected), TestSafeInfoArgs and TestCollectWithFakeClaude (only `claude --help`, `claude --version` and `claude <known subcommand> --help` are ever run; `remote-control` is never probed), TestCompareGolden (a new flag is unclassified, a changed arity a mismatch, a dropped flag removed), TestBaselineIsClassified (every flag and subcommand of the accepted 2.1.289 baseline is in `internal/cli`'s tables); `internal/cli` TestVisibleFlags; code: `scripts/drift/collect.go` collectHelp, `internal/cli/helpparse.go` |
+| CLI-21 | Drift: `initialize.commands` vs slash index | N | 11 | evidenced | evidence: `scripts/drift` TestEngineSession and TestEngineSessionFailures (zero-token engine session against a fake stream-json engine: `initialize.commands`, models, output styles, `system/init.tools`; isolated config, credentials dropped, timeout), TestCompareEngineLists (commands classified by `mantle-ui catalog` native commands, PARITY.md's slash command index or the baseline; new ones unclassified), TestParseParity (slash index with aliases), TestCatalog; code: `internal/cli/probe.go` ProbeEngine, `scripts/drift/compare.go` compareSlash |
+| CLI-22 | Drift: keybinding action IDs from the binary | N | 11 | evidenced | evidence: `scripts/drift` TestScanBinary (action-ID arrays and context lists read from the claude binary's JS, module-like noise ignored, command-name candidates), TestCompareGolden (an action or context missing from `pkg/ext`'s tables is unclassified); live: 174 actions and 29 contexts classified against `ext.ClaudeActions`/`ext.Contexts`; code: `scripts/drift/collect.go` scanBinary |
+| CLI-23 | Drift: SDK control/message subtypes | N | 11 | evidenced | evidence: `scripts/drift` TestCompareProtocol (`sdk-only` subtypes fail, `proto-only` changes reported against the baseline), TestParseSDKDiff (both output shapes); runs plan 02's `scripts/sdk-diff -json` (its own tests: `scripts/sdk-diff` package); live: 11 proto-only, 0 sdk-only on 2.1.289; code: `scripts/drift/main.go` sdkDiffRunner, `scripts/drift/compare.go` compareProtocol |
+| CLI-24 | Drift: settings schema | N | 11 | evidenced | evidence: `scripts/drift` TestSchemaKeys (top-level and one nested level, local `$ref`s followed), TestCollectSettingsCacheAndOffline (fetch, cache in `~/.mantle/cache/drift`, `-offline` uses the cache, unavailable without one), TestParseParity (UI settings index incl. nested keys), TestCompareGolden (new key unclassified, dropped key gone); live: 567 keys classified; code: `scripts/drift/collect.go` collectSettings |
 | CLI-25 | Auto-run drift on engine version change | N | 11 | tagged | tags: features/cli/cli.go:32 |
 | CLI-26 | Argument validation mirrors claude | N | 11 | tagged | tags: internal/cli/flags.go:168, internal/cli/flags.go:169, +16 |
 | CLI-27 | `cli.Parse` wiring | N | 11 | tagged | tags: features/cli/cli.go:32 |
@@ -585,7 +585,7 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | CL-10 | Agent view `claude agents` | H | 11 | hand-off | tags: features/ecosystem/agentview/agentview.go:35, internal/cli/subcommands.go:23 |
 | CL-11 | attach / logs / stop / rm / respawn | H | 11 | hand-off | tags: features/ecosystem/agentview/agentview.go:35, internal/cli/subcommands.go:24, +4 |
 | CL-12 | `/background` (`/bg`) | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:45 |
-| CL-13 | `/stop` | E | 09 | untagged |  |
+| CL-13 | `/stop` | E | 09 | not applicable | evidence: Not applicable to mantle's own session: `/stop` stops a background session (`claude --bg`), and Claude Code enables it only there (`isEnabled` checks for a background session in 2.1.289), so mantle's engine never lists it; if it did, the passthrough path above would carry it. Background sessions are stopped from mantle's agent view instead (`features/ecosystem/agentview` TestAttachLogsStop runs `claude stop <id>`) |
 | CL-14 | `/chrome` | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:46 |
 | CL-15 | `/ide` | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:47 |
 | CL-16 | `/artifacts`, Ctrl+] | H | 09 | hand-off | tags: features/ecosystem/handoff/handoff.go:48 |
@@ -622,15 +622,15 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | MT-07 | Stories / `mantle-ui story <id> --width N` | N | 01 | tagged | tags: internal/app/core.go:50 |
 | MT-08 | `mantle-ui catalog --json` | N | 01 | tagged | tags: internal/app/core.go:25 |
 | MT-09 | `mantle-ui selftest` | N | 01 | tagged | tags: internal/app/core.go:25 |
-| MT-10 | Launcher supervisor | N | 10 | untagged |  |
+| MT-10 | Launcher supervisor | N | 10 | evidenced | evidence: `internal/launcher` TestCrashOnProbationThenRollback (crash restores the terminal and prints the panic excerpt), TestSignalsForwardedAndSIGINTSwallowed (SIGTERM forwarded, SIGINT not), TestCrashKillsEngineGroup (engine process groups killed after a UI crash, from the run file and from engine records), TestStdlibOnly (launcher imports only the standard library); `internal/selfmod` TestSpikeS16LauncherJobControl (real launcher under bash in a pty: shared process group, ctrl+z stops both, fg resumes, ctrl+c inside an exec'd editor spares the launcher, crash leaves the terminal echoing) |
 | MT-11 | Exit 75 restart protocol | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-12 | Versions store | N | 10 | untagged |  |
-| MT-13 | Probation and auto-rollback | N | 10 | untagged |  |
+| MT-12 | Versions store | N | 10 | evidenced | evidence: `internal/launcher` TestInstallAndGet (immutable versions/<id>/ with manifest, read-only binary), TestListNewestFirst, TestFlipLinks (relative current/last-good symlinks, relocatable home), TestFlipIsAtomicUnderConcurrentReaders (rename(2) flips never expose a missing link), TestGC (keeps the newest 10, current, last-good and versions of live run files; removes stale temp folders), TestVersionsCommand, TestRollbackCommand |
+| MT-13 | Probation and auto-rollback | N | 10 | evidenced | evidence: `internal/launcher` TestDecide and TestClassify (probation state machine and exit classification), TestCleanExitPassesProbation (healthy marker, last-good follows), TestMarkerWrittenDuringRunPassesProbationEvenIfLaterCrash, TestCrashOnProbationThenRollback (two failed launches flip current to last-good and relaunch with --resume), TestCrashWithoutRollbackTarget, TestHandoffAccountsToTheNewBuild (in-place restart); `features/selfmod` TestRunFileAndHealthyMarker (marker only after first frame, engine init and 20 s) |
 | MT-14 | `mantle versions\|rollback\|doctor\|--safe` | N | 10 | untagged |  |
-| MT-15 | Install | N | 10 | untagged |  |
+| MT-15 | Install | N | 10 | evidenced | evidence: `internal/selfmod` TestInstallIdempotentAndUpdates (launcher into ~/.mantle/bin, ~/.local/bin link, ~/.mantle/src clone on branch user, first build installed as current and last-good; re-run builds nothing; upstream fast-forward; mods recorded), TestLinkLauncherKeepsRegularFile; `scripts/install.sh` (`make install`) |
 | MT-16 | `/mantle <request>` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
 | MT-17 | Builder rules and permissions | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-18 | Pipeline steps 1–9 | N | 10 | untagged |  |
+| MT-18 | Pipeline steps 1–9 | N | 10 | evidenced | evidence: `internal/selfmod` TestPipelineAllPass (all nine steps, logs, report.json, safety env), TestProtectedPathsRejected (step 1 incl. the go.mod toolchain line), TestLintGroupCollectsAllFailures (gofmt, vet, import rules), TestBuildFailureStopsBeforeTests, TestTestFailure, TestFlakyPackageReRunAlone, TestSelftestFailure, TestSmokeFailures (pty smoke boot), TestStepTimeoutKillsProcessGroup; TestRealPipelineOnThisRepo (opt-in `MANTLE_PIPELINE_E2E=1`: all nine steps over this repository plus a mod, smoke boot against the real mantle-ui and fakeclaude; passed on integration-3) |
 | MT-19 | Fix loop | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
 | MT-20 | Promote | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
 | MT-21 | Restart now | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
@@ -643,9 +643,9 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | MT-28 | `/mantle upstream <id>` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
 | MT-29 | Dev mode | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
 | MT-30 | Builder cost and budget | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-31 | `docs/EXTENDING.md` | N | 10 | untagged |  |
+| MT-31 | `docs/EXTENDING.md` | N | 10 | evidenced | evidence: `docs/EXTENDING.md`; `internal/selfmod` TestExtendingExamplesCompile (every complete example in the guide compiles against pkg/ext via a go build overlay) |
 | MT-32 | fd-handoff instant restart | N | 10 | tagged | tags: internal/cli/flags.go:269 |
-| MT-33 | Go toolchain check | N | 10 | untagged |  |
-| MT-34 | `mods.json` derived from git | N | 10 | untagged |  |
+| MT-33 | Go toolchain check | N | 10 | evidenced | evidence: `scripts/install.sh` (checks for `go` and `git`, prints an install hint); `internal/selfmod` TestInstallNeedsGo (installer refuses without a Go toolchain, with the go.dev hint); `internal/launcher` TestDoctorCommand (`mantle doctor` reports the go version or warns that /mantle needs it) |
+| MT-34 | `mods.json` derived from git | N | 10 | evidenced | evidence: `internal/selfmod` TestEndToEndModLifecycle (mods.json rewritten from `Mantle-Mod` trailers after promotion), TestCommitModSplitsCoreSeam and TestRevertMod (mod list derived from `git log --grep '^Mantle-Mod:'`) |
 | MT-35 | Builder progress block | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-36 | Several instances on different versions | N | 10 | untagged |  |
+| MT-36 | Several instances on different versions | N | 10 | evidenced | evidence: `internal/launcher` TestGC (a version referenced by a live run file is never collected), TestRestartRelaunchesWithHandoffArgs (each launch resolves current afresh, so instances started before a promotion keep their build); `features/selfmod` TestRunFileAndHealthyMarker (each mantle-ui records its build id in run/<pid>.json) |
