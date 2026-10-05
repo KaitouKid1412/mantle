@@ -171,6 +171,17 @@ func (t *Todos) Reset() {
 	t.items, t.pending = nil, nil
 }
 
+// InProgress counts the items being worked on.
+func (t *Todos) InProgress() int {
+	n := 0
+	for _, it := range t.items {
+		if it.Status == TodoInProgress {
+			n++
+		}
+	}
+	return n
+}
+
 // Items returns the checklist in order.
 func (t *Todos) Items() []Todo { return t.items }
 

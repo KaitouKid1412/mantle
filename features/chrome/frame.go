@@ -46,7 +46,8 @@ func (f *promptFrame) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 }
 
 func (f *promptFrame) frameChanged(before sessionState) bool {
-	return before.Mode != f.s.Mode || before.EditorMode != f.s.EditorMode || before.Title != f.s.Title
+	return before.Mode != f.s.Mode || before.EditorMode != f.s.EditorMode || before.Title != f.s.Title ||
+		before.FrameTitle != f.s.FrameTitle
 }
 
 func (f *promptFrame) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
@@ -63,8 +64,10 @@ func (f *promptFrame) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	}
 	tok := frameToken(f.s.EditorMode, f.s.Mode, f.color)
 	t := ctx.Theme()
-	top := frameRule(t, tok, a.Width, f.s.Title) // custom names only (-n, /rename)
-	bottom := frameRule(t, tok, a.Width, "")
+	// The editor's title ("History 2/2") on the left, the session's custom name (-n,
+	// /rename) on the right.
+	top := frameRule(t, tok, a.Width, f.s.FrameTitle, f.s.Title)
+	bottom := frameRule(t, tok, a.Width, "", "")
 	if r.Cursor != nil {
 		c := *r.Cursor
 		c.Y++
@@ -89,19 +92,36 @@ func frameToken(editorMode, permMode, color string) theme.Token {
 	return theme.PromptBorder
 }
 
-// frameRule is a full-width rule, with label near its right end when it fits.
-func frameRule(t *theme.Theme, tok theme.Token, w int, label string) string {
-	label = strings.TrimSpace(label)
-	if label != "" {
-		label = ansi.Truncate(label, max(0, w/2), "…")
-		lw := ansi.StringWidth(label)
-		if lw > 0 && w >= lw+6 {
-			left := w - lw - 4
-			return t.Paint(tok, strings.Repeat("─", left)+" ") + t.Paint(theme.Inactive, label) +
-				t.Paint(tok, " "+strings.Repeat("─", 2))
+// frameRule is a full-width rule with an optional label near its left end and another
+// near its right end, each kept only when it fits.
+func frameRule(t *theme.Theme, tok theme.Token, w int, leftLabel, rightLabel string) string {
+	fit := func(label string, room int) string {
+		label = strings.TrimSpace(label)
+		if label == "" || room < 8 {
+			return ""
 		}
+		return ansi.Truncate(label, room/2, "…")
 	}
-	return t.Paint(tok, strings.Repeat("─", w))
+	l := fit(leftLabel, w)
+	r := fit(rightLabel, w-ansi.StringWidth(l)-6)
+	lw, rw := ansi.StringWidth(l), ansi.StringWidth(r)
+	var b strings.Builder
+	used := 0
+	if l != "" {
+		b.WriteString(t.Paint(tok, strings.Repeat("─", 3)+" ") + t.Paint(theme.Inactive, l) + t.Paint(tok, " "))
+		used = lw + 5
+	}
+	tail := 0
+	if r != "" {
+		tail = rw + 4
+	}
+	if fill := w - used - tail; fill > 0 {
+		b.WriteString(t.Paint(tok, strings.Repeat("─", fill)))
+	}
+	if r != "" {
+		b.WriteString(t.Paint(tok, " ") + t.Paint(theme.Inactive, r) + t.Paint(tok, " "+strings.Repeat("─", 2)))
+	}
+	return b.String()
 }
 
 // Delegation of the editor's optional interfaces: the host only sees the outermost

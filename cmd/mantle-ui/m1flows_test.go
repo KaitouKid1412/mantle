@@ -54,7 +54,7 @@ func TestM1FlowsBothLayouts(t *testing.T) {
 			p := testkit.StartProcess(t, cmd, testkit.WithSize(110, 34))
 
 			all := func() string { return strings.Join(p.All(), "\n") }
-			p.WaitFor(func(s string) bool { return strings.Contains(s, "shift+tab to change") }, ptyWait)
+			p.WaitFor(func(s string) bool { return strings.Contains(s, "manual approval") }, ptyWait) // the footer is up
 			if fs := layout == "fullscreen"; p.AltScreen() != fs {
 				t.Fatalf("tui=%s: alt screen = %v", layout, p.AltScreen())
 			}
