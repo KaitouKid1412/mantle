@@ -28,6 +28,7 @@ type imagesLoadedMsg struct {
 type queued struct {
 	uuid, text, priority string
 	draft                *savedDraft
+	prompt               ext.Prompt // as sent, for sending it again now
 }
 
 // submitAction handles chat:submit, chat:sendNow and chat:queueSubmit.
@@ -57,6 +58,9 @@ func (s *state) trySubmit(c ext.Ctx, priority string) tea.Cmd {
 		return s.changed(c)
 	}
 	if strings.TrimSpace(s.ed.Text()) == "" && len(s.ed.Chips()) == 0 {
+		if priority == proto.PriorityNow {
+			return s.sendQueueNow(c)
+		}
 		return nil
 	}
 	if n := s.ed.StripInvisible(); n > 0 {
@@ -240,10 +244,98 @@ func (s *state) stagePriority(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 	switch {
 	case !s.busy:
 		d.Priority = ""
-	case d.Priority == "":
+	case d.Priority != "":
+	case strings.HasPrefix(strings.TrimSpace(d.Text), "/"):
+		// Commands wait for the turn to end, as in Claude Code.
 		d.Priority = proto.PriorityLater
+	default:
+		// A message typed during a turn joins it at the next tool boundary.
+		d.Priority = proto.PriorityNext
 	}
 	return ext.Continue, nil
+}
+
+// queueFlush is a send-now of the queued messages in progress: each is taken back,
+// and those the engine confirms go out again together as one "now" prompt.
+type queueFlush struct {
+	items   []queued
+	pending int
+	taken   map[string]bool
+}
+
+// queueTakenMsg is the engine's answer to taking back one queued message for a flush.
+type queueTakenMsg struct {
+	uuid      string
+	cancelled bool
+}
+
+// sendQueueNow is chat:sendNow on an empty prompt while messages are queued, as in
+// Claude Code: the queued messages are taken back and sent again with priority "now",
+// so the engine moves a running shell command to the background, ends the turn and
+// runs them at once. Plain Enter on an empty prompt leaves the queue alone.
+func (s *state) sendQueueNow(c ext.Ctx) tea.Cmd {
+	eng := c.Engine(ext.MainEngine)
+	if eng == nil || !s.busy || s.flush != nil {
+		return nil
+	}
+	f := &queueFlush{taken: map[string]bool{}}
+	for _, q := range s.queue {
+		if q.prompt.ShouldQuery == nil || *q.prompt.ShouldQuery { // not ! output recorded without a turn
+			f.items = append(f.items, q)
+		}
+	}
+	if len(f.items) == 0 {
+		return nil
+	}
+	f.pending = len(f.items)
+	s.flush = f
+	cmds := make([]tea.Cmd, 0, len(f.items))
+	for _, q := range f.items {
+		u := q.uuid
+		cancel := eng.Control(proto.SubCancelAsyncMessage, proto.CancelAsyncMessageRequest{MessageUUID: u})
+		cmds = append(cmds, func() tea.Msg {
+			var m ext.ControlResultMsg
+			if cancel != nil {
+				m, _ = cancel().(ext.ControlResultMsg)
+			}
+			var r proto.CancelAsyncMessageResponse
+			ok := m.Err == nil && json.Unmarshal(m.Resp, &r) == nil && r.Cancelled
+			return queueTakenMsg{uuid: u, cancelled: ok}
+		})
+	}
+	return tea.Batch(cmds...)
+}
+
+// queueTaken collects the take-back answers; with the last one it sends the messages
+// the engine gave back as one "now" prompt, in queue order. A message the engine had
+// already started is not sent again.
+func (s *state) queueTaken(c ext.Ctx, m queueTakenMsg) tea.Cmd {
+	f := s.flush
+	if f == nil {
+		return nil
+	}
+	if m.cancelled {
+		f.taken[m.uuid] = true
+	}
+	if f.pending--; f.pending > 0 {
+		return nil
+	}
+	s.flush = nil
+	p := ext.Prompt{Priority: proto.PriorityNow, UUID: uuid.NewString()}
+	var uuids, texts []string
+	for _, q := range f.items {
+		if !f.taken[q.uuid] {
+			continue
+		}
+		uuids = append(uuids, q.uuid)
+		texts = append(texts, q.text)
+		p.Blocks = append(p.Blocks, q.prompt.Blocks...)
+		p.InlinePastes = append(p.InlinePastes, q.prompt.InlinePastes...)
+	}
+	if len(uuids) == 0 {
+		return nil
+	}
+	return tea.Batch(s.dequeue(uuids...), s.dispatch(c, p, strings.Join(texts, "\n"), nil))
 }
 
 // stageSend writes the prompt to the main engine.
@@ -286,7 +378,7 @@ func (s *state) dispatch(c ext.Ctx, p ext.Prompt, text string, draft *savedDraft
 		if draft != nil {
 			text = draft.Display
 		}
-		s.queue = append(s.queue, queued{uuid: p.UUID, text: text, priority: p.Priority, draft: draft})
+		s.queue = append(s.queue, queued{uuid: p.UUID, text: text, priority: p.Priority, draft: draft, prompt: p})
 		return s.queueCmd()
 	}
 	if p.ShouldQuery != nil && !*p.ShouldQuery && !s.busy {
@@ -375,7 +467,7 @@ func (s *state) track(c ext.Ctx, p ext.Prompt, text string) tea.Cmd {
 		s.busy = true
 		return nil
 	}
-	q := queued{uuid: p.UUID, text: text, priority: p.Priority, draft: s.lastSent}
+	q := queued{uuid: p.UUID, text: text, priority: p.Priority, draft: s.lastSent, prompt: p}
 	if s.lastSent != nil {
 		q.text = s.lastSent.Display
 	}

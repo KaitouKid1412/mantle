@@ -35,7 +35,7 @@ are **H**. Infeasible features are **X**.
 | Prompt editor | ED | 04 | 40 | 0 | 1 | 39 | 0 | 0 |
 | Autocomplete | AC | 04 | 22 | 2 | 3 | 17 | 0 | 0 |
 | History | HI | 04 | 10 | 0 | 0 | 10 | 0 | 0 |
-| Turn control | TC | 05 | 21 | 1 | 4 | 14 | 0 | 2 |
+| Turn control | TC | 05 | 21 | 2 | 4 | 15 | 0 | 0 |
 | Transcript rendering | TR | 03 | 60 | 0 | 54 | 6 | 0 | 0 |
 | Views | VW | 03 / 07 / 12 | 24 | 0 | 7 | 17 | 0 | 0 |
 | Chrome & terminal | CH | 07 | 30 | 0 | 7 | 23 | 0 | 0 |
@@ -49,7 +49,7 @@ are **H**. Infeasible features are **X**.
 | Cloud & product hand-offs | CL | 09 / 11 | 27 | 2 | 0 | 0 | 25 | 0 |
 | Known gaps | GAP | various | 13 | 0 | 0 | 0 | 0 | 13 |
 | mantle-only | MT | 10 / 01 | 36 | 0 | 0 | 36 | 0 | 0 |
-| **Total** | | | **572** | **62** | **87** | **366** | **36** | **21** |
+| **Total** | | | **572** | **63** | **87** | **367** | **36** | **19** |
 
 ---
 
@@ -213,11 +213,11 @@ are **H**. Infeasible features are **X**.
 | TC-03 | Ctrl+C semantics | Interrupt, else clear input, twice to exit ("Press Ctrl-C again to exit") | N | M1 | 05 | B | |
 | TC-04 | Ctrl+D double press exits | Within 800 ms | N | M1 | 05 | B | |
 | TC-05 | Queue while busy | Enter during a turn queues a gray pending message | N | M1 | 05 | B | |
-| TC-06 | Mid-turn pickup | Queued message folded in between tool rounds | X | M1 | 05 | B | `priority:"next"`; S2; Not built yet: mantle sends every prompt typed during a turn as `priority:"later"` (`features/input` stagePriority), so it waits for the turn to end instead of being folded in at the next tool boundary (S2: no priority behaves like `next`). Request 05-04 |
+| TC-06 | Mid-turn pickup | Queued message folded in between tool rounds | E | M1 | 05 | B | `priority:"next"`; S2; verified on 2.1.289 (scenario `midturn`) |
 | TC-07 | Take back queued messages | Up edits queued messages | N | M2 | 05 | B | `cancel_async_message`; S2 |
 | TC-08 | Send now | Ctrl+Enter or Ctrl+X Ctrl+S | N | M1 | 05 | B | `priority:"now"` + `origin:{kind:"human"}` |
 | TC-09 | Queue submit | Ctrl+X Enter queues without interrupting | N | M2 | 05 | B | `priority:"later"` |
-| TC-10 | Send queued immediately | Enter on queued messages | X | M2 | 05 | B | Not built yet: Enter on an empty prompt does nothing while messages are queued (`features/input` trySubmit). Request 05-04 |
+| TC-10 | Send queued immediately | ctrl+x ctrl+s (send now) on the empty prompt sends the queued messages at once; a running shell command moves to the background | N | M2 | 05 | B | 2.1.289 (2.1.288 said Enter): take the queue back (`cancel_async_message`) and resend it as `priority:"now"`; scenario `queue-send` |
 | TC-11 | Background the running task | Ctrl+B or Ctrl+X Ctrl+B | N | M2 | 05 | B | `background_tasks` control request; Task context |
 | TC-12 | Kill all background agents | Ctrl+X Ctrl+K | N | M2 | 05 | B | `stop_task` per task |
 | TC-13 | Mid-turn model, effort or fast switch | Applies on the next request | E | M1 | 05 | B | |

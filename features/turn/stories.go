@@ -119,7 +119,7 @@ func (st *state) setupStories(r ext.Registrar) {
 			return ext.Rendered{Text: renderQueue([]queuedPrompt{
 				{UUID: "1", Text: "also update the changelog"},
 				{UUID: "2", Text: "and run the linter\nafterwards"},
-			}, a.Width, c.Theme())}
+			}, a.Width, c.Theme(), sendNowKey(c))}
 		},
 	})
 }

@@ -61,6 +61,7 @@ type state struct {
 	lastPaste   string      // that paste's content
 	lastSent    *savedDraft // restored when the send stage rejects
 	pending     *pendingSubmit
+	flush       *queueFlush    // chat:sendNow taking the queue back to send it now
 	pendingHist *history.Entry // set while the pipeline runs for this submit
 	suggestion  string
 	workflowKw  bool

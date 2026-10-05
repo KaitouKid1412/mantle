@@ -37,6 +37,8 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		return s.changed(c)
 	case editor.PasteStoreErrMsg:
 		c.Log().Warn("input: writing paste cache", "err", m.Err)
+	case queueTakenMsg:
+		return s.queueTaken(c, m)
 	case imagesLoadedMsg:
 		return s.imagesLoaded(c, m)
 	case fileTickMsg:

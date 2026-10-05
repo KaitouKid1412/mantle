@@ -1,0 +1,17 @@
+{
+  "turns": [
+    {
+      "match": {"contains": "Run the long job"},
+      "reply": [
+        {"type": "text", "text": "Starting the long job."},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "sleep 30", "description": "Run the long job"}}
+      ]
+    },
+    {
+      "match": {"contains": "Then summarize"},
+      "reply": [{"type": "text", "text": "Summary sent early."}]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

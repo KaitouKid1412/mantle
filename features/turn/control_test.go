@@ -337,6 +337,10 @@ func TestQueueDisplay(t *testing.T) {
 			t.Fatalf("queue view missing %q:\n%s", want, v)
 		}
 	}
+	wide := testkitStrip(x.reg.Components[0].Component.View(x.c, ext.Area{Width: 80}).Text)
+	if !strings.Contains(wide, "↑ to edit queued messages · ctrl+x ctrl+s to send them now") {
+		t.Fatalf("queue hint:\n%s", wide)
+	}
 	x.event(&proto.CommandLifecycle{CommandUUID: "u1", State: proto.LifecycleStarted})
 	if strings.Contains(testkitStrip(view()), "first") {
 		t.Fatal("started prompts leave the queue")

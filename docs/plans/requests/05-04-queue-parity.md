@@ -1,7 +1,11 @@
 # 05 → 04: mid-turn pickup and sending queued messages (PARITY TC-06, TC-10)
 
-**Status:** open (2026-10-05). Both rows are recorded as gaps (X) in docs/PARITY.md until
-this lands; flip them back to their codes and tag them when it does.
+**Status:** done by plan 05 at the coordinator's request (2026-10-05), with small edits
+in `features/input/submit.go`. TC-06: a plain message typed during a turn goes out as
+`next`, slash commands stay `later`. TC-10: on 2.1.289 the trigger is chat:sendNow
+(ctrl+x ctrl+s) on the empty prompt, not Enter: the queue is taken back and resent as
+one `now` prompt. Tests: `features/input` TestBusyPromptJoinsTheTurn and
+TestSendNowSendsQueue; pty scenarios `midturn` and `queue-send`.
 
 Both sit in `features/input` (`submit.go`), so they are yours to change; plan 05 renders
 the queue and owns the rows.

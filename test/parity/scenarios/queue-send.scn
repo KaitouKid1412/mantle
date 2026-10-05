@@ -1,0 +1,23 @@
+# Send queued messages now: Enter on an empty prompt while a message is queued stops
+# the 30-second tool and runs the queued message at once. Without it the answer only
+# comes after the tool, past the 15-second wait.
+name: queue-send
+size: 100x30
+args: --permission-mode default --allowedTools 'Bash(sleep:*)'
+files: ../../../testdata/fixtures/12/app
+script: scripts/queue-send.json
+settings: {"spinnerTipsEnabled": false}
+parity: TC-10
+---
+ready
+type Run the long job
+keys enter
+wait_for 30s sleep 30
+type Then summarize
+keys enter
+settle 1s
+checkpoint queued
+keys ctrl+x ctrl+s
+wait_for 15s Summary sent early.
+settle
+checkpoint sent
