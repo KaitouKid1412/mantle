@@ -148,7 +148,7 @@ func (r *rig) run(cmd tea.Cmd) {
 			continue // keys arrive faster than the remap timeout
 		}
 		// The host broadcasts every message to Update.
-		r.run(r.s.update(r.c, m))
+		r.run((&promptComp{s: r.s}).Update(r.c, m))
 	}
 }
 
@@ -216,13 +216,13 @@ func normalizeKeys(ks string) string {
 }
 
 func (r *rig) action(a ext.ActionID) bool {
-	ok, cmd := r.s.action(r.c, a)
+	ok, cmd := (&promptComp{s: r.s}).HandleAction(r.c, a)
 	r.run(cmd)
 	return ok
 }
 
 func (r *rig) event(ev any) {
-	r.run(r.s.update(r.c, ev))
+	r.run((&promptComp{s: r.s}).Update(r.c, ev))
 }
 
 func (r *rig) text() string { return r.s.ed.Display() }

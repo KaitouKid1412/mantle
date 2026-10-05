@@ -1,6 +1,6 @@
 # 12 → 04: prompt, menus, history and esc (parity audit)
 
-**Status:** §1 and §6 done (plan 04 c7703b3); §2, §3, §4, §5b, §7 taken by 04. Needs others: footer hidden while a menu/hint shows and the "History 2/2" rule title (01 adds EditorStateMsg.Panel and FrameTitle, 07 draws them); command availability via Command.Hidden in 08/09; close results with 08/09 (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** plan 04 part done (2026-10-05, worktree-04-input eb8507c): §1, §2 (layout, tiers, no `__` names, no ghost), §3, §4, §5b, §6, §7 (echo of native commands); input.editor sends `EditorStateMsg.Panel` while a menu, hint, help or search shows, and `FrameTitle` "History N/M" (§5a). Left to others: chrome hides the footer on Panel and draws FrameTitle (07); command availability through Command.Hidden or CommandVisibilityMsg (08/09); panel close results (08/09); the transcript's user-prompt glyph (03). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
 `test/parity/out/<scenario>/<checkpoint>.txt`. Match layout and behaviour; keep mantle's
