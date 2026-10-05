@@ -209,6 +209,18 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
     General, closing lines.
   - [x] [12-09](requests/12-09-ecosystem-parity.md) (09): /mcp closing line; hand-off
     confirmation kept (note).
+  - Round 2 (integration-6, 2026-10-05):
+    - [ ] [12-01 fullscreen print](requests/12-01-fullscreen-print.md) (01): `Ctx.Print`
+      is dropped in fullscreen (banner, panel closing lines); an additive PrintedMsg for
+      the viewport.
+    - [ ] [12-03 round 2](requests/12-03-transcript-parity-2.md) (03): single newlines
+      joined; "Waiting…" only for Bash; engine notices as replies; resumed turn lines;
+      fullscreen tool rows.
+    - [ ] [12-04 round 2](requests/12-04-input-parity-2.md) (04): history numbering;
+      fullscreen ctrl+r dialog (VW-22 handed to 04); esc restores the prompt; /clear echo;
+      menu entries claude hides.
+    - [ ] [12-06 round 2](requests/12-06-sessions-parity-2.md) (06): hand-off leaves the
+      live area on screen; resumed turn lines.
 - [ ] **B3 [M2] Performance suite** (`test/e2e/perf`):
   - **startup:** cold launch to first frame for `mantle` vs `claude` (median of N);
   - **long transcripts:** resume a 10k-item session; time to interactive; steady `View()`
