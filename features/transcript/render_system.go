@@ -263,11 +263,31 @@ func (f *Feature) renderRetry(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	return ext.Block{Lines: result(rc, st.warn, text)}
 }
 
+// dialogOnlyNotices identifies engine notices that interactive Claude Code
+// shows as a one-time dialog, not as a transcript line; the headless engine
+// flattens them into a system/informational message. They carry no tag, so
+// they are matched by the documentation link they point to.
+var dialogOnlyNotices = []string{
+	"code.claude.com/docs/en/auto-mode-classifier-billing", // auto mode classifier billing
+}
+
+func dialogOnlyNotice(content string) bool {
+	for _, link := range dialogOnlyNotices {
+		if strings.Contains(content, link) {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *Feature) renderInformational(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	st := stylesFor(rc)
 	in, _ := it.Data.(*proto.Informational)
 	if in == nil || strings.TrimSpace(in.Content) == "" {
 		return ext.Block{}
+	}
+	if dialogOnlyNotice(in.Content) && rc.Mode != ext.FullTranscript {
+		return ext.Block{} // only the ctrl+o viewer keeps it
 	}
 	style := st.dim
 	switch in.Level {
