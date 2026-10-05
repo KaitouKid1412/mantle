@@ -171,7 +171,7 @@ func TestResolveEffort(t *testing.T) {
 		{"clamped to supported levels", sonnet, EffortInputs{Session: Max},
 			Resolved{Effort: High, Source: SourceSession, Requested: Max, Capped: true}},
 		{"default effort", opus, EffortInputs{},
-			Resolved{Effort: High, Source: SourceDefault}},
+			Resolved{Effort: Medium, Source: SourceDefault}},
 		{"no effort support", haiku, EffortInputs{Session: High}, Resolved{Source: SourceNone}},
 		{"global cap", opus, EffortInputs{Session: Max, Settings: settings(t, `{"maxEffortLevel":"high"}`)},
 			Resolved{Effort: High, Source: SourceSession, Requested: Max, Capped: true}},
@@ -179,7 +179,7 @@ func TestResolveEffort(t *testing.T) {
 			`{"effortLevel":"xhigh","modelSettings":{"claude-opus-5-5":{"maxEffortLevel":"medium"}}}`)},
 			Resolved{Effort: Medium, Source: SourceSetting, Requested: XHigh, Capped: true}},
 		{"garbage setting ignored", opus, EffortInputs{Settings: settings(t, `{"effortLevel":"turbo"}`)},
-			Resolved{Effort: High, Source: SourceDefault}},
+			Resolved{Effort: Medium, Source: SourceDefault}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
