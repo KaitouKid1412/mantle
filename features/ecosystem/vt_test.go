@@ -177,10 +177,13 @@ func TestMCPInteractionVT(t *testing.T) {
 		return false
 	}, 5*time.Second)
 	hs.Send("escape")
-	hs.WaitFor(func(s string) bool { return !strings.Contains(s, "MCP servers") }, 5*time.Second)
-	for _, l := range hs.Scrollback() {
-		if strings.Contains(l, "MCP servers") || strings.Contains(l, "filesystem") {
-			t.Fatalf("dialog lines leaked into scrollback:\n%s", strings.Join(hs.Scrollback(), "\n"))
+	// Closing leaves one result line (request 12-09) and nothing of the panel.
+	hs.WaitFor(func(s string) bool {
+		return strings.Contains(s, "⎿  MCP servers closed") && !strings.Contains(s, "filesystem")
+	}, 5*time.Second)
+	for _, l := range append(hs.Scrollback(), strings.Split(hs.Screen(), "\n")...) {
+		if strings.Contains(l, "filesystem") || strings.Contains(l, "enter details") {
+			t.Fatalf("dialog lines leaked:\n%s\n---\n%s", strings.Join(hs.Scrollback(), "\n"), hs.Screen())
 		}
 	}
 }

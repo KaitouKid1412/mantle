@@ -75,8 +75,13 @@ func NewRestartDialog(ctx ext.Ctx, args any) (*Dialog, error) {
 		q = append(q, "", "The restart is needed "+a.Reason+".")
 	}
 	c := &ConfirmView{Question: q, YesLabel: "Restart now", Danger: true,
-		OnYes: func(ctx ext.Ctx, d *Dialog) tea.Cmd { return restartNow(ctx, a.Reason) }}
-	return NewDialog(RestartDialogID, "Restart Claude", c), nil
+		OnYes: func(ctx ext.Ctx, d *Dialog) tea.Cmd {
+			d.CloseLine = "" // the restart notice says what happened
+			return restartNow(ctx, a.Reason)
+		}}
+	d := NewDialog(RestartDialogID, "Restart Claude", c)
+	d.CloseLine = "Restart cancelled"
+	return d, nil
 }
 
 // Handoff opens interactive Claude Code on this session through plan 06's

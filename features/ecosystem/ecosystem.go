@@ -8,12 +8,15 @@
 package ecosystem
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/KaitouKid1412/mantle/features/ecosystem/internal/eco"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 
 	_ "github.com/KaitouKid1412/mantle/features/ecosystem/agents"
 	_ "github.com/KaitouKid1412/mantle/features/ecosystem/agentview"
@@ -58,7 +61,45 @@ func Setup(r ext.Registrar) error {
 		return nil
 	})
 	r.AddDialog(eco.RestartDialogID, eco.Factory(eco.NewRestartDialog))
+
+	// Hide the commands Claude Code hides for this account and environment:
+	// environment gates at start, then again with the account from every
+	// initialize reply (a new one follows the restart after /login).
+	r.OnStart(FeatureID+".visibility", func(ctx ext.Ctx) tea.Cmd {
+		return ext.Msg(EnvVisibility())
+	})
+	ext.Subscribe(r, FeatureID+".initialize", func(ctx ext.Ctx, m ext.ControlResultMsg) tea.Cmd {
+		if m.Subtype != proto.SubInitialize || m.Err != nil || (m.EngineID != "" && m.EngineID != ext.MainEngine) {
+			return nil
+		}
+		var resp proto.InitializeResponse
+		if json.Unmarshal(m.Resp, &resp) != nil {
+			return nil
+		}
+		return ext.Msg(AccountVisibility(eco.ClassifyAccount(resp.Account)))
+	})
 	return nil
+}
+
+// CommandVisibilityMsg sources. The host ORs overlays, so the environment gates
+// (sent at start) and the account gates (sent on each initialize) never undo
+// each other, whatever order they arrive in.
+const (
+	EnvVisibilitySource     = "ecosystem.env"
+	AccountVisibilitySource = "ecosystem.account"
+)
+
+// Getenv reads the environment for the visibility gates; tests replace it.
+var Getenv = os.Getenv
+
+// EnvVisibility hides the commands the environment turns off.
+func EnvVisibility() ext.CommandVisibilityMsg {
+	return ext.CommandVisibilityMsg{Source: EnvVisibilitySource, Hidden: eco.HiddenForEnv(Getenv)}
+}
+
+// AccountVisibility hides the commands Claude Code hides for an account kind.
+func AccountVisibility(auth eco.Auth) ext.CommandVisibilityMsg {
+	return ext.CommandVisibilityMsg{Source: AccountVisibilitySource, Hidden: eco.HiddenForAccount(auth)}
 }
 
 // MCPStatus converts tracker counts to the footer's message.
