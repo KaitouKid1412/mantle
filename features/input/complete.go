@@ -109,7 +109,7 @@ func (m *completion) update(c ext.Ctx, s *state) tea.Cmd {
 	switch tok[0] {
 	case '/':
 		leading := s.ed.Cursor().Row == 0 && start == 0
-		m.slash(c, s, tok[1:], leading)
+		return m.slash(c, s, tok[1:], leading)
 	case '@':
 		return m.file(c, s, tok[1:])
 	case ':':
@@ -126,10 +126,11 @@ func (m *completion) update(c ext.Ctx, s *state) tea.Cmd {
 
 // ---- slash commands ----
 
-func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) {
+func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) tea.Cmd {
 	m.kind = compSlash
-	m.items = slashItems(c, query, leading)
+	m.items = slashItems(c, query, leading, s.skills)
 	m.sel = 0
+	return s.askSkills(c)
 }
 
 // slashItems lists the commands matching query, in tiers: names (and
@@ -137,7 +138,7 @@ func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) {
 // containing it. A leading command falls back to fuzzy name matching when
 // nothing else matches; a mid-prompt "/" only takes name prefixes. Hidden
 // commands show only when typed exactly; internal "__" names never show.
-func slashItems(c ext.Ctx, query string, leading bool) []compItem {
+func slashItems(c ext.Ctx, query string, leading bool, skills map[string]bool) []compItem {
 	var cmds []ext.Command
 	for _, cmd := range c.Commands() {
 		if !cmd.Hidden && !strings.HasPrefix(cmd.Name, "__") {
@@ -151,8 +152,12 @@ func slashItems(c ext.Ctx, query string, leading bool) []compItem {
 		}
 	}
 	if query == "" {
+		// Like claude, the unfiltered menu lists commands; skills show up
+		// once you type something they match.
 		for _, cmd := range cmds {
-			out = append(out, cmdItem(cmd, ""))
+			if !skills[cmd.Name] {
+				out = append(out, cmdItem(cmd, ""))
+			}
 		}
 		return limit(out)
 	}

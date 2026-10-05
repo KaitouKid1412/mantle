@@ -61,9 +61,7 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		}
 	case ext.CommandsMsg, ext.CommandVisibilityMsg:
 		// The command list changed: refresh an open / menu.
-		if s.comp.kind == compSlash || s.comp.kind == compArgs {
-			return s.comp.update(c, s)
-		}
+		return s.refreshSlashMenu(c)
 	case ext.EditorSetTextMsg:
 		// Rewind (plan 06) puts the rewound prompt back in the box.
 		s.setText(m.Text)
@@ -90,6 +88,16 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 			}
 		case proto.SubCancelAsyncMessage:
 			return s.cancelResult(c, m)
+		case proto.SubReloadSkills:
+			var r proto.ReloadSkillsResponse
+			if m.Err == nil && json.Unmarshal(m.Resp, &r) == nil {
+				var names []string
+				for _, sk := range r.Skills {
+					names = append(names, sk.Name)
+				}
+				s.addSkills(names)
+				return s.refreshSlashMenu(c)
+			}
 		case proto.SubFileSuggestions:
 			return s.comp.fileResults(c, s, m)
 		case proto.TypeUser:
@@ -104,6 +112,7 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 	case ext.EngineAttachMsg:
 		if m.EngineID == ext.MainEngine && m.Engine != nil {
 			s.startErr = nil
+			s.skillsAsked = false // a new engine: ask again when / opens
 			return tea.Batch(warmFiles(m.Engine), s.flushStarting(m.Engine))
 		}
 	case ext.EngineExitedMsg:
@@ -151,9 +160,18 @@ func (s *state) engineEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 		if e.SessionID != "" {
 			s.sessionID = e.SessionID
 		}
-		if s.mergeCommandNames(e.SlashCommands) {
-			return s.commandsCmd()
+		var refresh tea.Cmd
+		if e.Skills != nil {
+			s.addSkills(e.Skills)
+			// Bundled skills only show up here, with the first turn:
+			// remember them so the next session's first / menu is right.
+			_ = c.Store(FeatureID).Set(skillsKey, e.Skills)
+			refresh = s.refreshSlashMenu(c)
 		}
+		if s.mergeCommandNames(e.SlashCommands) {
+			return tea.Batch(refresh, s.commandsCmd())
+		}
+		return refresh
 	case *proto.ConversationReset:
 		if e.NewConversationID != "" {
 			s.sessionID = e.NewConversationID
@@ -210,10 +228,55 @@ func (s *state) commandsCmd() tea.Cmd {
 		cmds = append(cmds, ext.Command{
 			ID: ext.CommandID(sc.Name), Name: sc.Name, Description: sc.Description,
 			ArgHint: sc.ArgumentHint, Aliases: sc.Aliases, Source: ext.SourceEngine,
+			Hidden: headlessOnly[sc.Name] || strings.HasPrefix(sc.Name, "__"),
 		})
 	}
 	return ext.Msg(ext.CommandsMsg{Source: ext.SourceEngine, EngineID: ext.MainEngine, Commands: cmds})
 }
+
+const skillsKey = "skills"
+
+// refreshSlashMenu recomputes an open / menu after the command list or the
+// skill set changed.
+func (s *state) refreshSlashMenu(c ext.Ctx) tea.Cmd {
+	if s.comp.kind != compSlash && s.comp.kind != compArgs {
+		return nil
+	}
+	cmd := s.comp.update(c, s)
+	s.invalidate(c)
+	return cmd
+}
+
+// askSkills asks the engine for its skills once, when the / menu first
+// opens: system/init (which lists them) only arrives with the first turn.
+// Lazily, so startup sends nothing extra.
+func (s *state) askSkills(c ext.Ctx) tea.Cmd {
+	if s.skillsAsked {
+		return nil
+	}
+	eng := c.Engine(ext.MainEngine)
+	if eng == nil {
+		return nil
+	}
+	s.skillsAsked = true
+	return eng.Control(proto.SubReloadSkills, proto.ReloadSkillsRequest{})
+}
+
+// addSkills records engine skill names (left out of the unfiltered menu).
+func (s *state) addSkills(names []string) {
+	if s.skills == nil {
+		s.skills = map[string]bool{}
+	}
+	for _, n := range names {
+		s.skills[n] = true
+	}
+}
+
+// headlessOnly are engine commands the interactive claude keeps out of its
+// / menu (2.1.289): the headless variant of auto-mode-setup is for SDK hosts,
+// /agents is hidden ("removed"), heapdump is a debugging aid. They still run
+// when typed.
+var headlessOnly = map[string]bool{"auto-mode-setup": true, "agents": true, "heapdump": true}
 
 func (s *state) vimEvent(c ext.Ctx, ev vim.Event) tea.Cmd {
 	switch ev {

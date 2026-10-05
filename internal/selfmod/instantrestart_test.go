@@ -24,6 +24,7 @@ import (
 // process survived the restart.
 const instantRestartScript = `
 {"on": {"type": "control_request", "request": {"subtype": "file_suggestions"}}, "respond": {"suggestions": []}}
+{"on": {"type": "control_request", "request": {"subtype": "reload_skills"}}, "respond": {"skills": []}}
 {"on": {"type": "control_request", "request": {"subtype": "get_context_usage"}}, "respond": {"categories": [], "totalTokens": 0, "maxTokens": 200000, "percentage": 0}}
 {"on": {"type": "control_request", "request": {"subtype": "mcp_status"}}, "respond": {"mcpServers": []}}
 {"on": {"type": "control_request", "request": {"subtype": "list_models"}}, "respond": {"models": []}}

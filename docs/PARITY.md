@@ -155,7 +155,7 @@ are **H**. Infeasible features are **X**.
 | ED-32 | `ultrathink` highlight | Rainbow keyword | N | M2 | 04 | B | Visual only |
 | ED-33 | `ultracode` highlight and toggle | Keyword highlight; Meta+W toggles the trigger | N | M2 | 04 | B | `chat:workflowKeywordToggle` |
 | ED-34 | Prompt-suggestion ghost text | Gray next-prompt prediction; Tab/Right accepts | R | M2 | 04 | B | Data from ENG-27; `promptSuggestionEnabled` |
-| ED-35 | Initial example prompt | Suggested first prompt from git history | N | M3 | 04 | B | |
+| ED-35 | Initial example prompt | Suggested first prompt from git history | X | M3 | 04 | B | Gap: not implemented (M3). claude 2.1.289 shows no example prompt in the parity runs (API key setup), so there is nothing to match yet |
 | ED-36 | `?` shortcut help | `?` on an empty prompt shows the shortcuts panel | N | M2 | 04 | B | |
 | ED-37 | Placeholder and inline hints | Prompt placeholder text | N | M1 | 04 | B | |
 | ED-38 | Real cursor placement for IME | IME candidates appear at the cursor | N | M1 | 04 | A | `Rendered.Cursor` |
@@ -179,8 +179,8 @@ are **H**. Infeasible features are **X**.
 | AC-11 | Autocomplete keys | Tab accept, Esc dismiss, Up/Down | N | M1 | 04 | B | Autocomplete context |
 | AC-12 | `@` file mentions | Dropdown of matching paths | N | M1 | 04 | B | `file_suggestions` control request, debounced (S11) |
 | AC-13 | `respectGitignore` / `fileSuggestion` | Suggestions follow the user's config | E | M1 | 04 | B | Engine-side via `file_suggestions` |
-| AC-14 | `@server:resource` mentions | MCP resources listed with files | N | M2 | 04 | B | S11 |
-| AC-15 | `@` live-session suggestions | Other sessions offered | N | M3 | 04 | B | |
+| AC-14 | `@server:resource` mentions | MCP resources listed with files | X | M2 | 04 | B | Gap: headless `file_suggestions` returns files only and no control request lists MCP resources (2.1.288/2.1.289), so mantle can't offer them |
+| AC-15 | `@` live-session suggestions | Other sessions offered | X | M3 | 04 | B | Gap: not implemented (M3) |
 | AC-16 | `!` shell mode entry | `!` switches to bash mode, with border colour | N | M1 | 04 | B | |
 | AC-17 | `!` command execution | Output added to context; Claude replies if `respondToBashCommands` | N | M1 | 04 | B | No stream-json equivalent; emulate (run + inject via `shouldQuery`). Needs a spike |
 | AC-18 | `!` history completion | Tab completes earlier commands | N | M2 | 04 | B | |
