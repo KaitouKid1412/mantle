@@ -58,6 +58,9 @@ func TestHelpCommandsAndSearch(t *testing.T) {
 	if g.dialog != nil {
 		t.Error("second esc did not close help")
 	}
+	if p := g.printed(); len(p) != 1 || p[0] != "  ⎿  Help closed" {
+		t.Errorf("printed %q", p)
+	}
 }
 
 func TestHelpShortcuts(t *testing.T) {

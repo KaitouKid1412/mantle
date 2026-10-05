@@ -319,7 +319,11 @@ func (s *effortSlider) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) 
 	case ext.ActEffortSliderThisSessionOnly:
 		return true, s.commit(c, true)
 	case ext.ActSelectCancel:
-		return true, c.CloseDialog(dialogEffort)
+		kept := "Effort unchanged"
+		if s.row.Effort.Effort != "" {
+			kept = "Kept effort as " + string(s.row.Effort.Effort)
+		}
+		return true, tea.Sequence(c.CloseDialog(dialogEffort), resultLine(c, kept))
 	default:
 		return false, nil
 	}

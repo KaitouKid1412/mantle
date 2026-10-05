@@ -218,7 +218,7 @@ func (p *statusPanel) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 	case ext.ActSettingsRetry:
 		return true, p.refreshMCP(c)
 	case ext.ActSelectCancel, ext.ActConfirmNo, ext.ActSelectAccept:
-		return true, c.CloseDialog(dialogStatus)
+		return true, tea.Sequence(c.CloseDialog(dialogStatus), resultLine(c, "Status closed"))
 	default:
 		return false, nil
 	}

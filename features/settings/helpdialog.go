@@ -122,7 +122,7 @@ func (h *helpDialog) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 			h.setQuery(c, "")
 			return true, nil
 		}
-		return true, c.CloseDialog(dialogHelp)
+		return true, tea.Sequence(c.CloseDialog(dialogHelp), resultLine(c, "Help closed"))
 	case ext.ActTabsNext:
 		h.tab = (h.tab + 1) % len(helpTabs)
 		h.offset = 0
