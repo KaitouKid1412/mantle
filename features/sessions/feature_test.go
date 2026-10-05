@@ -52,8 +52,15 @@ func TestStartupHistory(t *testing.T) {
 	if len(find[ext.EngineStartMsg](h)) != 0 || h.ctx.Reprints != 0 {
 		t.Fatal("startup must not restart or reprint")
 	}
-	if h.ctx.SessionValue.Title != "Explain the build system" {
-		t.Fatalf("title = %q", h.ctx.SessionValue.Title)
+	// A generated title stays out of the prompt bar; only a user-set name goes there.
+	if h.ctx.SessionValue.Title != "" || h.f.titles[sidPlain] != "Explain the build system" {
+		t.Fatalf("title = %q, titles %v", h.ctx.SessionValue.Title, h.f.titles)
+	}
+	hn := newHarness(t)
+	hn.ctx.SessionValue.SessionID = sidMessy
+	hn.run(hn.r.Starts[0].Value.(func(ext.Ctx) tea.Cmd)(hn.ctx))
+	if hn.ctx.SessionValue.Title != "My renamed session" {
+		t.Fatalf("named session title = %q", hn.ctx.SessionValue.Title)
 	}
 
 	// A fresh session (no transcript yet) shows nothing and no error.
@@ -98,12 +105,14 @@ func TestResumeByID(t *testing.T) {
 			seq = append(seq, "start")
 		}
 	}
-	if want := []string{"history", "reprint", "session", "start"}; !slices.Equal(seq, want) {
-		t.Fatalf("sequence = %v (out %v)", seq, h.out)
+	// Empty the store, clear the screen, then the session change (its banner prints
+	// first), then the history (printed once), then the engine.
+	if want := []string{"history", "reprint", "session", "history", "start"}; !slices.Equal(seq, want) {
+		t.Fatalf("sequence = %v", seq)
 	}
-	hist := find[ext.TranscriptHistoryMsg](h)[0]
-	if !hist.Reset || len(hist.Items) != 7 {
-		t.Fatalf("history = reset %v, %d items", hist.Reset, len(hist.Items))
+	hists := find[ext.TranscriptHistoryMsg](h)
+	if !hists[0].Reset || len(hists[0].Items) != 0 || hists[1].Reset || len(hists[1].Items) != 7 {
+		t.Fatalf("history = %+v / %d items", hists[0], len(hists[1].Items))
 	}
 	start := find[ext.EngineStartMsg](h)[0]
 	o := start.Opts
@@ -111,7 +120,7 @@ func TestResumeByID(t *testing.T) {
 		!slices.Equal(o.ExtraArgs, []string{"--verbose"}) || o.ForkSession {
 		t.Fatalf("start opts = %+v", o)
 	}
-	if h.ctx.SessionValue.SessionID != sidTools || h.ctx.SessionValue.Title != "List files and summarize them" {
+	if h.ctx.SessionValue.SessionID != sidTools || h.ctx.SessionValue.Title != "" {
 		t.Fatalf("session = %+v", h.ctx.SessionValue)
 	}
 }
@@ -174,7 +183,7 @@ func TestClearAndCompact(t *testing.T) {
 	}
 	old := h.ctx.SessionValue.SessionID
 	h.run(ext.Msg(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: &proto.ConversationReset{NewConversationID: "new-id", Trigger: "clear"}}))
-	if h.ctx.Reprints != 1 || h.ctx.SessionValue.SessionID != old || h.f.lastCleared() != old ||
+	if h.ctx.Reprints != 0 || h.ctx.SessionValue.SessionID != old || h.f.lastCleared() != old ||
 		len(find[ext.SessionChangedMsg](h)) != 0 {
 		t.Fatalf("reprints=%d session=%+v cleared=%v", h.ctx.Reprints, h.ctx.SessionValue, h.f.cleared)
 	}

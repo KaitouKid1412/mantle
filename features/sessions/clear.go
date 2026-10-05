@@ -68,8 +68,9 @@ func (f *feature) onConversationReset(ctx ext.Ctx, engineID string, e *proto.Con
 	}
 	// new_conversation_id is not the id the engine continues under (that one arrives
 	// with the engine's own session report), so it is neither stored nor published.
+	// The transcript feature redraws the screen on the same event.
 	st.session, st.shown = "", "cleared"
-	return ctx.Reprint()
+	return nil
 }
 
 // lastCleared is the most recent session left by /clear ("" if none).
