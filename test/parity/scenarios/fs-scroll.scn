@@ -1,0 +1,23 @@
+# Fullscreen renderer: scroll a long answer with PgUp and back to the bottom with ctrl+end.
+name: fs-scroll
+size: 100x30
+args: --permission-mode default
+prompt: Give me eighty lines
+files: ../../../testdata/fixtures/12/app
+script: scripts/fs-scroll.json
+settings: {"tui": "fullscreen"}
+parity: VW-15, VW-16, VW-19, VW-20
+---
+ready
+wait_for 30s End of the long answer.
+settle
+checkpoint bottom
+keys pageup
+settle
+checkpoint page-up
+keys pageup
+settle
+checkpoint page-up-2
+keys ctrl+end
+settle
+checkpoint back-to-bottom
