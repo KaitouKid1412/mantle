@@ -43,6 +43,8 @@ const spinnerGlyphs = `✻✽✶✳✢·*◐◓◑◒⠋⠙⠹⠸⠼⠴⠦⠧⠇
 
 // DefaultRules are the volatile-content rules, applied in order.
 var DefaultRules = []Rule{
+	rule("nbsp", "No-break spaces become spaces (Claude Code pads its prompt glyph with one; they look the same).",
+		"\u00a0", " "),
 	rule("spinner", "A busy line (spinner glyph, a verb ending in …, timers and hints) becomes <spinner>.",
 		`^(\s*)[`+spinnerGlyphs+`]\s+\p{Lu}[\p{L}'-]*….*$`, "${1}<spinner>"),
 	rule("logo", "Block-element art at the start of a line (an animated startup logo, a meter) becomes <logo>.",
@@ -117,6 +119,8 @@ const AltScreenMarker = "──────── alternate screen ────�
 func (n *Normalizer) Frame(f Frame, ws Workspace) []string {
 	var out []string
 	sb := trimBlankTail(f.Scrollback)
+	// The blank line where scrollback meets the screen is real output; keep one.
+	gap := len(sb) > 0 && len(sb) < len(f.Scrollback)
 	if f.AltScreen {
 		out, sb = []string{AltScreenMarker}, nil
 	}
@@ -127,6 +131,9 @@ func (n *Normalizer) Frame(f Frame, ws Workspace) []string {
 	}
 	for _, l := range sb {
 		out = append(out, n.Line(l, ws))
+	}
+	if gap && !f.AltScreen && len(out) > 0 {
+		out = append(out, "")
 	}
 	if n.CollapseBlank {
 		out = collapseBlank(out)
