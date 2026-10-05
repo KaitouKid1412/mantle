@@ -512,7 +512,7 @@ func (m *completion) view(t *theme.Theme, width, maxLines int) []string {
 			nameText = t.Paint(theme.Suggestion, name)
 		}
 		first := "  " + nameText + pad
-		room := width - 2 - col
+		room := width - 4 - col // two-column margin on the right
 		if it.desc == "" || room < 8 {
 			return row{[]string{first}}
 		}
@@ -556,7 +556,7 @@ func wrapDesc(desc string, w int) []string {
 	if ansi.StringWidth(desc) <= w {
 		return []string{desc}
 	}
-	lines := strings.Split(ansi.Wordwrap(desc, w, ""), "\n")
+	lines := wordWrap(desc, w)
 	if len(lines) == 1 {
 		return []string{ansi.Truncate(desc, w, "…")}
 	}
@@ -568,6 +568,28 @@ func wrapDesc(desc string, w int) []string {
 		}
 	}
 	return []string{ansi.Truncate(lines[0], w, "…"), second}
+}
+
+// wordWrap breaks text at spaces into lines no wider than w (a word longer
+// than w gets a line of its own).
+func wordWrap(text string, w int) []string {
+	var lines []string
+	cur := ""
+	for _, word := range strings.Fields(text) {
+		switch {
+		case cur == "":
+			cur = word
+		case ansi.StringWidth(cur)+1+ansi.StringWidth(word) <= w:
+			cur += " " + word
+		default:
+			lines = append(lines, cur)
+			cur = word
+		}
+	}
+	if cur != "" {
+		lines = append(lines, cur)
+	}
+	return lines
 }
 
 func itemName(it compItem, kind compKind) string {
