@@ -180,6 +180,9 @@ func (c *statusLineComp) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 		ctx.Invalidate(StatusLineID)
 		return nil
 	case ext.ControlResultMsg:
+		if c.d.s.observe(msg) { // which models take an effort level, for the hint
+			ctx.Invalidate(StatusLineID)
+		}
 		if !isMain(m.EngineID) || m.Subtype != proto.SubInitialize || m.Err != nil ||
 			c.cfg.Command == "" || c.runner != nil {
 			return nil
