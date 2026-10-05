@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
+	"time"
 
 	"github.com/KaitouKid1412/mantle/internal/testkit"
 	"github.com/KaitouKid1412/mantle/internal/testkit/enginefake"
@@ -114,16 +114,55 @@ func TestResumePickerBothLayouts(t *testing.T) {
 			}
 			p := testkit.StartProcess(t, cmd, testkit.WithSize(100, 30))
 			p.WaitForText("Resume a conversation", ptyWait)
-			if !p.AltScreen() {
-				t.Fatal("the resume picker is an alt-screen view")
+			p.Settle(100*time.Millisecond, 2*time.Second)
+			rows := p.ScreenLines()
+			rowOf := func(sub string) int {
+				for i, l := range rows {
+					if strings.Contains(l, sub) {
+						return i
+					}
+				}
+				return -1
 			}
+			lastRow := -1
+			for i, l := range rows {
+				if strings.TrimSpace(l) != "" {
+					lastRow = i
+				}
+			}
+			title := rowOf("Resume a conversation")
+			// The picker is an inline dialog (PlaceInline, as claude shows it): it takes
+			// the prompt's place above the footer.
+			switch layout {
+			case "default":
+				if p.AltScreen() {
+					t.Fatalf("inline layout: the resume picker must not use the alternate screen\n%s", p.Screen())
+				}
+				if footer := rowOf("manual approval"); footer < title {
+					t.Fatalf("inline: the footer should sit below the picker (title row %d, footer row %d)\n%s", title, footer, p.Screen())
+				}
+			case "fullscreen":
+				if !p.AltScreen() {
+					t.Fatal("fullscreen layout runs on the alternate screen")
+				}
+				// Bottom placement in the fullscreen host, not a centred overlay.
+				if title < len(rows)/2 || lastRow < len(rows)-3 {
+					t.Fatalf("fullscreen: the picker should be anchored at the bottom (title row %d, last row %d of %d)\n%s", title, lastRow, len(rows), p.Screen())
+				}
+			}
+			// Cancelling the picker that `mantle -r` opened before any engine ran quits
+			// cleanly, as `claude -r` does (plan 06), saying why.
 			p.Send("esc")
-			p.WaitFor(func(s string) bool { return !strings.Contains(s, "Resume a conversation") }, ptyWait)
-			if strings.Contains(p.Screen(), "Resume a conversation") {
-				t.Fatal("picker still open")
+			if code := p.ExitCode(ptyWait); code != 0 {
+				t.Fatalf("esc in the startup picker: exit code %d\n%s", code, p.Screen())
 			}
-			p.Signal(syscall.SIGTERM)
-			p.ExitCode(ptyWait)
+			time.Sleep(50 * time.Millisecond) // let the pty drain the last bytes
+			if !strings.Contains(strings.Join(p.All(), "\n"), "no conversation selected") {
+				t.Fatalf("exit reason not printed\n%s", strings.Join(p.All(), "\n"))
+			}
+			if p.AltScreen() {
+				t.Fatal("alternate screen left on after exit")
+			}
 		})
 	}
 }
