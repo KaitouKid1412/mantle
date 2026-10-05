@@ -473,6 +473,11 @@ start), then fuzzy path matches. No control request lists MCP resources.
 - at the end come `task_updated {patch: {status, end_time}}` and `task_notification
   {status, summary, output_file, usage}`, and the main loop runs a new turn.
 
+**Prompt suggestions** With `initialize.promptSuggestions: true`, a live 2.1.288 session on
+a subscription account sent `{"type":"prompt_suggestion","suggestion":"…"}` after a turn
+(spike S1 capture). Offline sessions against fakeapi get none, with or without
+`--prompt-suggestions`: the engine gates them server-side.
+
 **S13 thinking** The default API request has `thinking: {type: enabled, budget_tokens:
 31999, display: updates}`. `--thinking-display summarized` sets `display`;
 `--max-thinking-tokens N` sets the budget. The stream has `thinking_delta` (with
