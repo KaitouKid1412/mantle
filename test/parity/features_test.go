@@ -29,6 +29,7 @@ func TestEnvSettingsRestart(t *testing.T) {
 	sc := mustParse(t, `name: feat
 size: 60x12
 args: -a
+prompt: hi there
 env: PARITY_X=42
 settings: {"statusLine": {"type": "command", "command": "true"}}
 ---
@@ -44,7 +45,7 @@ checkpoint second
 		t.Fatalf("run: %v\n%s", res.Err, strings.Join(res.Final.Screen, "\n"))
 	}
 	first, _ := res.Checkpoint("first")
-	if !slices.Contains(first.Frame.Screen, "args=[-a] x=42") {
+	if !slices.Contains(first.Frame.Screen, "args=[-a hi there] x=42") {
 		t.Errorf("first = %q", first.Frame.Screen)
 	}
 	second, _ := res.Checkpoint("second")
@@ -85,6 +86,49 @@ func TestParseNewHeaders(t *testing.T) {
 	}
 }
 
+func TestTargetOnlySteps(t *testing.T) {
+	sc := mustParse(t, "---\nready\n@mantle keys enter\ncheckpoint c\n")
+	if st := sc.Steps[1]; st.Only != "mantle" || st.Kind != StepKeys || st.Src != "keys enter" {
+		t.Errorf("step = %+v", st)
+	}
+	for _, bad := range []string{"---\n@mantle checkpoint c\n", "---\n@mantle\n", "---\n@ keys enter\n"} {
+		if _, err := ParseScenario(bad); err == nil {
+			t.Errorf("%q should fail", bad)
+		}
+	}
+	// The shell target skips steps meant for another target.
+	sc = mustParse(t, "---\nready\n@other type never\n@args type \"mine\\r\"\nwait_for you said: mine\ncheckpoint c\n")
+	res := Run(context.Background(), argTarget(t), sc, RunOptions{Timeout: 30 * time.Second})
+	if res.Err != nil {
+		t.Fatalf("run: %v", res.Err)
+	}
+	if c, _ := res.Checkpoint("c"); strings.Contains(strings.Join(c.Frame.Screen, "\n"), "never") {
+		t.Errorf("ran another target's step: %q", c.Frame.Screen)
+	}
+}
+
+func TestSplitArgs(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want []string
+	}{
+		{"", nil},
+		{"--permission-mode default", []string{"--permission-mode", "default"}},
+		{`--x "a prompt with \"quotes\"" 'it''s'`, []string{"--x", `a prompt with "quotes"`, "its"}},
+		{`pre"fix"  ''`, []string{"prefix", ""}},
+	} {
+		got, err := splitArgs(tt.in)
+		if err != nil || !slices.Equal(got, tt.want) {
+			t.Errorf("splitArgs(%q) = %q, %v", tt.in, got, err)
+		}
+	}
+	for _, bad := range []string{`"open`, `'open`} {
+		if _, err := splitArgs(bad); err == nil {
+			t.Errorf("%q should fail", bad)
+		}
+	}
+}
+
 func TestScenarioSettingsPinRenderer(t *testing.T) {
 	for _, tt := range []struct{ in, want string }{
 		{"", `"tui": "default"`},
@@ -95,6 +139,9 @@ func TestScenarioSettingsPinRenderer(t *testing.T) {
 		if err != nil || !strings.Contains(string(got), tt.want) {
 			t.Errorf("scenarioSettings(%q) = %s, %v", tt.in, got, err)
 		}
+	}
+	if got, _ := scenarioSettings(`{"tui": null, "x": 1}`); strings.Contains(string(got), "tui") {
+		t.Errorf("tui: null must leave tui unset: %s", got)
 	}
 	if _, err := scenarioSettings("{not json"); err == nil {
 		t.Error("bad JSON must fail")

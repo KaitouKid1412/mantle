@@ -1,0 +1,30 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Listing numbers."
+        },
+        {
+          "type": "tool_use",
+          "name": "Bash",
+          "input": {
+            "command": "seq 1 40",
+            "description": "Print forty numbers"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "That printed forty numbers."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

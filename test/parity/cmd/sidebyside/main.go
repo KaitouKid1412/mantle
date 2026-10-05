@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -60,10 +61,14 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 		return fmt.Errorf("no scenarios in %s", dir)
 	}
 	var tgs []parity.Target
+	var notes []string
 	for _, name := range strings.Split(targetList, ",") {
 		switch strings.TrimSpace(name) {
 		case "claude":
 			tgs = append(tgs, parity.ClaudeTarget{Bin: claudeBin})
+			if v := claudeVersion(claudeBin); v != "" {
+				notes = append(notes, "Reference engine: claude "+v+".")
+			}
 		case "mantle":
 			bin, err := parity.BuildMantleUI(out + "/.bin")
 			if err != nil {
@@ -78,7 +83,7 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 	if err != nil {
 		return err
 	}
-	rep := &parity.Report{Normalizer: parity.DefaultNormalizer(), Allow: al, Generated: time.Now()}
+	rep := &parity.Report{Normalizer: parity.DefaultNormalizer(), Allow: al, Generated: time.Now(), Notes: notes}
 	for _, tg := range tgs {
 		rep.Targets = append(rep.Targets, tg.Name())
 	}
@@ -113,4 +118,16 @@ func run(dir, targetList, out, allowPath, runRe, claudeBin string, timeout time.
 		}
 	}
 	return nil
+}
+
+// claudeVersion is `claude --version` (local, no API call), or "".
+func claudeVersion(bin string) string {
+	if bin == "" {
+		bin = "claude"
+	}
+	out, err := exec.Command(bin, "--version").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }

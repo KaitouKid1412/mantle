@@ -1,0 +1,11 @@
+# Large paste: collapses to a placeholder in the prompt.
+name: large-paste
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+parity: ED-06, ED-20
+---
+ready
+paste "pasted line 01\npasted line 02\npasted line 03\npasted line 04\npasted line 05\npasted line 06\npasted line 07\npasted line 08\npasted line 09\npasted line 10\npasted line 11\npasted line 12\npasted line 13\npasted line 14\npasted line 15\npasted line 16\npasted line 17\npasted line 18\npasted line 19\npasted line 20\npasted line 21\npasted line 22\npasted line 23\npasted line 24\npasted line 25\npasted line 26\npasted line 27\npasted line 28\npasted line 29\npasted line 30"
+settle
+checkpoint pasted

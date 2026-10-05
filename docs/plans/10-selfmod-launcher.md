@@ -268,7 +268,7 @@ Build the part of mantle that makes it mantle:
     `pkg/`);
   - three worked examples: custom spinner verbs (config only), a custom renderer for one MCP
     tool, a sidebar component (fullscreen).
-- [ ] **B11 [M3] fd-handoff instant restart.** mantle-ui calls `syscall.Exec` on the new
+- [x] **B11 [M3] fd-handoff instant restart.** mantle-ui calls `syscall.Exec` on the new
   binary with `--attach-engine-fds=3,4,5` (plus session state). The PID stays the same, so
   the claude child, its pipes and background tasks survive.
 
@@ -281,10 +281,10 @@ Build the part of mantle that makes it mantle:
   against claude 2.1.288 with a zero-token parse run (variadic tool lists,
   `--append-system-prompt-file`, `--max-budget-usd` in stream-json mode).
 - The full pipeline was run over this repository plus a small mod
-  (`MANTLE_PIPELINE_E2E=1`, `TestRealPipelineOnThisRepo`): steps 1–6, 8 and 9 (the pty
-  smoke boot against the real mantle-ui and its fakeclaude) pass. Step 7 waits for plan
-  01's pty-test startup-race fix (cd8d6a7, after integration-2); load flakes are re-run
-  once alone.
+  (`MANTLE_PIPELINE_E2E=1`, `TestRealPipelineOnThisRepo`): on integration-3 all nine
+  steps pass, including `go test ./...` of the whole repository and the pty smoke boot
+  against the real mantle-ui and its fakeclaude (apidiff skips: no `pkg/` change). Test
+  packages that fail under full-suite load are re-run once alone.
 - Mods are linked into mantle-ui by `mods/link_<id>.go` (package `mods`) plus
   `features/all/all_mods.go`; archtest lets the root `mods` package import `mods/*`.
 - Restart now refuses while a turn runs (`session_state_changed`), while non-ambient
@@ -303,15 +303,18 @@ Build the part of mantle that makes it mantle:
   (`internal/selfmod/s16_test.go`): job control through the launcher, ctrl+c inside an
   exec'd editor, crash restore.
 - `docs/EXTENDING.md` examples are compiled by `TestExtendingExamplesCompile`.
-- **B11 (M3):** plan 10's side is done and tested. The launcher accounts probation to
-  the run file's `version` after an in-place exec; `/mantle restart` with
-  `selfmod.instantRestart` calls the engine's `HandoffToFile(path, argv)`, records the
-  new build, and execs it through `tea.Exec` (Bubble Tea releases the terminal first),
-  falling back to exit 75. The engine side (plan 02: `PrepareHandoff`, `AdoptFile`, own
-  file format) and the flag (plan 11: `--attach-engine-fds`) exist on their branches;
-  **still missing in an integration tag:** plan 02's `Engine.HandoffToFile` method and
-  plan 01's `Adopt` hook in `cmd/mantle-ui` calling `mgr.AdoptFile`. Request:
-  `docs/plans/requests/10-02-engine-fd-handoff.md`.
+- **B11 (M3), done:** `/mantle restart` with `selfmod.instantRestart` calls the main
+  engine's `HandoffToFile(path, argv)` (plan 02; it writes its own hand-off file), records
+  the new build in the run file, and execs `RestartArgs` + `--attach-engine-fds=<file>`
+  through `tea.Exec` (Bubble Tea releases the terminal first). The new process adopts the
+  engine (plan 01's `Adopt` hook → `mgr.AdoptFile`, plan 11's flag). Any failure ends in
+  a normal exit-75 restart (the engine may be detached). The launcher accounts probation
+  to the run file's `version`. `TestInstantRestartAcrossExec` drives a real mantle-ui:
+  same pid, same claude pid, the next turn answered, clean exit; it runs in this branch
+  since contracts-v1.8 (plan 01's Adopt hook) and is stable under full-suite load. The
+  live session title is not passed as `--name` (it can be the first prompt; a /rename
+  name comes back with `--resume`). The setting stays off by default until the adopt
+  path has soaked; request `docs/plans/requests/10-02-engine-fd-handoff.md`.
 
 ## Design notes
 - **The launcher never imports anything outside the standard library** and never changes

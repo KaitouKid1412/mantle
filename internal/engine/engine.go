@@ -352,11 +352,17 @@ func (r *run) initialize(dialogKinds []string) {
 	}
 	r.saveInit(resp)
 	// The version gates unstable subtypes; system/init only reports it on the first
-	// turn, so ask now (zero tokens), still ahead of held lines.
-	if _, vb, verr := r.corr.RequestBodyNow(context.Background(), proto.GetBinaryVersionRequest{}, VersionTimeout); verr == nil {
-		var v proto.BinaryVersion
-		if json.Unmarshal(vb.Response, &v) == nil {
-			r.caps.SetVersion(v.Version)
+	// turn, so ask now (zero tokens). Only its place on stdin (ahead of the held lines)
+	// matters, so the held lines go out right away; the UI hears about initialize once
+	// the version is known, so Supports is right when features first look.
+	waitVersion, verr := r.corr.BeginNow(proto.GetBinaryVersionRequest{}, VersionTimeout)
+	r.tr.Release()
+	if verr == nil {
+		if vb, err := waitVersion(context.Background()); err == nil {
+			var v proto.BinaryVersion
+			if json.Unmarshal(vb.Response, &v) == nil {
+				r.caps.SetVersion(v.Version)
+			}
 		}
 	}
 	var ir proto.InitializeResponse
@@ -370,7 +376,6 @@ func (r *run) initialize(dialogKinds []string) {
 	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp})
 	r.replayPending(body.PendingPermissionRequests)
 	r.replayPending(body.PendingUserDialogRequests)
-	r.tr.Release()
 }
 
 // failHeld reports lines that were held for the handshake and never sent: prompts as

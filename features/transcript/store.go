@@ -37,21 +37,23 @@ type Store struct {
 	rev       int // bumped on every change
 
 	// streaming state, per parent_tool_use_id ("" = main thread)
-	curMsg     map[string]string                          // parent → message.id of the message being streamed
-	blocks     map[blockKey]*ext.Item                     // (parent, message.id, index) → item
-	pending    map[msgKey][]*ext.Item                     // streamed items not yet matched by an assistant message
-	inputs     map[string]*strings.Builder                // tool_use id → partial input JSON
-	uuids      map[string][]string                        // assistant message uuid → item IDs (supersedes)
-	tools      map[string]*ToolInfo                       // tool_use id → progress
-	tasks      map[string]string                          // task_id → tool_use id
-	retry      *ext.Item                                  // the live api_retry item, if any
-	hooks      map[string]*ext.Item                       // hook_id → item
-	notes      []string                                   // pending markers for the commit policy
-	rateStatus string                                     // last rate_limit_event status
-	models     map[string]string                          // item ID → model that wrote it
-	shown      map[string]bool                            // result uuid → its error is already on screen
-	view       func(ext.Ctx, int) ([]string, []ext.Block) // set by the feature (Lines)
-	_          struct{}
+	curMsg      map[string]string                          // parent → message.id of the message being streamed
+	blocks      map[blockKey]*ext.Item                     // (parent, message.id, index) → item
+	pending     map[msgKey][]*ext.Item                     // streamed items not yet matched by an assistant message
+	inputs      map[string]*strings.Builder                // tool_use id → partial input JSON
+	uuids       map[string][]string                        // assistant message uuid → item IDs (supersedes)
+	tools       map[string]*ToolInfo                       // tool_use id → progress
+	tasks       map[string]string                          // task_id → tool_use id
+	retry       *ext.Item                                  // the live api_retry item, if any
+	hooks       map[string]*ext.Item                       // hook_id → item
+	notes       []string                                   // pending markers for the commit policy
+	rateStatus  string                                     // last rate_limit_event status
+	models      map[string]string                          // item ID → model that wrote it
+	shown       map[string]bool                            // result uuid → its error is already on screen
+	interrupted map[string]bool                            // result uuid → a tool row shows the interruption
+	waiting     map[string]string                          // tool_use id → permission request id while its prompt is open
+	view        func(ext.Ctx, int) ([]string, []ext.Block) // set by the feature (Lines)
+	_           struct{}
 }
 
 type blockKey struct {
@@ -97,6 +99,8 @@ func (s *Store) reset() {
 	s.hooks = map[string]*ext.Item{}
 	s.models = map[string]string{}
 	s.shown = map[string]bool{}
+	s.interrupted = map[string]bool{}
+	s.waiting = map[string]string{}
 	s.retry = nil
 	s.rev++
 }
@@ -120,6 +124,38 @@ func (s *Store) Children(id string) []*ext.Item { return s.children[id] }
 
 // Tool returns live progress for a tool call (nil if none arrived).
 func (s *Store) Tool(id string) *ToolInfo { return s.tools[id] }
+
+// Waiting reports whether a tool call's permission prompt is open.
+func (s *Store) Waiting(id string) bool { return s.waiting[id] != "" }
+
+// SetWaiting marks a tool call as waiting for a permission answer (request ID
+// requestID); "" clears the mark.
+func (s *Store) SetWaiting(id, requestID string) {
+	if requestID == "" {
+		if _, ok := s.waiting[id]; !ok {
+			return
+		}
+		delete(s.waiting, id)
+	} else {
+		s.waiting[id] = requestID
+	}
+	if it := s.byID[id]; it != nil {
+		s.touch(it)
+	}
+}
+
+// ClearWaiting drops the marks of one permission request ("" = all of them).
+func (s *Store) ClearWaiting(requestID string) {
+	for id, req := range s.waiting {
+		if requestID == "" || req == requestID {
+			s.SetWaiting(id, "")
+		}
+	}
+}
+
+// InterruptShown reports whether an interrupted turn's last tool row already
+// carries the interruption (so the result does not repeat it).
+func (s *Store) InterruptShown(resultUUID string) bool { return s.interrupted[resultUUID] }
 
 // ErrorShown reports whether a failed result's error is already shown by the
 // item before it.
@@ -628,6 +664,7 @@ func (s *Store) applyUser(e *proto.User) {
 		if it == nil {
 			continue
 		}
+		delete(s.waiting, r.ToolUseID)
 		res := r
 		it.Result = &res
 		var async struct {
@@ -696,6 +733,12 @@ func (s *Store) applyUser(e *proto.User) {
 		copy(s.items[at+1:], s.items[at:len(s.items)-1])
 		s.items[at] = it
 	}
+}
+
+// rejectedResult reports whether a failed tool call was turned down by the
+// user (a denial or an interrupt, which the next event tells apart).
+func rejectedResult(it *ext.Item) bool {
+	return it.Result != nil && rejected(it.Result.Content.PlainText())
 }
 
 // waitsForEcho reports whether an item is local command output (or a manual
@@ -779,6 +822,16 @@ func (s *Store) applyResult(e *proto.Result) {
 	for _, it := range s.items[s.committed:] {
 		if waitsForEcho(it) {
 			s.finish(it, ext.Done)
+		}
+	}
+	// An interrupt that stopped a tool call is shown on that call's row.
+	if n := len(s.items); n > 0 && e.Interrupted() {
+		last := s.items[n-1]
+		if isTool(last) && n > s.committed && (!last.State.Finished() || (last.State == ext.Failed && rejectedResult(last))) {
+			last.State = ext.Interrupted
+			last.End = s.now()
+			s.touch(last)
+			s.interrupted[e.UUID] = true
 		}
 	}
 	// Nothing still running survives the end of a turn.

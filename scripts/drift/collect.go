@@ -37,6 +37,8 @@ type Collector struct {
 	EngineTimeout time.Duration
 	// SDKDiff runs plan 02's scripts/sdk-diff for protocol drift; nil when unavailable.
 	SDKDiff func(ctx context.Context) ([]Item, error)
+	// TUIProbe reports a fresh-config claude's renderer; nil means probeTUI.
+	TUIProbe func(ctx context.Context, bin string, timeout time.Duration) (string, error)
 }
 
 // Collect runs every collector. A collector that fails yields a List with Error set;
@@ -70,6 +72,7 @@ func (c *Collector) Collect(ctx context.Context) Snapshot {
 		s.Put(l)
 	}
 	s.Put(c.collectProtocol(ctx))
+	s.Put(c.collectDefaults(ctx))
 	return s
 }
 

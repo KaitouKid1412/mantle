@@ -45,7 +45,19 @@ func (a *area) setupModel(r ext.Registrar) error {
 
 // modelRows builds picker rows from the cached engine state and current settings.
 func (a *area) modelRows(c ext.Ctx) []model.Row {
-	return model.Rows(a.engine.models, a.engine.unavailable, model.Current{Model: a.currentModel(c)}, a.effortInputs(c))
+	rows := model.Rows(a.engine.models, a.engine.unavailable, model.Current{Model: a.currentModel(c)}, a.effortInputs(c))
+	// The engine reports the session model's effort in system/init; when nothing
+	// mantle knows sets it, that beats our assumed default.
+	if a.engine.sys != nil {
+		if e, ok := model.ParseEffort(a.engine.sys.Effort); ok {
+			for i := range rows {
+				if rows[i].Current && rows[i].Effort.Source == model.SourceDefault && len(rows[i].Efforts) > 0 {
+					rows[i].Effort.Effort = model.Clamp(e, rows[i].Efforts)
+				}
+			}
+		}
+	}
+	return rows
 }
 
 func (a *area) effortInputs(c ext.Ctx) model.EffortInputs {
@@ -162,17 +174,35 @@ func (p *modelPicker) Init(c ext.Ctx) tea.Cmd {
 }
 
 func (p *modelPicker) Update(c ext.Ctx, msg tea.Msg) tea.Cmd {
-	if m, ok := msg.(ext.ControlResultMsg); ok && m.Subtype == proto.SubListModels && isMain(m.EngineID) {
+	m, ok := msg.(ext.ControlResultMsg)
+	if !ok || !isMain(m.EngineID) {
+		return nil
+	}
+	switch m.Subtype {
+	case proto.SubListModels:
 		if m.Err == nil {
 			var r proto.ModelsResponse
 			if json.Unmarshal(m.Resp, &r) == nil && len(r.Models) > 0 {
 				p.a.engine.models = model.FromProto(r.Models)
 			}
 		}
-		p.loading = false
-		p.reload(c)
-		c.Invalidate(p.ID())
+	case proto.SubInitialize:
+		// Opened before the engine finished starting: fill from initialize at once
+		// rather than waiting for list_models.
+		if m.Err == nil {
+			var r proto.InitializeResponse
+			if json.Unmarshal(m.Resp, &r) == nil && len(r.Models) > 0 {
+				p.a.engine.models = model.FromProto(r.Models)
+			}
+		}
+	default:
+		return nil
 	}
+	if len(p.a.engine.models) > 0 || m.Subtype == proto.SubListModels {
+		p.loading = false
+	}
+	p.reload(c)
+	c.Invalidate(p.ID())
 	return nil
 }
 
@@ -347,15 +377,18 @@ func (p *modelPicker) effortLine(t *theme.Theme, r model.Row) string {
 		return t.Paint(theme.Inactive, "Effort: not adjustable for this model")
 	}
 	cur := p.effortFor(r)
-	var parts []string
-	for _, e := range r.Efforts {
+	pos := 0
+	for i, e := range r.Efforts {
 		if e == cur {
-			parts = append(parts, t.Paint(theme.Suggestion, "● "+string(e)))
-		} else {
-			parts = append(parts, t.Paint(theme.Inactive, "○ "+string(e)))
+			pos = i
 		}
 	}
-	line := "Effort  " + strings.Join(parts, "  ")
+	meter := t.Paint(theme.Suggestion, strings.Repeat("●", pos+1)) + t.Paint(theme.Subtle, strings.Repeat("○", len(r.Efforts)-pos-1))
+	label := string(cur) + " effort"
+	if _, changed := p.efforts[r.Value]; !changed && r.Effort.Source == model.SourceDefault {
+		label += " (default)"
+	}
+	line := meter + " " + label + t.Paint(theme.Inactive, "  ←/→ to adjust")
 	if r.Thinking == model.ThinkingLocked {
 		line += t.Paint(theme.Inactive, "  · thinking always on")
 	}
@@ -366,7 +399,6 @@ func (p *modelPicker) hints(c ext.Ctx) string {
 	return hintLine(
 		keyName(c.KeysFor(ext.ContextSelect, ext.ActSelectAccept), "enter"), "choose",
 		keyName(c.KeysFor(ext.ContextModelPicker, ext.ActModelPickerThisSessionOnly), "s"), "use for this session only",
-		"←/→", "change effort",
 		keyName(c.KeysFor(ext.ContextSelect, ext.ActSelectCancel), "esc"), "cancel",
 	)
 }

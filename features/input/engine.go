@@ -86,13 +86,22 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 			return s.engineEvent(c, m.Event)
 		}
 	case ext.EngineAttachMsg:
-		if m.EngineID == ext.MainEngine {
-			return warmFiles(m.Engine)
+		if m.EngineID == ext.MainEngine && m.Engine != nil {
+			s.startErr = nil
+			return tea.Batch(warmFiles(m.Engine), s.flushStarting(m.Engine))
 		}
 	case ext.EngineExitedMsg:
 		if m.EngineID == ext.MainEngine {
 			s.busy = false
-			return s.clearQueue()
+			if m.Err != nil {
+				// Startup failed or the engine died: until another
+				// attach, prompts stay in the box.
+				s.startErr = m.Err
+				return s.failStarting(c, m.Err)
+			}
+			if len(s.starting) == 0 {
+				return s.clearQueue()
+			}
 		}
 	}
 	return nil

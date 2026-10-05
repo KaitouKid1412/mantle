@@ -155,7 +155,7 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   in the real host (layout, PgUp/ctrl+home/end, pill, header, wheel, drag-copy, click
   expand, search, sidebar + resize), and full-screen vt goldens at 80×24, 120×40 and
   200×60 (`TestVTFullscreenGoldens`).
-- [ ] **B1 [M2] Scenario suite** covering every PARITY area. At minimum:
+- [x] **B1 [M2] Scenario suite** covering every PARITY area. At minimum:
   - plain Q&A with markdown and code; tool approval: allow once / always / deny with
     feedback;
   - Edit diff display; Bash output collapse; plan mode and plan approval; AskUserQuestion;
@@ -165,10 +165,50 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
   - `/model` picker; `/context`; `/compact`; `/clear`; resume (`-c`, `/resume`); rewind;
   - statusLine output; footer modes (shift+tab cycle); `/help`; `/mcp` (fake status); an
     H hand-off command.
-- [ ] **B2 [M2] Triage diffs.** For each meaningful difference, file a request
+
+  Done: 27 scenarios in `test/parity/scenarios` (each lists its PARITY rows in a `parity:`
+  header), run against claude 2.1.289 and mantle, offline, deterministic on both targets
+  (`MANTLE_PARITY_CLAUDE=1 MANTLE_PARITY_MANTLE=1 go test ./test/parity -run
+  Deterministic`). Harness additions: `prompt:` (positional first prompt, first start
+  only), `env:`, `settings:`, `restart`, `@target` steps (listed in the report as flow
+  differences), quoted `args:`, `{{work}}`-style script placeholders, `-raw` dumps, a
+  `<target>.final.txt` frame for failed runs. Fixture app: `testdata/fixtures/12/app`.
+  - Every run pins `"tui": "default"` (inline) unless the scenario sets `tui`: claude
+    2.1.289 starts fullscreen with a fresh config, and mantle followed inline until the
+    user's decision (unset `tui` = the installed Claude Code's default, plan 01).
+  - Emulator fix: x/vt reads bytes 0x80-0x9F inside OSC strings as C1 controls, so
+    claude's title "✳ Claude Code" (0x9C = ST) leaked onto the screen; `vtfix.go`
+    sanitizes string payloads before the emulator.
+  - Esc twice must be ≥ ~50 ms apart for mantle (30 ms reads as alt+esc); claude accepts
+    both. Scenarios space them 200 ms (request to 04).
+- [x] **B2 [M2] Triage diffs.** For each meaningful difference, file a request
   (`docs/plans/requests/12-NN-<slug>.md`) to the owning plan, with the scenario, checkpoint
   and both frames. Track them in this plan's checklist. Intentional differences (mantle's
   own wording, extra mantle features) go in an allowlist with a reason.
+
+  Triaged against claude 2.1.289 on 2026-10-04 (inline renderer). Intentional
+  differences: `test/parity/allowlist.txt` (banner, mantle-only notices, own wording);
+  the report compares frames with a line diff, so a checkpoint is "allowed" only when
+  every added or removed line is listed. Open requests:
+  - [ ] [12-05](requests/12-05-permission-and-turn-parity.md): esc on a permission prompt
+    ends the turn; dialog shape and option sets; plan approval for 2.1.289; auto mode as
+    the default; AskUserQuestion; interrupt line.
+  - [ ] [12-03](requests/12-03-transcript-parity.md): turn line after every turn; Bash
+    collapse to 3 lines; hide task-tool rows; diff gutter; tab width; background agent
+    rows; compact boundary.
+  - [ ] [12-04](requests/12-04-input-parity.md): esc esc as alt+esc; `/` menu placement,
+    filtering and hidden commands; `@` marker; paste hint; history labels; prompt glyph
+    and placeholder; echo of panel commands.
+  - [ ] [12-06](requests/12-06-sessions-parity.md): /clear publishes a phantom session id
+    (double banner) — bug; /resume picker prints the conversation twice — bug; resume
+    title; picker details; /compact screen; rewind "(current)"; /context skills.
+  - [ ] [12-07](requests/12-07-chrome-parity.md): banner at startup; footer effort hint;
+    status line above the modes and at startup; task panel expanded. (Todo panel fix
+    already in 2052890.)
+  - [ ] [12-08](requests/12-08-panels-parity.md): /model effort default (data); /model
+    layout; /help opens on General; closing echo.
+  - [ ] [12-09](requests/12-09-ecosystem-parity.md): /mcp placement and echo; hand-off
+    confirmation (note).
 - [ ] **B3 [M2] Performance suite** (`test/e2e/perf`):
   - **startup:** cold launch to first frame for `mantle` vs `claude` (median of N);
   - **long transcripts:** resume a 10k-item session; time to interactive; steady `View()`

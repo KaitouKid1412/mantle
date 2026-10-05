@@ -269,7 +269,8 @@ func (p *Permission) do(a act) (bool, Effect) {
 	case actYes:
 		return p.choose(p.opts.selected().id)
 	case actNo:
-		p.finishDeny(denyMessage, false)
+		// Esc ends the turn, as in Claude Code: deny and interrupt.
+		p.finishDeny(denyStopMessage, true)
 		return true, Answered
 	case actNextField:
 		p.stage = permStageAmend

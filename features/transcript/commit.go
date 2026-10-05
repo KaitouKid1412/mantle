@@ -64,10 +64,13 @@ func (f *Feature) commitReady(c ext.Ctx) tea.Cmd {
 			i += run
 			continue
 		}
+		if it.State == ext.Failed && isTool(it) && rejectedResult(it) && i == len(items)-1 {
+			break // denial or interrupt: the next event says which
+		}
 		if it.State.Finished() {
 			if lines := f.finishLines(c, it, w); len(lines) > 0 {
 				out = f.flushHidden(c, out, w)
-				out = appendChunk(out, lines, f.commit.partialID != it.ID)
+				out = appendChunk(out, lines, f.commit.partialID != it.ID && !f.attached(it))
 			}
 			if f.commit.partialID == it.ID {
 				f.commit.partialID, f.commit.partial = "", 0
@@ -306,7 +309,7 @@ func (f *Feature) liveItems(c ext.Ctx, w int) (chunks [][]string, running []bool
 			continue
 		}
 		flush()
-		if newItem {
+		if newItem && !f.attached(it) {
 			lines = append([]string{""}, lines...)
 		}
 		chunks = append(chunks, lines)

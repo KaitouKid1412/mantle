@@ -70,10 +70,12 @@ func (f *Feature) toolFrameOpts(rc ext.RenderCtx, it *ext.Item, name, args strin
 		}
 		lines = append(lines, out...)
 		collapsible = hid
-	case it.State == ext.Interrupted && it.Result == nil:
-		lines = append(lines, result(rc, st.dim, "Interrupted")...)
+	case it.State == ext.Interrupted:
+		lines = append(lines, result(rc, st.err, interruptHint)...)
 	case it.Result == nil:
-		if run := f.runningLine(rc, it); run != "" {
+		if f.store.Waiting(it.ID) {
+			lines = append(lines, result(rc, st.dim, "Waiting…")...)
+		} else if run := f.runningLine(rc, it); run != "" {
 			lines = append(lines, result(rc, st.dim, run)...)
 		}
 	case body != nil:
@@ -156,7 +158,7 @@ func (f *Feature) renderBashTool(rc ext.RenderCtx, it *ext.Item) ext.Block {
 			lines = append(lines, result(rc, st.dim, clean(out.ReturnCodeInterp))...)
 		}
 		if len(lines) == 0 {
-			lines = result(rc, st.dim, "(no output)")
+			lines = result(rc, st.dim, "Done")
 		}
 		return fixFirst(lines), hid1 || hid2
 	})
@@ -723,7 +725,15 @@ func todoLine(rc ext.RenderCtx, t todo) string {
 	return "☐ " + text
 }
 
+// Task and todo tools have no transcript row in the normal view: the task
+// list above the prompt (plan 07) shows them. The ctrl+o viewer and verbose
+// view still list them.
+func taskRowHidden(rc ext.RenderCtx) bool { return !verbose(rc) }
+
 func (f *Feature) renderTodos(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	if taskRowHidden(rc) {
+		return ext.Block{}
+	}
 	var in struct {
 		Todos []todo `json:"todos"`
 	}
@@ -744,6 +754,9 @@ func (f *Feature) renderTodos(rc ext.RenderCtx, it *ext.Item) ext.Block {
 }
 
 func (f *Feature) renderTaskTool(rc ext.RenderCtx, it *ext.Item) ext.Block {
+	if taskRowHidden(rc) {
+		return ext.Block{}
+	}
 	tu := toolUse(it)
 	var in struct {
 		todo
@@ -792,25 +805,37 @@ func (f *Feature) renderExitPlan(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	if tu := toolUse(it); tu != nil {
 		decodeInput(tu.Input, &in)
 	}
-	title := "Plan"
-	switch {
-	case it.State == ext.Done:
-		title = "Plan approved"
-	case it.State == ext.Failed:
-		title = "Plan not approved"
+	var out struct {
+		FilePath string `json:"filePath"`
+	}
+	structured(it, &out)
+	title := "Plan ready for review"
+	switch it.State {
+	case ext.Done:
+		title = "Exited plan mode"
+	case ext.Failed:
+		title = "Stayed in plan mode"
+	case ext.Interrupted:
+		title = "Plan review interrupted"
 	}
 	lines := header(rc, st, bulletStyle(st, it.State), title, "")
-	bar := st.plan.Render("│") + " "
-	md := render.Markdown(in.Plan, f.mdOptions(rc, rc.Width-len(dotIndent)-2))
-	for _, l := range md {
-		if l == "" {
-			lines = append(lines, dotIndent+st.plan.Render("│"))
-			continue
-		}
-		lines = append(lines, dotIndent+bar+l)
+	if f.store.Waiting(it.ID) {
+		lines = append(lines, result(rc, st.dim, "Waiting…")...)
 	}
-	if in.PlanFilePath != "" {
-		lines = append(lines, result(rc, st.dim, "Saved to "+relPath(f.cwd, in.PlanFilePath))...)
+	// The plan itself is in the approval dialog; the transcript shows it only
+	// at full detail (verbose, ctrl+o).
+	if verbose(rc) && strings.TrimSpace(in.Plan) != "" {
+		bar := st.plan.Render("│") + " "
+		for _, l := range render.Markdown(in.Plan, f.mdOptions(rc, rc.Width-len(dotIndent)-2)) {
+			if l == "" {
+				lines = append(lines, dotIndent+st.plan.Render("│"))
+				continue
+			}
+			lines = append(lines, dotIndent+bar+l)
+		}
+	}
+	if path := firstNonEmpty(out.FilePath, in.PlanFilePath); path != "" && verbose(rc) {
+		lines = append(lines, result(rc, st.dim, "Plan saved to "+relPath(f.cwd, path))...)
 	}
 	if it.State == ext.Failed {
 		if t := stripErrorTags(resultText(it)); t != "" && !rejected(t) {
@@ -818,7 +843,7 @@ func (f *Feature) renderExitPlan(rc ext.RenderCtx, it *ext.Item) ext.Block {
 			lines = append(lines, o...)
 		}
 	}
-	return ext.Block{Lines: lines}
+	return ext.Block{Lines: lines, Collapsible: strings.TrimSpace(in.Plan) != ""}
 }
 
 func (f *Feature) renderEnterPlan(rc ext.RenderCtx, it *ext.Item) ext.Block {

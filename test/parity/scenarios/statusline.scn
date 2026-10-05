@@ -1,0 +1,17 @@
+# statusLine: the user's command output under the prompt.
+name: statusline
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+script: scripts/statusline.json
+settings: {"statusLine": {"type": "command", "command": "printf 'SL %s' \"$(cat | grep -o '\"session_id\"' | head -1)\""}}
+parity: CH-18, CH-19
+---
+ready
+settle 3s
+checkpoint start
+type Check the status line
+keys enter
+wait_for 30s Status line check.
+settle 3s
+checkpoint after-turn

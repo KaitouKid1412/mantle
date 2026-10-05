@@ -87,11 +87,33 @@ func coreSend(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 	if text == "" || d.Mode == "bash" {
 		return ext.Continue, nil
 	}
+	p := ext.Prompt{Blocks: []proto.ContentBlock{proto.Text(d.Text)}, Priority: d.Priority, UUID: uuid.NewString()}
 	e := c.Engine(ext.MainEngine)
 	if e == nil {
+		// Typed while claude is still starting (startup gates, spawn): queue it and
+		// send it when the main engine attaches, as a user would expect.
+		if r := rootOf(c); r != nil {
+			r.pendingPrompts = append(r.pendingPrompts, p)
+			return ext.Consumed, c.Notify(ext.Notice{Key: "core.send", Text: "Waiting for claude to start…", Level: ext.NoticeInfo, Source: "core"})
+		}
 		return ext.Reject, c.Notify(ext.Notice{Key: "core.send", Text: "claude is not running yet", Level: ext.NoticeWarning, Source: "core"})
 	}
-	return ext.Consumed, e.Send(ext.Prompt{Blocks: []proto.ContentBlock{proto.Text(d.Text)}, Priority: d.Priority, UUID: uuid.NewString()})
+	return ext.Consumed, e.Send(p)
+}
+
+// flushPendingPrompts sends prompts queued before the main engine attached.
+func (r *Root) flushPendingPrompts() tea.Cmd {
+	e := r.engines[ext.MainEngine]
+	if e == nil || len(r.pendingPrompts) == 0 {
+		return nil
+	}
+	var cmds []tea.Cmd
+	for _, p := range r.pendingPrompts {
+		cmds = append(cmds, e.Send(p))
+	}
+	r.pendingPrompts = nil
+	r.expireNotice(noticeExpireMsg{key: "core.send", seq: r.noticeSeq("core.send")})
+	return tea.Sequence(cmds...)
 }
 
 // validateConfig reports configuration problems once at startup (CF-18): invalid
