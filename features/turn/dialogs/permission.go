@@ -36,24 +36,23 @@ const (
 const (
 	permStageOptions = iota
 	permStageFeedback
-	permStageAmend
 )
 
-// Permission is the view-model of a `can_use_tool` prompt for an ordinary tool.
+// Permission is the view-model of a `can_use_tool` prompt for an ordinary tool. Like
+// Claude Code's prompt it offers Yes, at most one "Yes, and …" grant built from the
+// engine's suggestions, a switch to auto mode for non-file tools, and No. No (and esc)
+// deny and end the turn; tab adds instructions to the No, which deny and let Claude go
+// on with them.
 type Permission struct {
 	req   ToolRequest
 	ctx   PermissionContext
 	input map[string]any
 	view  toolView
+	row   *suggestionRow
 
 	opts     optionList
-	setModes []PermissionUpdate // setMode suggestions, one option each
-	always   []PermissionUpdate // other suggestions, offered together
-
 	stage    int
 	feedback textField
-	amend    textField
-	amendErr string
 
 	result *PermissionResult
 }
@@ -66,40 +65,17 @@ func NewPermission(req ToolRequest, ctx PermissionContext) *Permission {
 		p.input = map[string]any{}
 	}
 	p.view = describeTool(req, p.input, ctx)
-	p.feedback = textField{placeholder: "Tell Claude what to do instead", multiline: true}
-	p.amend = textField{multiline: true}
+	p.feedback = textField{placeholder: "and tell Claude what to do differently"}
+	p.row = buildSuggestionRow(req, p.view.fileTool, ctx.Cwd)
 
-	if !req.SuppressAlwaysAllowRule {
-		for _, s := range req.PermissionSuggestions {
-			if s.Type == "setMode" {
-				p.setModes = append(p.setModes, s)
-			} else {
-				p.always = append(p.always, s)
-			}
-		}
-	}
 	items := []option{{id: "yes", label: "Yes"}}
-	if len(p.always) > 0 {
-		parts := make([]string, len(p.always))
-		for i, s := range p.always {
-			parts[i] = suggestionPhrase(s, ctx.Cwd)
-		}
-		items = append(items, option{id: "always", label: "Yes, and " + strings.Join(parts, "; ")})
+	if p.row != nil {
+		items = append(items, option{id: "always", label: p.row.label, hint: p.row.hint})
 	}
-	for i, s := range p.setModes {
-		o := option{id: "mode:" + itoa(i), label: "Yes, and " + suggestionPhrase(s, ctx.Cwd)}
-		if i == 0 {
-			o.hint = "(shift+tab)"
-		}
-		items = append(items, o)
+	if ctx.OfferAuto && !p.view.fileTool {
+		items = append(items, option{id: "auto", label: "Yes, and switch to auto mode", hint: "· auto mode answers prompts like this one for you"})
 	}
-	if ctx.OfferAuto {
-		items = append(items, option{id: "auto", label: "Yes, and switch to auto mode"})
-	}
-	items = append(items,
-		option{id: "no", label: "No, and tell Claude what to do differently"},
-		option{id: "stop", label: "No, and stop"},
-	)
+	items = append(items, option{id: "no", label: "No"})
 	p.opts = optionList{items: items}
 	if req.DefaultToNo {
 		p.opts.focus("no")
@@ -125,13 +101,10 @@ func (p *Permission) Deny() *PermissionResult {
 	return p.result
 }
 
-func (p *Permission) allow(input json.RawMessage, updates []PermissionUpdate, class string) {
-	if input == nil {
-		input = p.req.Input
-	}
+func (p *Permission) allow(updates []PermissionUpdate, class string) {
 	p.result = &PermissionResult{
 		Behavior:               "allow",
-		UpdatedInput:           input,
+		UpdatedInput:           p.req.Input,
 		UpdatedPermissions:     updates,
 		ToolUseID:              p.req.ToolUseID,
 		DecisionClassification: class,
@@ -148,72 +121,42 @@ func (p *Permission) finishDeny(msg string, interrupt bool) {
 	}
 }
 
+// deny answers No: with instructions Claude goes on with them, without the turn ends.
+func (p *Permission) deny() (bool, Effect) {
+	if fb := strings.TrimSpace(p.feedback.Value()); fb != "" {
+		p.finishDeny(denyFeedbackMessage+fb, false)
+	} else {
+		p.finishDeny(denyStopMessage, true)
+	}
+	return true, Answered
+}
+
 func (p *Permission) choose(id string) (bool, Effect) {
-	switch {
-	case id == "yes":
-		p.allow(nil, nil, ClassUserTemporary)
-	case id == "always":
+	switch id {
+	case "yes":
+		p.allow(nil, ClassUserTemporary)
+	case "always":
 		class := ClassUserTemporary
-		for _, s := range p.always {
+		for _, s := range p.row.updates {
 			if s.Destination != "session" {
 				class = ClassUserPermanent
 			}
 		}
-		p.allow(nil, append([]PermissionUpdate(nil), p.always...), class)
-	case strings.HasPrefix(id, "mode:"):
-		i := 0
-		for _, c := range strings.TrimPrefix(id, "mode:") {
-			i = i*10 + int(c-'0')
-		}
-		p.allow(nil, []PermissionUpdate{p.setModes[i]}, ClassUserTemporary)
-	case id == "auto":
-		p.allow(nil, []PermissionUpdate{SetModeUpdate("auto", "session")}, ClassUserTemporary)
-	case id == "no":
-		p.stage = permStageFeedback
-		return true, None
-	case id == "stop":
-		p.finishDeny(denyStopMessage, true)
+		p.allow(append([]PermissionUpdate(nil), p.row.updates...), class)
+	case "auto":
+		p.allow([]PermissionUpdate{SetModeUpdate("auto", "session")}, ClassUserTemporary)
+	case "no":
+		return p.deny()
 	default:
 		return false, None
 	}
 	return true, Answered
 }
 
-// amendText is what Tab puts in the amend field: the command for shell tools, the input
-// JSON for everything else.
-func (p *Permission) amendText() string {
-	if p.req.ToolName == "Bash" || p.req.ToolName == "PowerShell" {
-		if c, ok := p.input["command"].(string); ok {
-			return c
-		}
-	}
-	return prettyJSON(p.req.Input)
-}
-
-func (p *Permission) submitAmend() (bool, Effect) {
-	text := p.amend.Value()
-	var updated json.RawMessage
-	if p.req.ToolName == "Bash" || p.req.ToolName == "PowerShell" {
-		if strings.TrimSpace(text) == "" {
-			p.amendErr = "The command can't be empty."
-			return true, None
-		}
-		in := map[string]any{}
-		for k, v := range p.input {
-			in[k] = v
-		}
-		in["command"] = text
-		updated, _ = json.Marshal(in)
-	} else {
-		var v map[string]any
-		if err := json.Unmarshal([]byte(text), &v); err != nil || v == nil {
-			p.amendErr = "Not a JSON object: fix it or press esc to go back."
-			return true, None
-		}
-		updated, _ = json.Marshal(v)
-	}
-	p.allow(updated, nil, ClassUserTemporary)
-	return true, Answered
+// openFeedback focuses No and opens its instructions field (tab).
+func (p *Permission) openFeedback() {
+	p.opts.focus("no")
+	p.stage = permStageFeedback
 }
 
 // HandleKey implements Model.
@@ -221,34 +164,15 @@ func (p *Permission) HandleKey(k tea.KeyPressMsg) (bool, Effect) {
 	if p.Done() {
 		return false, None
 	}
-	switch p.stage {
-	case permStageFeedback:
+	if p.stage == permStageFeedback {
 		switch k.Keystroke() {
 		case "enter":
-			msg := denyMessage
-			if fb := strings.TrimSpace(p.feedback.Value()); fb != "" {
-				msg = denyFeedbackMessage + fb
-			}
-			p.finishDeny(msg, false)
-			return true, Answered
-		case "esc":
+			return p.deny()
+		case "esc", "tab":
 			p.stage = permStageOptions
 			return true, None
 		}
 		return p.feedback.HandleKey(k), None
-	case permStageAmend:
-		switch k.Keystroke() {
-		case "enter":
-			return p.submitAmend()
-		case "esc":
-			p.stage, p.amendErr = permStageOptions, ""
-			return true, None
-		}
-		if p.amend.HandleKey(k) {
-			p.amendErr = ""
-			return true, None
-		}
-		return false, None
 	}
 	a, digit := keyAct(k)
 	if digit > 0 {
@@ -273,11 +197,10 @@ func (p *Permission) do(a act) (bool, Effect) {
 		p.finishDeny(denyStopMessage, true)
 		return true, Answered
 	case actNextField:
-		p.stage = permStageAmend
-		p.amend.SetValue(p.amendText())
+		p.openFeedback()
 	case actCycleMode:
-		if len(p.setModes) > 0 {
-			return p.choose("mode:0")
+		if p.row != nil && p.row.session {
+			return p.choose("always")
 		}
 		return true, CycleMode
 	default:
@@ -295,8 +218,9 @@ func (p *Permission) Action(id string) (bool, Effect) {
 		switch actionAct(id) {
 		case actYes:
 			return p.HandleKey(tea.KeyPressMsg{Code: tea.KeyEnter})
-		case actNo:
-			return p.HandleKey(tea.KeyPressMsg{Code: tea.KeyEscape})
+		case actNo, actNextField:
+			p.stage = permStageOptions
+			return true, None
 		}
 		return false, None
 	}
@@ -305,15 +229,10 @@ func (p *Permission) Action(id string) (bool, Effect) {
 
 // HandlePaste implements Model.
 func (p *Permission) HandlePaste(s string) (bool, Effect) {
-	switch p.stage {
-	case permStageFeedback:
-		p.feedback.insert(s)
-	case permStageAmend:
-		p.amend.insert(s)
-		p.amendErr = ""
-	default:
+	if p.stage != permStageFeedback {
 		return false, None
 	}
+	p.feedback.insert(s)
 	return true, None
 }
 
@@ -336,47 +255,46 @@ func attribution(engine, agent string) string {
 	return ""
 }
 
-// View implements Model.
+// View implements Model: the title, a tip, the header, the command or diff between
+// dashed rules, the question, the options and the key hints.
 func (p *Permission) View(width int, st Styles) string {
 	w := bodyWidth(width)
 	var body []string
 	if a := attribution(p.ctx.Engine, p.ctx.Agent); a != "" {
 		body = append(body, styleLines(st.Accent, wrap(a, w))...)
 	}
-	body = append(body, p.view.body(w, st)...)
-	if p.req.BlockedPath != "" {
-		body = append(body, styleLines(st.Warning, wrapIndent("  ", "Outside the allowed directories: "+displayPath(p.req.BlockedPath, ""), w))...)
+	if p.ctx.OfferAuto && !p.view.fileTool {
+		body = append(body, styleLines(st.Dim, wrap("Tip: auto mode can answer prompts like this one for you; pick \"switch to auto mode\" below", w))...)
+	}
+	if p.view.header != nil {
+		body = append(body, p.view.header(w, st)...)
+	}
+	if p.view.block != nil {
+		body = append(body, dashRule(width, st))
+		body = append(body, p.view.block(w, st)...)
+		body = append(body, dashRule(width, st))
 	}
 	if p.req.DecisionReason != "" {
-		body = append(body, styleLines(st.Dim, wrapIndent("  ", "Why: "+SanitizeLine(string(p.req.DecisionReason)), w))...)
+		body = append(body, styleLines(st.Dim, wrap("Why: "+SanitizeLine(string(p.req.DecisionReason)), w))...)
 	}
 	if r := p.req.MatchedAskRule; r != nil {
 		rule := RuleString(PermissionRule{ToolName: r.ToolName, RuleContent: r.RuleContent})
-		body = append(body, styleLines(st.Dim, wrapIndent("  ", "Matches ask rule "+SanitizeLine(rule)+" ("+SanitizeLine(r.Source)+")", w))...)
+		body = append(body, styleLines(st.Dim, wrap("Matches ask rule "+SanitizeLine(rule)+" ("+SanitizeLine(r.Source)+")", w))...)
 	}
-	body = append(body, "")
 	question := p.view.question
 	if p.req.Title != "" {
 		question = SanitizeLine(p.req.Title)
 	}
 	body = append(body, styleLines(st.Text, wrap(question, w))...)
-	body = append(body, p.opts.lines(w, st, p.stage == permStageOptions)...)
-
-	switch p.stage {
-	case permStageFeedback:
-		body = append(body, "")
-		body = append(body, p.feedback.lines(w, st, true, "> ")...)
-		body = append(body, render(st.Dim, "enter to send · esc to go back"))
-	case permStageAmend:
-		body = append(body, "")
-		body = append(body, render(st.Dim, "Amend the input, then press enter to run it:"))
-		body = append(body, styleLines(st.Code, p.amend.lines(w, st, true, "> "))...)
-		if p.amendErr != "" {
-			body = append(body, styleLines(st.Error, wrap(p.amendErr, w))...)
-		}
-		body = append(body, render(st.Dim, "enter to run · esc to go back"))
-	default:
-		body = append(body, render(st.Dim, "esc to deny · tab to amend · shift+tab to change mode"))
+	body = append(body, p.opts.lines(w, st, true)...)
+	if p.stage == permStageFeedback {
+		body = append(body, p.feedback.lines(w, st, true, "     ")...)
+	}
+	body = append(body, "")
+	if p.stage == permStageFeedback {
+		body = append(body, render(st.Dim, "Enter to send · Esc to go back"))
+	} else {
+		body = append(body, render(st.Dim, "Esc to cancel · Tab to amend"))
 	}
 	return frame(p.Title(), body, width, p.view.kind, st)
 }

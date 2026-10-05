@@ -6,7 +6,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/KaitouKid1412/mantle/features/turn/dialogs"
 	"github.com/KaitouKid1412/mantle/features/turn/gates"
 	"github.com/KaitouKid1412/mantle/features/turn/mode"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -22,7 +21,6 @@ type modeState struct {
 	auto        bool   // current model supports auto mode
 	flags       gates.LaunchFlags
 	startupDone bool
-	autoOK      bool // auto-mode first-use prompt accepted
 }
 
 func (st *state) mode(engineID string) *modeState {
@@ -36,12 +34,12 @@ func (st *state) mode(engineID string) *modeState {
 }
 
 func (st *state) setupModes(r ext.Registrar) {
+	ext.Subscribe(r, "turn.autoNotice", st.printAutoNotice)
 	r.AddAction(ext.Action{
 		ID: ext.ActChatCycleMode, Context: ext.ContextChat,
 		Description: "Cycle the permission mode",
 		Run:         func(c ext.Ctx) (bool, tea.Cmd) { return true, st.cycleMode(c, ext.MainEngine) },
 	})
-	r.AddDialog(DialogAutoMode, st.autoModeDialog)
 }
 
 // currentMode is the mode the engine is in, or the one just requested.
@@ -77,9 +75,6 @@ func (st *state) cycleMode(c ext.Ctx, engineID string) tea.Cmd {
 		return nil
 	}
 	next := mode.Next(mode.Mode(st.currentMode(c, engineID)), st.availability(c, engineID))
-	if next == mode.Auto && st.autoPromptNeeded(c, engineID) {
-		return c.OpenDialog(DialogAutoMode, engineID)
-	}
 	st.mode(engineID).userMode = string(next)
 	return st.setMode(c, engineID, next)
 }
@@ -91,43 +86,6 @@ func (st *state) setMode(c ext.Ctx, engineID string, m mode.Mode) tea.Cmd {
 	}
 	st.mode(engineID).target = string(m)
 	return eng.Control(proto.SubSetPermissionMode, proto.SetPermissionModeRequest{Mode: string(m)})
-}
-
-// autoPromptNeeded reports whether the auto-mode first-use prompt must come first.
-func (st *state) autoPromptNeeded(c ext.Ctx, engineID string) bool {
-	if st.mode(engineID).autoOK || userScopedBool(c, "skipAutoPermissionPrompt") {
-		return false
-	}
-	env, err := st.env()
-	if err != nil {
-		return true
-	}
-	return gates.LoadGateStore(env).AutoModeAcceptedAt == ""
-}
-
-func (st *state) autoModeDialog(c ext.Ctx, args any) (ext.Dialog, error) {
-	engineID, _ := args.(string)
-	engineID = engineKey(engineID)
-	ch := dialogs.NewAutoModePrompt()
-	d := &vmDialog{id: DialogAutoMode, vm: ch, contexts: []string{ext.ContextConfirmation}, place: ext.PlaceInline}
-	d.result = func() any { return ch.Chosen() }
-	d.onDone = func(c ext.Ctx) tea.Cmd {
-		closeCmd := c.CloseDialog(DialogAutoMode)
-		if ch.Chosen() != dialogs.ChoiceYes {
-			return closeCmd
-		}
-		ms := st.mode(engineID)
-		ms.autoOK = true
-		ms.userMode = string(mode.Auto)
-		record := func() tea.Msg {
-			if env, err := st.env(); err == nil {
-				_ = gates.RecordAutoModeAccepted(env)
-			}
-			return nil
-		}
-		return tea.Batch(closeCmd, record, st.setMode(c, engineID, mode.Auto))
-	}
-	return d, nil
 }
 
 // publishMode tells the host (and the footer) about a confirmed mode change.
@@ -197,17 +155,53 @@ func (st *state) maybeStartupMode(c ext.Ctx, engineID string) tea.Cmd {
 			DangerouslySkip: ms.flags.DangerouslySkip,
 			SettingsDefault: settingString(c, "permissions.defaultMode"),
 			Availability:    avail,
+			PreferAuto:      true,
 		})
-		// Auto only when nothing asked for another mode and the user already opted in.
-		explicit := ms.flags.PermissionMode != "" || ms.flags.DangerouslySkip || settingString(c, "permissions.defaultMode") != ""
-		if !explicit && avail.Auto && !st.autoPromptNeeded(c, engineID) {
-			desired = mode.Auto
-		}
+	}
+	var notice tea.Cmd
+	explicit := ms.userMode != "" || ms.flags.PermissionMode != "" || ms.flags.DangerouslySkip ||
+		settingString(c, "permissions.defaultMode") != ""
+	if desired == mode.Auto && !explicit {
+		notice = st.autoNotice(c)
 	}
 	if mode.Normalize(mode.Mode(cur)) == desired {
+		return notice
+	}
+	return tea.Batch(notice, st.setMode(c, engineID, desired))
+}
+
+// autoNoticeText tells the user, once, that auto mode is the default. mantle's own
+// wording.
+var autoNoticeText = []string{
+	"Auto mode is now the default permission mode.",
+	"Claude runs routine tool calls without asking and screens risky ones before they run;",
+	"press shift+tab to pick another mode, or set permissions.defaultMode.",
+}
+
+// autoNoticeMsg prints the auto-mode notice. It is a message of its own so the notice
+// lands after the startup banner, which is printed for the same initialize result.
+type autoNoticeMsg struct{}
+
+// autoNotice schedules the auto-mode default notice the first time it applies.
+func (st *state) autoNotice(c ext.Ctx) tea.Cmd {
+	env, err := st.env()
+	if err != nil || gates.LoadGateStore(env).AutoNoticeAt != "" {
 		return nil
 	}
-	return st.setMode(c, engineID, desired)
+	return ext.Msg(autoNoticeMsg{})
+}
+
+func (st *state) printAutoNotice(c ext.Ctx, _ autoNoticeMsg) tea.Cmd {
+	env, err := st.env()
+	if err != nil || gates.LoadGateStore(env).AutoNoticeAt != "" {
+		return nil
+	}
+	record := func() tea.Msg {
+		_ = gates.RecordAutoNotice(env)
+		return nil
+	}
+	lines := append(append([]string{""}, autoNoticeText...), "")
+	return tea.Batch(c.Print(strings.Join(lines, "\n")), record)
 }
 
 func (st *state) onModeResult(c ext.Ctx, m ext.ControlResultMsg) tea.Cmd {

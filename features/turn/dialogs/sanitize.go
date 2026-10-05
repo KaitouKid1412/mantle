@@ -39,6 +39,16 @@ func Sanitize(s string) string {
 	return b.String()
 }
 
+// SanitizeText is Sanitize that keeps tabs, for text that is matched or diffed before
+// it is drawn (file contents, edit strings); the renderer expands tabs itself.
+func SanitizeText(s string) string {
+	parts := strings.Split(s, "\t")
+	for i, p := range parts {
+		parts[i] = Sanitize(p)
+	}
+	return strings.Join(parts, "\t")
+}
+
 // SanitizeLine is Sanitize for single-line contexts: newlines become "⏎ ".
 func SanitizeLine(s string) string {
 	return strings.ReplaceAll(Sanitize(s), "\n", "⏎ ")

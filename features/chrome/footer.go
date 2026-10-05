@@ -123,8 +123,9 @@ func (f *footer) render(ctx ext.Ctx, w int) string {
 		}
 		right = append(right, seg(t, theme.Inactive, label+" · /tasks", 2))
 	}
-	// With a status line the effort hint moves to the status line's first row.
-	if h := effortHint(ctx, f.s); h != "" && !f.statusLine {
+	// With a status line the effort hint moves to the status line's first row; in the
+	// fullscreen layout it sits above the prompt (effortLine).
+	if h := effortHint(ctx, f.s); h != "" && !f.statusLine && ctx.Layout() != ext.Fullscreen {
 		right = append(right, seg(t, theme.Inactive, h, 5))
 	}
 	return bar(left, right, w, ctx.Accessibility().ScreenReader)

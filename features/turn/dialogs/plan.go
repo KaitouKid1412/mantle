@@ -17,6 +17,9 @@ type PlanContext struct {
 	// RenderPlan renders the plan markdown at a width; nil shows the text as-is. Part B
 	// plugs in pkg/render.
 	RenderPlan func(markdown string, width int) []string
+	// PlanText is the plan read from the request's planFilePath, used when the input
+	// carries none (claude 2.1.289 keeps the plan in the file).
+	PlanText string
 }
 
 const (
@@ -24,7 +27,9 @@ const (
 	planFeedbackMessage = "The user rejected the plan and wants to keep planning. Their feedback: "
 )
 
-// PlanApproval is the view-model of an ExitPlanMode prompt.
+// PlanApproval is the view-model of an ExitPlanMode prompt. With a plan it is the
+// "Ready to code?" dialog; without one (nothing in the input or the plan file) it is
+// Claude Code's short "Exit plan mode?" question: switch to manual approval, or no.
 type PlanApproval struct {
 	req    ToolRequest
 	ctx    PlanContext
@@ -32,6 +37,7 @@ type PlanApproval struct {
 	plan   string
 	edited bool
 	scroll int
+	short  bool
 
 	opts     optionList
 	feedback textField
@@ -47,6 +53,17 @@ func NewPlanApproval(req ToolRequest, ctx PlanContext) *PlanApproval {
 		p.input = map[string]json.RawMessage{}
 	}
 	_ = json.Unmarshal(p.input["plan"], &p.plan)
+	if strings.TrimSpace(p.plan) == "" {
+		p.plan = ctx.PlanText
+	}
+	if strings.TrimSpace(p.plan) == "" {
+		p.short = true
+		p.opts = optionList{items: []option{
+			{id: "default", label: "Yes, and switch to manual approval (ask each time) for this session"},
+			{id: "no", label: "No"},
+		}}
+		return p
+	}
 	var items []option
 	if ctx.AutoAvailable {
 		items = append(items, option{id: "auto", label: "Yes, and use auto mode"})
@@ -125,6 +142,10 @@ func (p *PlanApproval) approve(mode string) (bool, Effect) {
 }
 
 func (p *PlanApproval) choose(id string) (bool, Effect) {
+	if id == "no" {
+		p.deny(planKeepMessage)
+		return true, Answered
+	}
 	if id == "keep" {
 		p.keep = true
 		return true, None
@@ -181,12 +202,18 @@ func (p *PlanApproval) do(a act) (bool, Effect) {
 		p.deny(planKeepMessage)
 		return true, Answered
 	case actEdit:
+		if p.short {
+			return false, None
+		}
 		return true, EditExternal
 	case actPageDown:
 		p.scroll += p.visible() - 1
 	case actPageUp:
 		p.scroll = max(0, p.scroll-(p.visible()-1))
 	case actCycleMode:
+		if p.short {
+			return false, None
+		}
 		// shift+tab picks the first "Yes" option, like cycling out of plan mode.
 		return p.choose(p.opts.items[0].id)
 	default:
@@ -228,6 +255,15 @@ func (p *PlanApproval) View(width int, st Styles) string {
 	var body []string
 	if a := attribution(p.ctx.Engine, p.ctx.Agent); a != "" {
 		body = append(body, styleLines(st.Accent, wrap(a, w))...)
+	}
+	if p.short {
+		body = append(body, "")
+		body = append(body, styleLines(st.Text, wrapIndent(" ", "Claude wants to leave plan mode", w))...)
+		body = append(body, "")
+		for _, l := range p.opts.lines(w-1, st, true) {
+			body = append(body, " "+l)
+		}
+		return frame("Exit plan mode?"+counter(p.ctx.Index, p.ctx.Total), body, width, "planMode", st)
 	}
 	body = append(body, styleLines(st.Text, wrap("Here is Claude's plan:", w))...)
 	text := strings.TrimRight(Sanitize(p.plan), "\n ")

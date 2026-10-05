@@ -249,10 +249,10 @@ func TestEngineCheckPassesSilently(t *testing.T) {
 	if fc.calls != 1 || len(sp.proceeded) != 1 || x.c.topID() != "" || len(x.c.Notices) != 0 {
 		t.Fatalf("calls=%d spawn=%+v stack=%v notices=%v", fc.calls, sp, x.c.ids, x.c.Notices)
 	}
-	// A freshly probed version gets a short notice.
+	// A freshly probed version passes silently too, like claude.
 	fc.res.Probed = true
 	x.send(sp.msg(ext.MainEngine, ext.SpawnOpts{Cwd: trustedProject(t, x)}))
-	if len(x.c.Notices) != 1 || !strings.Contains(x.c.Notices[0].Text, "2.1.288 passed") {
+	if len(x.c.Notices) != 0 {
 		t.Fatalf("notices = %+v", x.c.Notices)
 	}
 	// Builders skip the check.

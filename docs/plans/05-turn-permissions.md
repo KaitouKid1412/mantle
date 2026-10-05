@@ -271,6 +271,24 @@ Everything that decides *whether* and *how* Claude proceeds:
   (sandbox prompts; headless routing unknown), PD-42 (`dialogExpiry`, M3), TC-21
   (`command_lifecycle` states, M3).
 
+### Parity pass against claude 2.1.289 (request 12-05, done)
+
+- Esc and "No" deny and end the turn; tab adds instructions to No (deny without
+  interrupt, Claude continues with them). The input-amend editor is gone.
+- Inline dialogs are a full-width rule, the title and an indented body (no box);
+  commands and diffs sit between dashed rules; Edit/Write previews diff the whole file
+  (real line numbers, three lines of context, tabs as two columns).
+- One "Yes, and …" grant built from `permission_suggestions` filtered like Claude Code:
+  per-tool kinds, allow rules only, `localSettings`/`session` only, directory grants only
+  after a path check (`blocked_path`); only the shown suggestions are sent back.
+- ExitPlanMode without plan text (2.1.289 keeps it in the plan file): the plan file is
+  read, and with no plan at all the short "Exit plan mode?" question is shown.
+- Auto mode is the default when nothing else is configured, with a one-time notice
+  (`~/.mantle/state/gates.json`); shift+tab enters auto without a prompt (PD-34's opt-in
+  dialog is gone). A passing engine check is silent.
+- AskUserQuestion: header tab line, flush question and options, "Type an answer", and
+  "Chat about this" for single-choice questions (deny and end the turn).
+
 ## Design notes
 
 - **Dialogs never block the engine reader.** Replies are Cmds that write one

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -186,8 +187,17 @@ func palette(t *theme.Theme) render.Palette {
 func renderHooks(c ext.Ctx) (diff func(old, new, path string, width, maxLines int) []string, md func(src string, width int) []string) {
 	pal := palette(c.Theme())
 	noHL, _ := settingValue(c, "syntaxHighlightingDisabled").(bool)
+	files := map[string][2]string{} // per edit: the whole file before and after
 	diff = func(old, new, path string, width, maxLines int) []string {
-		return diffview.Render(diffview.FromStrings(old, new, 2), diffview.Options{
+		key := path + "\x00" + old + "\x00" + new
+		pair, ok := files[key]
+		if !ok {
+			pair = wholeFileEdit(path, old, new)
+			// Tabs as two columns, like Claude Code's diff previews.
+			pair = [2]string{render.ExpandTabs(pair[0], 2), render.ExpandTabs(pair[1], 2)}
+			files[key] = pair
+		}
+		return diffview.Render(diffview.FromStrings(pair[0], pair[1], 3), diffview.Options{
 			Width: width, Palette: pal, Filename: path, NoHighlight: noHL, MaxLines: maxLines,
 		})
 	}
@@ -195,6 +205,32 @@ func renderHooks(c ext.Ctx) (diff func(old, new, path string, width, maxLines in
 		return render.Markdown(src, render.MarkdownOptions{Width: width, Palette: pal, NoHighlight: noHL})
 	}
 	return diff, md
+}
+
+// maxPreviewFile caps the file read for an edit preview.
+const maxPreviewFile = 2 << 20
+
+// wholeFileEdit returns the file before and after an edit, so the preview shows real
+// line numbers and surrounding context. old == "" is a Write (the whole new content).
+// When the file can't be read or old isn't in it, the edit strings themselves are
+// diffed.
+func wholeFileEdit(path, old, new string) [2]string {
+	if st, err := os.Stat(path); err != nil || !st.Mode().IsRegular() || st.Size() > maxPreviewFile {
+		return [2]string{old, new}
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return [2]string{old, new}
+	}
+	content := dialogs.SanitizeText(string(b))
+	if old == "" {
+		return [2]string{content, new}
+	}
+	i := strings.Index(content, old)
+	if i < 0 {
+		return [2]string{old, new}
+	}
+	return [2]string{content, content[:i] + new + content[i+len(old):]}
 }
 
 // stylesFor maps theme tokens onto the dialog styles.
