@@ -94,6 +94,7 @@ func (s *state) key(c ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
 	}
 	wasHelp := s.help
 	s.help = false
+	s.pasteHint = false
 	if s.ed.Empty() && s.mode == modePrompt && !s.vimNormal() && !s.ed.InAttachments() {
 		switch text {
 		case "?":
@@ -136,8 +137,20 @@ func (s *state) paste(c ext.Ctx, content string) (bool, tea.Cmd) {
 		return true, nil
 	}
 	s.help = false
-	_, cmd := s.ed.InsertPaste(content)
-	return true, tea.Batch(cmd, s.changed(c))
+	// Pasting the same long text again right after it collapsed expands the
+	// chip in place.
+	if s.pasteHint && content == s.lastPaste && s.ed.ExpandChip() {
+		s.pasteHint, s.lastPaste = false, ""
+		return true, s.changed(c)
+	}
+	res, cmd := s.ed.InsertPaste(content)
+	cmds := tea.Batch(cmd, s.changed(c))
+	s.pasteHint = res == editor.PastedChip
+	s.lastPaste = ""
+	if s.pasteHint {
+		s.lastPaste = content
+	}
+	return true, cmds
 }
 
 // changed runs after any edit or cursor move: menus, ghost text, the
@@ -199,6 +212,17 @@ func (s *state) placeholder() string {
 	return ""
 }
 
+// menuLines is the row budget for the menu: what the screen has left below
+// the prompt and its frame.
+func (s *state) menuLines(c ext.Ctx, a ext.Area) int {
+	if a.MaxHeight > 0 {
+		return a.MaxHeight
+	}
+	_, h := c.Size()
+	n := h - s.ed.Height() - 3 // prompt rows, the frame's two rules, one spare
+	return max(n, 5)
+}
+
 func (s *state) viewMenu(c ext.Ctx, a ext.Area) ext.Rendered {
 	t := c.Theme()
 	var lines []string
@@ -206,9 +230,11 @@ func (s *state) viewMenu(c ext.Ctx, a ext.Area) ext.Rendered {
 	case s.search != nil:
 		lines = s.search.view(t, a.Width)
 	case s.comp.open():
-		lines = s.comp.view(t, a.Width)
+		lines = s.comp.view(t, a.Width, s.menuLines(c, a))
 	case s.help:
 		lines = s.helpLines(c, a.Width)
+	case s.pasteHint:
+		lines = []string{"  " + t.Paint(theme.Inactive, "paste again to insert the full text")}
 	}
 	for i, l := range lines {
 		if ansi.StringWidth(l) > a.Width {

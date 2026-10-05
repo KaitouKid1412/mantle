@@ -176,7 +176,25 @@ func (s *state) stageSlash(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 	if !ok || cmd.Run == nil || cmd.Source == ext.SourceEngine {
 		return ext.Continue, nil
 	}
-	return ext.Consumed, cmd.Run(c, args)
+	// Echo the command into the transcript first, as the engine echoes the
+	// prompts it runs; panels then print their result line under it.
+	return ext.Consumed, tea.Sequence(echoPrompt(c, d.Text), cmd.Run(c, args))
+}
+
+// echoPrompt prints text as a user prompt, with the transcript's own
+// renderer.
+func echoPrompt(c ext.Ctx, text string) tea.Cmd {
+	w, _ := c.Size()
+	r := c.Renderer(ext.KeyUserPrompt)
+	if r == nil || w <= 0 {
+		return nil
+	}
+	blk := r(ext.RenderCtx{Width: w, Theme: c.Theme(), Now: c.Clock().Now()},
+		&ext.Item{ID: "input:echo", Key: ext.KeyUserPrompt, Data: strings.TrimSpace(text), State: ext.Done, End: c.Clock().Now()})
+	if len(blk.Lines) == 0 {
+		return nil
+	}
+	return c.Print(strings.Join(blk.Lines, "\n"))
 }
 
 // splitCommand splits "/name args" into its parts.
