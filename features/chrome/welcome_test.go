@@ -78,6 +78,19 @@ func TestWelcomeAfterClear(t *testing.T) {
 	}
 }
 
+func TestWelcomeResumeBeforeFirstTurn(t *testing.T) {
+	// Fresh start, then /resume before the first turn: the switch clears the screen
+	// (taking the startup banner with it), so the picked session gets a banner.
+	ctx := exttest.NewCtx()
+	w := newWelcome()
+	w.Update(ctx, ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Resp: []byte(`{}`)})
+	w.Update(ctx, ext.ScreenClearedMsg{})
+	w.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{SessionID: "picked"}})
+	if len(ctx.Printed) != 2 {
+		t.Errorf("banners = %d, want 2 (startup, then the resumed session after the clear)", len(ctx.Printed))
+	}
+}
+
 func TestWelcomeWithoutInitialize(t *testing.T) {
 	// An engine that never answers initialize still gets a banner with its first session.
 	ctx := exttest.NewCtx()

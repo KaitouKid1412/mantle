@@ -632,3 +632,25 @@ func TestActionsRegistered(t *testing.T) {
 		}
 	}
 }
+
+func TestEffortLineFullscreenOnly(t *testing.T) {
+	ctx := exttest.NewCtx()
+	ctx.SettingsV.ClaudeM["effortLevel"] = "low"
+	e := &effortLine{s: newSessionState()}
+	f := newFooter()
+	f.Init(ctx)
+	if got := plainView(e, ctx, 40); got != "" {
+		t.Errorf("inline: the effort line stays empty, got %q", got)
+	}
+	if !strings.HasSuffix(plainView(f, ctx, 100), "◔ low · /effort") {
+		t.Error("inline: the footer carries the hint")
+	}
+	ctx.LayoutMode = ext.Fullscreen
+	e.Update(ctx, ext.LayoutChangedMsg{Mode: ext.Fullscreen})
+	if got := plainView(e, ctx, 40); got != strings.Repeat(" ", 25)+"◔ low · /effort" {
+		t.Errorf("fullscreen effort line = %q", got)
+	}
+	if strings.Contains(plainView(f, ctx, 100), "/effort") {
+		t.Error("fullscreen: the footer drops the hint")
+	}
+}
