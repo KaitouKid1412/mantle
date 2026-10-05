@@ -290,9 +290,20 @@ func TestSkillsAndHeadlessOnlyCommandsInMenu(t *testing.T) {
 	r.c.CommandList = append(r.c.CommandList,
 		ext.Command{Name: "batch", Description: "Plan a large change", Source: ext.SourceEngine},
 	)
-	skills, _ := json.Marshal(proto.ReloadSkillsResponse{Skills: []proto.SlashCommand{{Name: "batch"}}})
-	r.event(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubReloadSkills, Resp: skills})
+	r.eng.reply = func(sub string, req any) (json.RawMessage, error) {
+		if sub == proto.SubReloadSkills {
+			return json.Marshal(proto.ReloadSkillsResponse{Skills: []proto.SlashCommand{{Name: "batch"}}})
+		}
+		return nil, nil
+	}
+	if len(r.eng.controlsOf(proto.SubReloadSkills)) != 0 {
+		t.Fatal("nothing is asked before / opens")
+	}
 	r.keys("'/'")
+	r.keys("backspace", "'/'")
+	if n := len(r.eng.controlsOf(proto.SubReloadSkills)); n != 1 {
+		t.Fatalf("skills asked once when / opens, got %d", n)
+	}
 	for _, v := range itemValues(r.s.comp.items) {
 		if v == "batch" {
 			t.Fatal("skills stay out of the unfiltered menu")

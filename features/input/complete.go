@@ -109,7 +109,7 @@ func (m *completion) update(c ext.Ctx, s *state) tea.Cmd {
 	switch tok[0] {
 	case '/':
 		leading := s.ed.Cursor().Row == 0 && start == 0
-		m.slash(c, s, tok[1:], leading)
+		return m.slash(c, s, tok[1:], leading)
 	case '@':
 		return m.file(c, s, tok[1:])
 	case ':':
@@ -126,10 +126,11 @@ func (m *completion) update(c ext.Ctx, s *state) tea.Cmd {
 
 // ---- slash commands ----
 
-func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) {
+func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) tea.Cmd {
 	m.kind = compSlash
 	m.items = slashItems(c, query, leading, s.skills)
 	m.sel = 0
+	return s.askSkills(c)
 }
 
 // slashItems lists the commands matching query, in tiers: names (and

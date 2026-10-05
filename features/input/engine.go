@@ -112,10 +112,8 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 	case ext.EngineAttachMsg:
 		if m.EngineID == ext.MainEngine && m.Engine != nil {
 			s.startErr = nil
-			// The skill list (system/init) only comes with the first turn;
-			// reload_skills reports it now, so the first / menu is right.
-			skills := m.Engine.Control(proto.SubReloadSkills, proto.ReloadSkillsRequest{})
-			return tea.Batch(warmFiles(m.Engine), skills, s.flushStarting(m.Engine))
+			s.skillsAsked = false // a new engine: ask again when / opens
+			return tea.Batch(warmFiles(m.Engine), s.flushStarting(m.Engine))
 		}
 	case ext.EngineExitedMsg:
 		if m.EngineID == ext.MainEngine {
@@ -247,6 +245,21 @@ func (s *state) refreshSlashMenu(c ext.Ctx) tea.Cmd {
 	cmd := s.comp.update(c, s)
 	s.invalidate(c)
 	return cmd
+}
+
+// askSkills asks the engine for its skills once, when the / menu first
+// opens: system/init (which lists them) only arrives with the first turn.
+// Lazily, so startup sends nothing extra.
+func (s *state) askSkills(c ext.Ctx) tea.Cmd {
+	if s.skillsAsked {
+		return nil
+	}
+	eng := c.Engine(ext.MainEngine)
+	if eng == nil {
+		return nil
+	}
+	s.skillsAsked = true
+	return eng.Control(proto.SubReloadSkills, proto.ReloadSkillsRequest{})
 }
 
 // addSkills records engine skill names (left out of the unfiltered menu).

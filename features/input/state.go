@@ -32,12 +32,13 @@ type state struct {
 	mode string
 
 	// engine
-	busy       bool
-	queue      []queued
-	starting   []startPending // sent before the main engine attached
-	startErr   error          // the main engine failed to start
-	engineCmds []proto.SlashCommand
-	skills     map[string]bool // engine skills: left out of the unfiltered / menu
+	busy        bool
+	queue       []queued
+	starting    []startPending // sent before the main engine attached
+	startErr    error          // the main engine failed to start
+	engineCmds  []proto.SlashCommand
+	skills      map[string]bool // engine skills: left out of the unfiltered / menu
+	skillsAsked bool            // reload_skills sent to the current engine
 
 	// history
 	histPath  string
