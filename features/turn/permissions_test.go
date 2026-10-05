@@ -243,3 +243,26 @@ func TestEditPreviewUsesFileLineNumbers(t *testing.T) {
 		t.Fatal("tabs must be expanded")
 	}
 }
+
+func TestPlanApprovalReadsPlanFile(t *testing.T) {
+	x := newH(t)
+	path := filepath.Join(t.TempDir(), "plan.md")
+	if err := os.WriteFile(path, []byte("## Plan\n1. Rename greet to hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(map[string]any{"tool_name": "ExitPlanMode", "tool_use_id": "p1", "input": map[string]any{"planFilePath": path}})
+	x.send(permMsg(ext.MainEngine, "p", string(raw), &replies{}))
+	if v := testkitStrip(x.view(100)); !strings.Contains(v, "Rename greet to hello") || !strings.Contains(v, "Ready to code?") {
+		t.Fatalf("plan file not shown:\n%s", v)
+	}
+	x.press("esc")
+	r := &replies{}
+	x.send(permMsg(ext.MainEngine, "q", `{"tool_name":"ExitPlanMode","tool_use_id":"p2","input":{}}`, r))
+	if v := testkitStrip(x.view(100)); !strings.Contains(v, "Exit plan mode?") {
+		t.Fatalf("no plan: short dialog expected:\n%s", v)
+	}
+	x.press("1")
+	if len(r.got) != 1 || r.got[0].UpdatedPermissions[0].Mode != proto.ModeDefault {
+		t.Fatalf("reply = %+v", r.got)
+	}
+}

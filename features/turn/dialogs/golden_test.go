@@ -75,6 +75,8 @@ func samples(t *testing.T) map[string]Model {
 	  "input":{"plan":"## Plan\n\n1. Add the handler in internal/server.\n2. Cover it with a table test.\n3. Update the README."}}`),
 		PlanContext{AutoAvailable: true})
 
+	m["plan_short"] = NewPlanApproval(toolReq(t, `{"tool_name":"ExitPlanMode","tool_use_id":"p","input":{}}`), PlanContext{})
+
 	m["elicitation_form"] = NewElicitation(ElicitationRequest{McpServerName: "crm", Title: "New contact",
 		Message: "Fill in the contact details.", RequestedSchema: json.RawMessage(formSchema)}, PermissionContext{})
 

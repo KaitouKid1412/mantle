@@ -429,6 +429,42 @@ func TestPlanEditExternal(t *testing.T) {
 	wantJSON(t, p.Response().UpdatedInput, `{"plan":"# Plan\n1. Do it better","planFilePath":"/w/plan.md"}`)
 }
 
+func TestPlanShortWithoutPlan(t *testing.T) {
+	req := toolReq(t, `{"tool_name":"ExitPlanMode","tool_use_id":"p","input":{}}`)
+	p := NewPlanApproval(req, PlanContext{AutoAvailable: true, BypassAvailable: true})
+	var ids []string
+	for _, o := range p.opts.items {
+		ids = append(ids, o.id)
+	}
+	if strings.Join(ids, ",") != "default,no" {
+		t.Fatalf("short dialog options = %v", ids)
+	}
+	v := p.View(80, PlainStyles())
+	if !strings.Contains(v, "Exit plan mode?") || strings.Contains(v, "Here is Claude's plan") {
+		t.Fatalf("short view:\n%s", v)
+	}
+	if eff := press(t, p, "ctrl+g"); eff != None || p.Done() {
+		t.Fatal("no plan to edit")
+	}
+	press(t, p, "enter")
+	wantJSON(t, p.Response(), `{"behavior":"allow","updatedInput":{},
+		"updatedPermissions":[{"type":"setMode","mode":"default","destination":"session"}],
+		"toolUseID":"p","decisionClassification":"user_temporary"}`)
+
+	p = NewPlanApproval(req, PlanContext{})
+	press(t, p, "esc")
+	if r := p.Response(); r.Behavior != "deny" || r.Interrupt {
+		t.Fatalf("esc keeps planning: %+v", r)
+	}
+	// A plan from the plan file gets the full dialog, and isn't echoed back unedited.
+	p = NewPlanApproval(req, PlanContext{PlanText: "1. Rename greet"})
+	if p.short || !strings.Contains(p.View(80, PlainStyles()), "Rename greet") {
+		t.Fatal("plan file text should show the full dialog")
+	}
+	press(t, p, "1")
+	wantJSON(t, p.Response().UpdatedInput, `{}`)
+}
+
 func TestPlanScroll(t *testing.T) {
 	long := strings.Repeat("line\n", 50)
 	req := toolReq(t, `{"tool_name":"ExitPlanMode","tool_use_id":"p","input":{"plan":`+toJSON(t, long)+`}}`)

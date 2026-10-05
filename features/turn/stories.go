@@ -65,6 +65,9 @@ var storyDialogs = []struct {
 		  "input":{"plan":"## Plan\n\n1. Add a /health endpoint.\n2. Cover it with a handler test.\n3. Document it in the README."}}`),
 			dialogs.PlanContext{AutoAvailable: true})
 	}},
+	{DialogPlanApproval + "/no-plan", func() dialogs.Model {
+		return dialogs.NewPlanApproval(storyRequest(`{"tool_name":"ExitPlanMode","tool_use_id":"s","input":{}}`), dialogs.PlanContext{})
+	}},
 	{DialogElicitation + "/form", func() dialogs.Model {
 		return dialogs.NewElicitation(dialogs.ElicitationRequest{McpServerName: "tickets", Title: "New ticket", Message: "Describe the bug.",
 			RequestedSchema: json.RawMessage(`{"type":"object","properties":{"title":{"type":"string","title":"Title"},
