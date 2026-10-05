@@ -84,10 +84,6 @@ func (s *state) bashDone(c ext.Ctx, m bashDoneMsg) tea.Cmd {
 		proto.Text("<bash-stdout>" + capOutput(m.stdout) + "</bash-stdout><bash-stderr>" + capOutput(stderr) + "</bash-stderr>"),
 	}
 	done := c.Notify(ext.Notice{Key: "input.bash", Text: "Ran " + firstLine(m.command), Timeout: 2 * time.Second, Source: FeatureID})
-	eng := c.Engine(ext.MainEngine)
-	if eng == nil {
-		return done
-	}
 	priority := ""
 	if s.busy {
 		priority = proto.PriorityLater
@@ -96,10 +92,7 @@ func (s *state) bashDone(c ext.Ctx, m bashDoneMsg) tea.Cmd {
 	// respondToBashCommands false records the output without a reply.
 	respond := s.cfg.respondBash
 	p := ext.Prompt{Blocks: blocks, Priority: priority, UUID: uuid.NewString(), Composed: true, ShouldQuery: &respond}
-	if !respond && !s.busy {
-		return tea.Batch(done, eng.Send(p)) // no turn starts
-	}
-	return tea.Batch(done, s.track(c, p, "!"+m.command), eng.Send(p))
+	return tea.Batch(done, s.dispatch(c, p, "!"+m.command, nil))
 }
 
 func capOutput(s string) string {

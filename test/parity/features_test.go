@@ -140,6 +140,9 @@ func TestScenarioSettingsPinRenderer(t *testing.T) {
 			t.Errorf("scenarioSettings(%q) = %s, %v", tt.in, got, err)
 		}
 	}
+	if got, _ := scenarioSettings(`{"tui": null, "x": 1}`); strings.Contains(string(got), "tui") {
+		t.Errorf("tui: null must leave tui unset: %s", got)
+	}
 	if _, err := scenarioSettings("{not json"); err == nil {
 		t.Error("bad JSON must fail")
 	}

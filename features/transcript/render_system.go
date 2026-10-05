@@ -21,18 +21,25 @@ func pickVerb(seed string) string {
 	return doneVerbs[h.Sum32()%uint32(len(doneVerbs))]
 }
 
-// renderResult draws the end of a turn: interruption marker, errors, denied
-// tool calls and the duration line.
+// interruptHint follows the interrupt marker: the next prompt tells Claude
+// what to do instead.
+const interruptHint = "Interrupted · tell Claude what to do instead"
+
+// renderResult draws the end of a turn: the interrupt line (attached to the
+// item above it, see attached), errors, denied calls the transcript does not
+// already show, and the duration line.
 func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	st := stylesFor(rc)
 	r, _ := it.Data.(*proto.Result)
 	if r == nil {
 		return ext.Block{}
 	}
-	var lines []string
+	var head, body []string
 	switch {
 	case r.Interrupted():
-		lines = append(lines, result(rc, st.err, "Interrupted by user")...)
+		if !f.store.InterruptShown(r.UUID) {
+			head = result(rc, st.err, interruptHint)
+		}
 	case r.IsError && f.store.ErrorShown(r.UUID):
 	case r.IsError:
 		msg := strings.TrimSpace(r.Result)
@@ -43,31 +50,46 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 			msg = "The turn ended with an error (" + r.Subtype + ")"
 		}
 		o, _ := output(rc, st.err, msg, true)
-		lines = append(lines, o...)
+		body = append(body, o...)
 	}
 	for _, d := range r.PermissionDenials {
+		if t := f.store.Get(d.ToolUseID); t != nil && (t.State == ext.Failed || t.State == ext.Interrupted) {
+			continue // the tool row already shows the denial
+		}
 		args := argSummary(d.ToolInput, rc.Width)
 		text := "Denied: " + d.ToolName
 		if args != "" {
 			text += "(" + args + ")"
 		}
-		lines = append(lines, truncLines(render.WrapWith(st.dim.Render(clean(text)), render.WrapOptions{Width: rc.Width, First: st.err.Render(glyphDot) + " ", Rest: dotIndent}), rc.Width)...)
+		body = append(body, truncLines(render.WrapWith(st.dim.Render(clean(text)), render.WrapOptions{Width: rc.Width, First: st.err.Render(glyphDot) + " ", Rest: dotIndent}), rc.Width)...)
 	}
-	if f.cfg.showTurnDuration && r.NumTurns > 0 && r.DurationMS >= 1000 && !r.Interrupted() && !r.IsError {
+	if f.cfg.showTurnDuration && r.NumTurns > 0 && (r.Interrupted() || !r.IsError) {
 		line := glyphThought + " " + pickVerb(r.UUID+it.ID) + " for " + formatDuration(msToDuration(r.DurationMS))
-		if t := f.clockTime(it.End); t != "" {
+		if t := f.formatClock(it.End); t != "" {
 			line += " · done " + t
 		}
-		lines = append(lines, st.dim.Render(line))
+		if len(body) > 0 {
+			body = append(body, "")
+		}
+		body = append(body, st.dim.Render(line))
 	}
-	return ext.Block{Lines: lines}
+	lines := head
+	if len(head) > 0 && len(body) > 0 {
+		lines = append(lines, "")
+	}
+	return ext.Block{Lines: append(lines, body...)}
 }
 
-// clockTime formats a time for duration lines and timestamps, honouring
-// timeFormat and timeZone. It returns "" when neither timestamps nor a time
-// format are configured.
-func (f *Feature) clockTime(t time.Time) string {
-	if t.IsZero() || (!f.cfg.showTimestamps && f.cfg.timeFormat == "") {
+// attached reports whether an item's first line continues the item above it
+// (no blank line between): the interrupt line of an interrupted turn.
+func (f *Feature) attached(it *ext.Item) bool {
+	r, ok := it.Data.(*proto.Result)
+	return ok && it.Key == KeyResult && r.Interrupted() && !f.store.InterruptShown(r.UUID)
+}
+
+// formatClock formats a time of day (timeFormat, timeZone; 12-hour by default).
+func (f *Feature) formatClock(t time.Time) string {
+	if t.IsZero() {
 		return ""
 	}
 	t = f.zoned(t)
@@ -85,6 +107,15 @@ func (f *Feature) zoned(t time.Time) time.Time {
 		}
 	}
 	return t.Local()
+}
+
+// clockTime is formatClock for message timestamps: "" unless timestamps or a
+// time format are configured.
+func (f *Feature) clockTime(t time.Time) string {
+	if !f.cfg.showTimestamps && f.cfg.timeFormat == "" {
+		return ""
+	}
+	return f.formatClock(t)
 }
 
 var errorText = map[string]string{

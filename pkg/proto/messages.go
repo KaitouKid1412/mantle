@@ -341,7 +341,9 @@ type PromptSuggestion struct {
 	Suggestion string `json:"suggestion"`
 }
 
-// ConversationReset starts a fresh transcript; the session id changes.
+// ConversationReset starts a fresh transcript (/clear). The session id changes, but
+// NewConversationID is not the new session id: the next system/init reports that
+// (verified on 2.1.288 and 2.1.289).
 type ConversationReset struct {
 	Envelope
 	NewConversationID string `json:"new_conversation_id"`

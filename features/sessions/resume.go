@@ -126,6 +126,7 @@ type historyMsg struct {
 	req     loadReq
 	items   []*ext.Item
 	title   string
+	name    string // a name the user gave the session (custom title), if any
 	cwd     string // the session's own cwd
 	foreign bool   // the session belongs to another project
 	err     error
@@ -165,6 +166,7 @@ func (f *feature) loadCmd(req loadReq) tea.Cmd {
 			ToolResultsDir: sessions.ToolResultsDir(filepath.Dir(path), sessions.SessionIDFromPath(path)),
 		})
 		m.title = tr.Title()
+		m.name = tr.Meta.CustomTitle
 		m.lastActive, m.tokens = branchEnd(tr)
 		for _, e := range tr.Entries {
 			if e.Cwd != "" && !e.IsSidechain {
@@ -209,14 +211,17 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 	if title != "" {
 		f.titles[req.id] = title
 	}
+	if m.name != "" {
+		f.names[req.id] = m.name
+	}
 
 	switch req.mode {
 	case modeDisplay:
 		cmds := []tea.Cmd{ext.Msg(ext.TranscriptHistoryMsg{EngineID: req.engineID, Items: m.items})}
-		if title != "" && req.engineID == ext.MainEngine {
+		if req.engineID == ext.MainEngine {
 			info := ctx.Session()
-			if info.SessionID == req.id && info.Title == "" {
-				info.Title = title
+			if m.name != "" && info.SessionID == req.id && info.Title == "" {
+				info.Title = m.name
 				cmds = append(cmds, ext.Msg(ext.SessionChangedMsg{EngineID: req.engineID, Info: info}))
 			}
 			if f.summaryWorthy(ctx, m.lastActive, m.tokens) {
@@ -229,10 +234,7 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 
 	case modeRefresh:
 		st.shown = req.id
-		return tea.Sequence(
-			ext.Msg(ext.TranscriptHistoryMsg{EngineID: req.engineID, Items: m.items, Reset: true}),
-			ctx.Reprint(),
-		)
+		return f.showAfterClear(ctx, req.engineID, m.items, nil, nil)
 	}
 
 	// modeSwitch
@@ -266,22 +268,50 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 		st.shown = req.id
 		st.session = req.id
 	}
-	info.Title = title
+	// Only a name the user gave reaches the prompt bar, as in Claude Code.
+	info.Title = m.name
 	if sw.fork {
 		info.Title = ""
 	}
 	if sw.compactAfter {
 		f.compactOnAttach = true
 	}
-	cmds := []tea.Cmd{
-		ext.Msg(ext.TranscriptHistoryMsg{EngineID: req.engineID, Items: m.items, Reset: true}),
-		ctx.Reprint(),
-		ext.Msg(ext.SessionChangedMsg{EngineID: req.engineID, Info: info}),
-		startEngine(req.engineID, opts),
-	}
+	after := []tea.Cmd{startEngine(req.engineID, opts)}
 	if sw.reason != "" {
-		cmds = append(cmds, notice(ctx, "switch", sw.reason, ext.NoticeSuccess))
+		after = append(after, notice(ctx, "switch", sw.reason, ext.NoticeSuccess))
 	}
+	before := []tea.Cmd{ext.Msg(ext.SessionChangedMsg{EngineID: req.engineID, Info: info})}
+	return f.showAfterClear(ctx, req.engineID, m.items, before, after)
+}
+
+// pendingShow is history waiting for the screen to be cleared.
+type pendingShow struct {
+	engineID      string
+	items         []*ext.Item
+	before, after []tea.Cmd
+}
+
+// showAfterClear replaces what is on screen with items: it empties the transcript
+// store and clears the screen, and only once the screen is clear (ScreenClearedMsg)
+// runs before (the session change, whose banner then prints first), appends the
+// history (the transcript prints it once) and runs after.
+func (f *feature) showAfterClear(ctx ext.Ctx, engineID string, items []*ext.Item, before, after []tea.Cmd) tea.Cmd {
+	f.pendingShow = &pendingShow{engineID: engineID, items: items, before: before, after: after}
+	return tea.Sequence(
+		ext.Msg(ext.TranscriptHistoryMsg{EngineID: engineID, Reset: true}),
+		ctx.Reprint(),
+	)
+}
+
+func (f *feature) onScreenCleared(ctx ext.Ctx, _ ext.ScreenClearedMsg) tea.Cmd {
+	p := f.pendingShow
+	if p == nil {
+		return nil
+	}
+	f.pendingShow = nil
+	cmds := append([]tea.Cmd{}, p.before...)
+	cmds = append(cmds, ext.Msg(ext.TranscriptHistoryMsg{EngineID: p.engineID, Items: p.items}))
+	cmds = append(cmds, p.after...)
 	return tea.Sequence(cmds...)
 }
 

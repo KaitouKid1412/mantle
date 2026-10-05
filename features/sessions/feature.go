@@ -47,6 +47,11 @@ type feature struct {
 
 	engines map[string]*engineState
 	titles  map[string]string // session id -> title to show for it
+	// names are names the user gave sessions (/rename, picker rename, /branch name):
+	// the only titles that reach SessionInfo.Title (the prompt bar).
+	names map[string]string
+	// pendingShow is history to show once the screen has been cleared.
+	pendingShow *pendingShow
 	// titleAsked marks sessions mantle already asked the engine to title.
 	titleAsked map[string]bool
 	cleared    []string // sessions left behind by /clear, oldest first
@@ -99,6 +104,7 @@ func newFeature(l sessions.Layout, cachePath string) *feature {
 		engines:    map[string]*engineState{},
 		titles:     map[string]string{},
 		titleAsked: map[string]bool{},
+		names:      map[string]string{},
 		startupSpawn: func() (ext.SpawnOpts, bool) {
 			st, ok := cli.Current()
 			return st.Spawn, ok
@@ -146,6 +152,7 @@ func (f *feature) setup(r ext.Registrar) error {
 
 	ext.Subscribe(r, "sessions.engine-events", f.onEngineEvent)
 	ext.Subscribe(r, "sessions.session-changed", f.onSessionChanged)
+	ext.Subscribe(r, "sessions.screen-cleared", f.onScreenCleared)
 	ext.Subscribe(r, "sessions.context-usage", f.onContextUsage)
 	r.AddComponent(ext.SlotBelowInput, &contextWarning{f: f}, ext.SlotOpts{Weight: 900, MaxHeight: 1})
 	r.OnStart("sessions.startup-history", f.startupHistory)
@@ -214,7 +221,7 @@ func (f *feature) onSessionChanged(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd
 	if m.EngineID == ext.MainEngine {
 		cmds = append(cmds, f.onBranchSession(ctx, sid))
 	}
-	if t := f.titles[sid]; t != "" && m.Info.Title == "" {
+	if t := f.names[sid]; t != "" && m.Info.Title == "" {
 		info := m.Info
 		info.Title = t
 		cmds = append(cmds, ext.Msg(ext.SessionChangedMsg{EngineID: m.EngineID, Info: info}))

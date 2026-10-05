@@ -310,10 +310,11 @@ Build the part of mantle that makes it mantle:
   engine (plan 01's `Adopt` hook → `mgr.AdoptFile`, plan 11's flag). Any failure ends in
   a normal exit-75 restart (the engine may be detached). The launcher accounts probation
   to the run file's `version`. `TestInstantRestartAcrossExec` drives a real mantle-ui:
-  same pid, same claude pid, the next turn answered, clean exit. It passed with plan
-  01's hook (6bae51f) applied and skips until that commit is integrated here. The
-  setting stays off by default until the adopt path has soaked; request
-  `docs/plans/requests/10-02-engine-fd-handoff.md`.
+  same pid, same claude pid, the next turn answered, clean exit; it runs in this branch
+  since contracts-v1.8 (plan 01's Adopt hook) and is stable under full-suite load. The
+  live session title is not passed as `--name` (it can be the first prompt; a /rename
+  name comes back with `--resume`). The setting stays off by default until the adopt
+  path has soaked; request `docs/plans/requests/10-02-engine-fd-handoff.md`.
 
 ## Design notes
 - **The launcher never imports anything outside the standard library** and never changes

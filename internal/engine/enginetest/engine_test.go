@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -228,12 +229,16 @@ func TestUnexpectedExitAndRestart(t *testing.T) {
 }
 
 func TestSessionTracking(t *testing.T) {
+	// As recorded from 2.1.288/289: new_conversation_id is not the session the engine
+	// continues under; the next system/init reports the real one.
 	script := enginefake.MustParse(`
 {"expect": {"type":"user"}}
 {"emit": {"type":"system","subtype":"status","status":null,"permissionMode":"plan","uuid":"x1","session_id":"s1"}}
 {"emit": {"type":"system","subtype":"session_title_changed","title":"Fix bug","uuid":"x2","session_id":"s1"}}
-{"emit": {"type":"conversation_reset","new_conversation_id":"s2","trigger":"clear","uuid":"x3","session_id":"s1"}}
-{"emit": {"type":"system","subtype":"session_state_changed","state":"idle","uuid":"x4","session_id":"s2"}}
+{"emit": {"type":"conversation_reset","new_conversation_id":"conv-x","trigger":"clear","uuid":"x3","session_id":"s1"}}
+{"emit": {"type":"user","message":{"role":"user","content":"/clear"},"isReplay":true,"uuid":"x4","session_id":"s1"}}
+{"emit": {"type":"system","subtype":"init","session_id":"s3","cwd":"/w","tools":[],"mcp_servers":[],"model":"m","permissionMode":"plan","slash_commands":[],"claude_code_version":"2.1.289","output_style":"default","uuid":"x5"}}
+{"emit": {"type":"system","subtype":"session_state_changed","state":"idle","uuid":"x6","session_id":"s3"}}
 `)
 	script.Rules = append(script.Rules,
 		enginefake.InitializeRule(nil),
@@ -242,12 +247,26 @@ func TestSessionTracking(t *testing.T) {
 	m, _, rec := setup(t, script)
 	e, _ := m.Start("", ext.SpawnOpts{Resume: "s1"})
 	e.Send(ext.Prompt{Blocks: []proto.ContentBlock{proto.Text("/clear")}})()
-	rec.WaitFor(t, func(m tea.Msg) bool { s, ok := m.(ext.SessionChangedMsg); return ok && s.Info.SessionID == "s2" })
+	rec.WaitFor(t, func(m tea.Msg) bool { s, ok := m.(ext.SessionChangedMsg); return ok && s.Info.SessionID == "s3" })
+	var ids []string
+	for _, msg := range rec.Msgs() {
+		if s, ok := msg.(ext.SessionChangedMsg); ok {
+			ids = append(ids, s.Info.SessionID)
+		}
+	}
+	for _, id := range ids {
+		if id == "conv-x" {
+			t.Errorf("new_conversation_id must not be published as the session id: %v", ids)
+		}
+	}
+	if !slices.Contains(ids, "") {
+		t.Errorf("the reset should clear the id first: %v", ids)
+	}
 	if res := e.Control(proto.SubSetModel, proto.SetModelRequest{Model: "sonnet"})().(ext.ControlResultMsg); res.Err != nil {
 		t.Fatal(res.Err)
 	}
 	last := rec.WaitFor(t, func(m tea.Msg) bool { s, ok := m.(ext.SessionChangedMsg); return ok && s.Info.Model == "sonnet" }).(ext.SessionChangedMsg)
-	if last.Info.PermissionMode != "plan" || last.Info.Title != "" || last.Info.SessionID != "s2" {
+	if last.Info.PermissionMode != "plan" || last.Info.Title != "" || last.Info.SessionID != "s3" {
 		t.Errorf("info: %+v", last.Info)
 	}
 	if e.Snapshot().State != proto.StateIdle {

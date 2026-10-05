@@ -26,7 +26,7 @@ const (
 )
 
 // collapsedLines is how many lines of tool output show before "+N lines".
-const collapsedLines = 5
+const collapsedLines = 3
 
 // paletteOf adapts a theme to the render kit's palette.
 func paletteOf(th *theme.Theme) render.Palette {

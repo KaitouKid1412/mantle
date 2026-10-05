@@ -34,6 +34,8 @@ type state struct {
 	// engine
 	busy       bool
 	queue      []queued
+	starting   []startPending // sent before the main engine attached
+	startErr   error          // the main engine failed to start
 	engineCmds []proto.SlashCommand
 
 	// history
