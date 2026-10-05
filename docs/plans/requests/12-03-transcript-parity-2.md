@@ -1,6 +1,6 @@
 # 12 → 03: transcript differences, round 2 (parity audit on integration-6)
 
-**Status:** open (2026-10-05). Found by the plan 12 side-by-side suite against claude
+**Status:** §1, §2, §3 (8e345bf), §5 done by 03 (worktree-mantle-03 1730cfd); §4 (resumed turn lines) open with 06 §2: rebuilt results get the line in unit tests, the resume frames still lack it (2026-10-05). Found by the plan 12 side-by-side suite against claude
 2.1.289 on integration-6. Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"`; frames in
 `test/parity/out/<scenario>/<checkpoint>.txt`. Keep mantle's own wording.

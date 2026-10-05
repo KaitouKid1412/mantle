@@ -243,7 +243,9 @@ func TestBuildArgs(t *testing.T) {
 }
 
 func TestBuildEnv(t *testing.T) {
-	base := []string{"ANTHROPIC_API_KEY=secret", "PATH=/bin", "CLAUDECODE=1", "NODE_OPTIONS=--x", "DEBUG=1", "CLAUDE_CODE_SIMPLE=1", "CLAUDE_CODE_SAFE_MODE=1", "HOME=/h", "PWD=/old"}
+	base := []string{"ANTHROPIC_API_KEY=secret", "PATH=/bin", "CLAUDECODE=1", "NODE_OPTIONS=--x", "DEBUG=1", "CLAUDE_CODE_SIMPLE=1", "CLAUDE_CODE_SAFE_MODE=1", "HOME=/h", "PWD=/old",
+		// Provider and telemetry settings must reach the engine unchanged (ENG-55, ENG-56).
+		"CLAUDE_CODE_USE_BEDROCK=1", "AWS_REGION=us-east-1", "CLAUDE_CODE_ENABLE_TELEMETRY=1", "OTEL_EXPORTER_OTLP_ENDPOINT=http://otel:4317"}
 	env := map[string]string{}
 	for _, kv := range BuildEnv(base, ext.SpawnOpts{Cwd: "/w", Env: map[string]string{"FOO": "bar"}, UnsetEnv: []string{"ANTHROPIC_API_KEY"}}) {
 		k, v, _ := strings.Cut(kv, "=")
@@ -258,7 +260,9 @@ func TestBuildEnv(t *testing.T) {
 		}
 	}
 	if env["CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS"] != "1" || env["CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING"] != "true" ||
-		env["PATH"] != "/bin" || env["FOO"] != "bar" || env["PWD"] != "/w" {
+		env["PATH"] != "/bin" || env["FOO"] != "bar" || env["PWD"] != "/w" ||
+		env["CLAUDE_CODE_USE_BEDROCK"] != "1" || env["AWS_REGION"] != "us-east-1" || env["CLAUDE_CODE_ENABLE_TELEMETRY"] != "1" ||
+		env["OTEL_EXPORTER_OTLP_ENDPOINT"] != "http://otel:4317" {
 		t.Errorf("env %v", env)
 	}
 	safe := strings.Join(BuildEnv(base, ext.SpawnOpts{SafeMode: true}), " ")

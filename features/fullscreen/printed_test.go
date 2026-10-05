@@ -104,4 +104,11 @@ func TestVTFullscreenShowsPrints(t *testing.T) {
 	if strings.Contains(hs.Screen(), "Help closed") || strings.Contains(hs.Screen(), "BANNER mantle-test") {
 		t.Errorf("prints from the cleared conversation stayed:\n%s", hs.Screen())
 	}
+
+	// A Reprint in fullscreen reports ScreenClearedMsg before the prints that follow it
+	// (contracts host fix 1baa21a): earlier prints go, later ones stay.
+	hs.SendMsg(ext.ScreenClearedMsg{})
+	hs.WaitFor(func(s string) bool { return !strings.Contains(s, "BANNER again") }, 3*time.Second)
+	hs.SendMsg(printMsg{"BANNER after the clear"})
+	hs.WaitForText("BANNER after the clear", 3*time.Second)
 }

@@ -51,11 +51,12 @@ func TestParityStatusFromRepo(t *testing.T) {
 	write("features/chrome/chrome_test.go", "package chrome\nvar x = Feature{Parity: []string{\"CH-03\"}}\n")
 	write("test/parity/scenarios/frame.scn", "name: frame\nparity: CH-01\n---\nready\ncheckpoint c\n")
 	write("docs/plans/requests/12-07-chrome.md", "# 12 → 07: chrome\n\n**Status:** done by 07.\n")
+	write("docs/parity-evidence/07.md", "| ID | Evidence |\n|---|---|\n| CH-03 | internal/term width tests |\n")
 	st, err := BuildParityStatus(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"CH-01": "compared", "CH-02": "tagged", "CH-03": "untagged", "CL-04": "hand-off"}
+	want := map[string]string{"CH-01": "compared", "CH-02": "tagged", "CH-03": "evidenced", "CL-04": "hand-off"}
 	for _, r := range st.Rows {
 		if got := st.RowState(r); got != want[r.ID] {
 			t.Errorf("%s = %s, want %s", r.ID, got, want[r.ID])
@@ -68,7 +69,7 @@ func TestParityStatusFromRepo(t *testing.T) {
 		t.Errorf("tag location = %v", got)
 	}
 	md := st.Markdown()
-	for _, s := range []string{"| All rows | 4 | 1 | 1 | 0 | 1 | 1 | 0 |", "| 07 | 3 |", "done by 07.",
+	for _, s := range []string{"| All rows | 4 | 1 | 1 | 1 | 0 | 0 | 1 | 0 |", "evidence: internal/term width tests", "| 07 | 3 |", "done by 07.",
 		"| CH-01 | Frame | N | 07 | compared | scenarios: frame; tags: features/chrome/chrome.go:3 |", "ZZ-9"} {
 		if !strings.Contains(md, s) {
 			t.Errorf("report lacks %q:\n%s", s, md)

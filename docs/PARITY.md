@@ -31,7 +31,7 @@ are **H**. Infeasible features are **X**.
 
 | Area | Prefix | Owner | Rows | E | R | N | H | X |
 |---|---|---|---:|---:|---:|---:|---:|---:|
-| Engine plumbing + engine-provided features | ENG | 02 | 59 | 25 | 3 | 31 | 0 | 0 |
+| Engine plumbing + engine-provided features | ENG | 02 | 59 | 25 | 2 | 31 | 0 | 1 |
 | Prompt editor | ED | 04 | 40 | 0 | 1 | 39 | 0 | 0 |
 | Autocomplete | AC | 04 | 22 | 2 | 3 | 17 | 0 | 0 |
 | History | HI | 04 | 10 | 0 | 0 | 10 | 0 | 0 |
@@ -49,7 +49,7 @@ are **H**. Infeasible features are **X**.
 | Cloud & product hand-offs | CL | 09 / 11 | 27 | 2 | 0 | 0 | 25 | 0 |
 | Known gaps | GAP | various | 13 | 0 | 0 | 0 | 0 | 13 |
 | mantle-only | MT | 10 / 01 | 36 | 0 | 0 | 36 | 0 | 0 |
-| **Total** | | | **572** | **63** | **87** | **373** | **36** | **13** |
+| **Total** | | | **572** | **63** | **86** | **373** | **36** | **14** |
 
 ---
 
@@ -86,7 +86,7 @@ are **H**. Infeasible features are **X**.
 | ENG-27 | Prompt suggestions channel | Gray predicted next prompt | N | M2 | 02 | B | `initialize.promptSuggestions` / `prompt_suggestion` frames |
 | ENG-28 | `CLAUDE_CODE_ENTRYPOINT` choice | Sessions visible and features ungated | N | M1 | 02 | A | S5; `sdk-cli` hides sessions from Claude Code's own picker |
 | ENG-29 | `keep_alive` / `update_environment_variables` | None (robustness) | N | M2 | 02 | B | |
-| ENG-30 | `auth_status` frames | Login progress shown | R | M2 | 02 | B | Hidden `--enable-auth-status` |
+| ENG-30 | `auth_status` frames | Login progress shown | X | M2 | 02 | B | Not built: mantle never passes the hidden `--enable-auth-status`, so the engine emits no `auth_status` frames and nothing renders them. Login runs through `claude auth` / hand-off (EC-17, EC-18), where Claude Code shows its own progress. `pkg/proto` decodes the frame (`AuthStatus`) for a future native flow |
 | ENG-31 | fakeclaude scripted engine | None (deterministic tests) | N | M1 | 02 | A | emit / expect / respond / request / delay |
 | ENG-32 | fakeapi Messages-API mock | None (free offline end-to-end tests of the real engine) | N | M1 | 02 | B | `ANTHROPIC_BASE_URL` plus isolated `CLAUDE_CONFIG_DIR` (S14) |
 | ENG-33 | Sanitizing fixture recorder | None (test fixtures) | N | M1 | 02 | A | `scripts/record-fixture.sh` |

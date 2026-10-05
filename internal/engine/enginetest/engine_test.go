@@ -55,6 +55,7 @@ const turn = `
 {"emit": {"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hel"}},"uuid":"s1","session_id":"sess-1"}}
 {"emit": {"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"lo"}},"uuid":"s2","session_id":"sess-1"}}
 {"emit": {"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"Hello"}]},"uuid":"a1","session_id":"sess-1"}}
+{"emit": {"type":"keep_alive"}}
 {"emit": {"type":"result","subtype":"success","is_error":false,"result":"Hello","session_id":"sess-1","user_message_uuid":"${uuid}"}}
 `
 
@@ -367,7 +368,7 @@ func stdinTypes(lines [][]byte) []string {
 // in flight are held and go out, in order, after its reply (as the SDK does).
 func TestNothingBeforeInitialize(t *testing.T) {
 	script := enginefake.MustParse(`
-{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"expect": {"type":"control_request","request":{"subtype":"initialize","promptSuggestions":true}}}
 {"delay": 200}
 {"respond": {"commands":[]}}
 {"expect": {"type":"user","message":{"content":"early"}}}
