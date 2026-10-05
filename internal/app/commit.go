@@ -77,7 +77,12 @@ func (r *Root) wrapBlock(b string) []string {
 
 func (r *Root) enqueuePrint(blocks []string) tea.Cmd {
 	if r.opts.Layout == ext.Fullscreen {
-		return nil // the fullscreen renderer draws the transcript itself; no scrollback
+		// No scrollback in fullscreen: hand the blocks to features (plan 12's
+		// transcript shows them in place).
+		if len(blocks) == 0 {
+			return nil
+		}
+		return ext.Msg(ext.PrintedMsg{Blocks: append([]string(nil), blocks...)})
 	}
 	var lines []string
 	for _, b := range blocks {

@@ -80,14 +80,35 @@ func TestFullscreenLayout(t *testing.T) {
 	}
 }
 
-func TestFullscreenDropsPrints(t *testing.T) {
-	host := NewHost([]ext.Feature{fullscreenFeature(&box{id: "fs.side"})}, HostOptions{Core: CoreFeatures()})
+func TestFullscreenPrintBroadcasts(t *testing.T) {
+	side := &box{id: "fs.side"}
+	host := NewHost([]ext.Feature{fullscreenFeature(side)}, HostOptions{Core: CoreFeatures()})
 	r := New(Options{Host: host, NoBackgroundQuery: true, Layout: ext.Fullscreen})
 	r.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
-	if cmd := r.Ctx().Print("x"); cmd != nil {
-		t.Fatal("Print in fullscreen must be a no-op")
-	}
 	if r.Ctx().Layout() != ext.Fullscreen {
 		t.Fatal("Layout() should report Fullscreen")
+	}
+	if cmd := r.Ctx().Print(); cmd != nil {
+		t.Fatal("an empty Print is a no-op")
+	}
+	// No scrollback in fullscreen: printed blocks reach features as PrintedMsg (12-01).
+	drive(t, r, cmdMsgs(r.Ctx().Print("banner", "⎿  Help closed"))...)
+	var got []ext.PrintedMsg
+	for _, m := range side.got {
+		if p, ok := m.(ext.PrintedMsg); ok {
+			got = append(got, p)
+		}
+	}
+	if len(got) != 1 || len(got[0].Blocks) != 2 || got[0].Blocks[1] != "⎿  Help closed" {
+		t.Fatalf("PrintedMsg broadcast = %+v", got)
+	}
+
+	// Inline, prints go to scrollback and no PrintedMsg is sent.
+	ri := New(Options{Host: NewHost(nil, HostOptions{Core: CoreFeatures()}), NoBackgroundQuery: true})
+	ri.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
+	for _, m := range cmdMsgs(ri.Ctx().Print("x")) {
+		if _, ok := m.(ext.PrintedMsg); ok {
+			t.Fatal("inline Print must not broadcast PrintedMsg")
+		}
 	}
 }
