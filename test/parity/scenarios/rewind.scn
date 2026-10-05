@@ -1,0 +1,23 @@
+# Rewind: double esc opens the message selector.
+name: rewind
+size: 100x30
+args: --permission-mode default
+prompt: first message
+files: ../../../testdata/fixtures/12/app
+script: scripts/rewind.json
+parity: SE-22
+---
+ready
+wait_for 30s First reply.
+type second message
+keys enter
+wait_for 30s Second reply.
+settle
+# Two presses 200 ms apart, as a person types them (30 ms apart read as alt+esc).
+keys esc
+sleep 200ms
+keys esc
+settle 3s
+checkpoint selector
+keys esc
+settle

@@ -101,6 +101,8 @@ func Compare(s Snapshot, k Known) Report {
 				fs = compareTools(l, k)
 			case KindProtocol:
 				fs = compareProtocol(l, k.Baseline)
+			case KindDefault:
+				fs = compareDefaults(l, s.ClaudeVersion)
 			default:
 				fs = compareBaseline(l, k.Baseline)
 			}

@@ -1,0 +1,22 @@
+# Plan mode: the plan approval dialog and approving it.
+name: plan-mode
+size: 100x30
+args: --permission-mode plan
+files: ../../../testdata/fixtures/12/app
+script: scripts/plan-mode.json
+parity: PD-21, TR-18
+---
+ready
+checkpoint plan-footer
+type Plan a rename of greet
+keys enter
+wait_for 30s 1. Yes
+settle
+checkpoint plan-dialog
+# Read the plan for a moment: mantle prints the turn-duration line only for turns of
+# 1 s or more, so a quick approval would make its frame depend on timing.
+sleep 1500ms
+keys enter
+wait_for 30s Plan approved
+settle
+checkpoint approved

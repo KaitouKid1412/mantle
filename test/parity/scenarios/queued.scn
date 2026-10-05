@@ -1,0 +1,18 @@
+# Queue: a message typed and sent while the turn runs.
+name: queued
+size: 100x30
+args: --permission-mode default
+prompt: First request
+files: ../../../testdata/fixtures/12/app
+script: scripts/queued.json
+parity: TC-05
+---
+ready
+wait_for 30s Working through
+type Second request
+keys enter
+settle 2s
+checkpoint queued
+wait_for 60s Second request handled.
+settle
+checkpoint done

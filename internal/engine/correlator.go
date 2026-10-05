@@ -103,12 +103,23 @@ func (c *correlator) RequestBodyNow(ctx context.Context, req proto.Request, time
 }
 
 func (c *correlator) request(ctx context.Context, req proto.Request, timeout time.Duration, send sender) (string, proto.ControlResponseBody, error) {
+	id, wait, err := c.begin(req, timeout, send)
+	if err != nil {
+		return id, proto.ControlResponseBody{}, err
+	}
+	body, err := wait(ctx)
+	return id, body, err
+}
+
+// begin sends req and returns a function that waits for its reply. Sending and
+// waiting are split so a request can take its place on stdin now and be awaited later.
+func (c *correlator) begin(req proto.Request, timeout time.Duration, send sender) (string, func(context.Context) (proto.ControlResponseBody, error), error) {
 	var none proto.ControlResponseBody
 	c.mu.Lock()
 	if c.closed != nil {
 		err := c.closed
 		c.mu.Unlock()
-		return "", none, err
+		return "", nil, err
 	}
 	c.n++
 	id := newRequestID(c.n)
@@ -122,23 +133,37 @@ func (c *correlator) request(ctx context.Context, req proto.Request, timeout tim
 	}
 	if err != nil {
 		c.drop(id)
-		return id, none, err
+		return id, nil, err
 	}
 	if timeout <= 0 {
 		timeout = TimeoutFor(cl.subtype)
 	}
-	t := time.NewTimer(timeout)
-	defer t.Stop()
-	select {
-	case r := <-cl.ch:
-		return id, r.body, r.err
-	case <-t.C:
-		c.cancel(id)
-		return id, none, fmt.Errorf("%w: %s after %v", ErrTimeout, cl.subtype, timeout)
-	case <-ctx.Done():
-		c.cancel(id)
-		return id, none, ctx.Err()
+	wait := func(ctx context.Context) (proto.ControlResponseBody, error) {
+		t := time.NewTimer(timeout)
+		defer t.Stop()
+		select {
+		case r := <-cl.ch:
+			return r.body, r.err
+		case <-t.C:
+			c.cancel(id)
+			return none, fmt.Errorf("%w: %s after %v", ErrTimeout, cl.subtype, timeout)
+		case <-ctx.Done():
+			c.cancel(id)
+			return none, ctx.Err()
+		}
 	}
+	return id, wait, nil
+}
+
+// BeginNow sends req ahead of held lines and returns a function that waits for the
+// reply (the handshake's version request: its stdin position matters, not its reply).
+func (c *correlator) BeginNow(req proto.Request, timeout time.Duration) (func(context.Context) (proto.ControlResponseBody, error), error) {
+	send := c.sendNow
+	if send == nil {
+		send = c.send
+	}
+	_, wait, err := c.begin(req, timeout, send)
+	return wait, err
 }
 
 // Complete delivers a control_response. It reports whether the id was pending.
