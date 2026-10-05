@@ -94,35 +94,28 @@ func TestSubtaskHandsOff(t *testing.T) {
 	}
 }
 
-// SE-14: the picker groups sessions by date.
-func TestPickerDateGroups(t *testing.T) {
-	now := time.Date(2026, 9, 10, 12, 0, 0, 0, time.Local)
-	for _, c := range []struct {
-		t    time.Time
-		want string
-	}{
-		{now.Add(-time.Hour), "Today"},
-		{now.Add(-30 * time.Hour), "Yesterday"},
-		{now.Add(-4 * 24 * time.Hour), "This week"},
-		{now.Add(-20 * 24 * time.Hour), "This month"},
-		{now.Add(-90 * 24 * time.Hour), "Older"},
-	} {
-		if got := dateGroup(now, c.t); got != c.want {
-			t.Errorf("dateGroup(%v) = %q, want %q", c.t, got, c.want)
-		}
-	}
+// SE-14: the picker groups sessions by project, most recent project first, and keeps
+// the selection in view.
+func TestPickerProjectGroups(t *testing.T) {
 	h := newHarness(t)
-	p := &picker{f: h.f, list: storySessions(h.ctx.Clock().Now())}
+	now := h.ctx.Clock().Now()
+	p := &picker{f: h.f, list: []sessions.SessionMeta{
+		{ID: "a", Cwd: "/w/alpha", AITitle: "alpha newest", Modified: now.Add(-time.Hour), Size: 2048},
+		{ID: "b", Cwd: "/w/beta", AITitle: "beta one", Modified: now.Add(-2 * time.Hour)},
+		{ID: "c", Cwd: "/w/alpha", AITitle: "alpha older", Modified: now.Add(-3 * time.Hour)},
+	}}
 	p.refilter()
-	v := ansi.Strip(p.View(h.ctx, ext.Area{Width: 100, MaxHeight: 24}).Text)
-	iToday, iYesterday, iMonth := strings.Index(v, "Today"), strings.Index(v, "Yesterday"), strings.Index(v, "This month")
-	if iToday < 0 || iYesterday < iToday || iMonth < iYesterday {
+	if got := visibleIDs(p); !slices.Equal(got, []string{"a", "c", "b"}) {
+		t.Fatalf("order = %v", got)
+	}
+	v := ansi.Strip(p.View(h.ctx, ext.Area{Width: 100, MaxHeight: 30}).Text)
+	ia, ib := strings.Index(v, "    alpha\n"), strings.Index(v, "    beta\n")
+	if ia < 0 || ib < ia || !strings.Contains(v, "1h ago · 2.0KB") {
 		t.Fatalf("groups:\n%s", v)
 	}
-	// Selecting the last session keeps it visible in a short window.
 	p.sel = 2
-	v = ansi.Strip(p.View(h.ctx, ext.Area{Width: 100, MaxHeight: 9}).Text)
-	if !strings.Contains(v, "My renamed session") {
+	v = ansi.Strip(p.View(h.ctx, ext.Area{Width: 100, MaxHeight: 12}).Text)
+	if !strings.Contains(v, "beta one") {
 		t.Fatalf("selection scrolled out:\n%s", v)
 	}
 }

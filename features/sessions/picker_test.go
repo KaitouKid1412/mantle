@@ -41,7 +41,7 @@ func TestPickerListAndSearch(t *testing.T) {
 		t.Fatalf("list = %v", got)
 	}
 	v := viewText(h, p, 100)
-	for _, s := range []string{"Resume a conversation", "this directory (5)", "Explain the build system", "headless", "PR #42", "6 messages"} {
+	for _, s := range []string{"Resume a conversation", "⌕ Search…", "    demo\n", "❯ Explain the build system", "PR #42", "KB"} {
 		if !strings.Contains(v, s) {
 			t.Errorf("view lacks %q:\n%s", s, v)
 		}
@@ -94,8 +94,8 @@ func TestPickerScopesAndBranch(t *testing.T) {
 	if !p.scope.all || len(p.view) != 6 || !strings.Contains(viewText(h, p, 120), "all projects") {
 		t.Fatalf("all projects: %v", visibleIDs(p))
 	}
-	if v := viewText(h, p, 160); !strings.Contains(v, "/work/moved") {
-		t.Fatalf("project path not shown:\n%s", v)
+	if v := viewText(h, p, 160); !strings.Contains(v, "    moved") {
+		t.Fatalf("project group not shown:\n%s", v)
 	}
 	h.key(keyPress('a', tea.ModCtrl))
 	if p.scope.all || len(p.view) != 5 {
