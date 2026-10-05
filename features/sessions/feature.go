@@ -23,15 +23,14 @@ func init() {
 		ID:    FeatureID,
 		Order: 300,
 		// SE-01..05 and SE-43 come through internal/sessions. Not covered here: CU-08
-		// (/autocompact, plain engine passthrough), CU-09 (statusLine context, plan 07) and
-		// CU-10 (cost warnings, M3).
+		// (/autocompact, plain engine passthrough), CU-09 (statusLine context, plan 07).
 		Parity: []string{
 			"SE-01", "SE-02", "SE-03", "SE-04", "SE-05", "SE-06", "SE-07", "SE-08", "SE-09",
 			"SE-10", "SE-11", "SE-12", "SE-13", "SE-14", "SE-15", "SE-16", "SE-17", "SE-18",
 			"SE-19", "SE-20", "SE-21", "SE-22", "SE-23", "SE-24", "SE-25", "SE-26", "SE-27",
 			"SE-28", "SE-29", "SE-30", "SE-31", "SE-32", "SE-33", "SE-34", "SE-35", "SE-36",
 			"SE-37", "SE-38", "SE-39", "SE-40", "SE-41", "SE-42", "SE-43",
-			"CU-01", "CU-02", "CU-03", "CU-04", "CU-05", "CU-06", "CU-07", "CU-11",
+			"CU-01", "CU-02", "CU-03", "CU-04", "CU-05", "CU-06", "CU-07", "CU-10", "CU-11",
 		},
 		Setup: func(r ext.Registrar) error {
 			return newFeature(sessions.DefaultLayout(), sessions.DefaultCachePath()).setup(r)
@@ -63,6 +62,10 @@ type feature struct {
 	seq       int // for IDs of items this feature adds
 	// compactOnAttach sends /compact when the main engine next attaches.
 	compactOnAttach bool
+	// account is the main engine's account (initialize); costChecked marks the cost
+	// warning as considered for this run.
+	account     proto.Account
+	costChecked bool
 	// /btw: the last exchanges, the one shown, and whether the overlay is open.
 	btw     []*btwExchange
 	btwSel  int
@@ -78,6 +81,8 @@ type feature struct {
 	worktrees  func(cwd string) []string
 	claudePath func() (string, error)
 	getwd      func() (string, error)
+	// global reads Claude Code's global config (read-only).
+	global func(ctx ext.Ctx, key string) any
 	// runBackground runs a claude command that returns at once (/fork).
 	runBackground func(bin, cwd string, argv []string) (string, error)
 	// runSide runs the one-shot claude -p that answers /btw when the engine can't.
@@ -113,6 +118,7 @@ func newFeature(l sessions.Layout, cachePath string) *feature {
 		worktrees:     gitWorktrees,
 		claudePath:    findClaude,
 		getwd:         os.Getwd,
+		global:        globalConfig,
 		runBackground: runBackgroundClaude,
 		runSide:       runClaudeText,
 	}
@@ -140,6 +146,7 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerBranch(r)
 	f.registerExport(r)
 	f.registerContext(r)
+	f.registerCostWarning(r)
 	f.registerUsage(r)
 	f.registerRewind(r)
 	f.registerDiff(r)
@@ -188,11 +195,11 @@ func (f *feature) onSessionEvent(ctx ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 		if st.state != proto.StateRequiresAction {
 			st.state = proto.StateIdle
 		}
-		var title tea.Cmd
+		var title, cost tea.Cmd
 		if m.EngineID == ext.MainEngine {
-			title = f.autoTitle(ctx)
+			title, cost = f.autoTitle(ctx), f.maybeWarnCost(ctx)
 		}
-		return tea.Batch(f.onIdle(ctx, m.EngineID), title)
+		return tea.Batch(f.onIdle(ctx, m.EngineID), title, cost)
 	case *proto.ConversationReset:
 		return f.onConversationReset(ctx, m.EngineID, e)
 	case *proto.SessionTitleChanged:

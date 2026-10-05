@@ -241,8 +241,11 @@ Everything about conversations as objects:
 - PARITY rows without a box above, also done: SE-04 (full output of large tool results
   on resume, read only from the session's `tool-results` dir), SE-14 (picker grouped by
   date; project shown in all-projects mode), SE-18 (mantle titles its own sessions after
-  the first turn with `generate_session_title`), SE-21 (`/subtask` hands off). Not done:
-  CU-10 cost warnings (M3; Claude Code gates them on the account's org role).
+  the first turn with `generate_session_title`), SE-21 (`/subtask` hands off), CU-10
+  (cost warning dialog past $5, once per run, for usage-billed subscriptions and
+  admin/billing roles read from Claude Code's global config; acknowledgement kept in
+  `~/.mantle/state/sessions.json`, Claude Code's own acknowledgement honoured). CU-09
+  (statusLine context %) is plan 07's status-line payload: `docs/parity-evidence/06.md`.
 - Verified (plan 09's pty spike, Claude Code 2.1.289): an interactive `claude "/status"`
   runs the slash command at startup, so `dialog.handoff`'s `claude --resume <sid> /cmd`
   opens the panel directly.

@@ -110,6 +110,7 @@ func newHarness(t *testing.T) *harness {
 	f.worktrees = func(string) []string { return nil }
 	f.claudePath = func() (string, error) { return "/usr/local/bin/claude-stub", nil }
 	f.getwd = func() (string, error) { return "/work/demo", nil }
+	f.global = func(ext.Ctx, string) any { return nil } // never the real ~/.claude.json
 	f.now = func() time.Time { return exttest.Epoch }
 	r := exttest.NewRegistrar()
 	r.Feature = FeatureID
