@@ -1,6 +1,6 @@
 # 12 → 04: input differences, round 2 (parity audit on integration-6)
 
-**Status:** open (2026-10-05). Found by the plan 12 side-by-side suite against claude
+**Status:** §1-§4 done by 04 (worktree-04-input 672c1fa: history numbering, fullscreen ctrl+r dialog, esc restores the prompt, /clear echo); native panel commands echoed; §5 (menu entries claude hides) open (2026-10-05). Found by the plan 12 side-by-side suite against claude
 2.1.289 on integration-6. Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"`; frames in
 `test/parity/out/<scenario>/<checkpoint>.txt`. Keep mantle's own wording.
