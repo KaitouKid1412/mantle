@@ -64,7 +64,7 @@ func TestFooterLayoutLikeClaudeCode(t *testing.T) {
 	f := newFooter()
 	f.Init(ctx)
 	// Manual mode: the shortcuts hint follows the indicator; no effort known yet.
-	if got := plainView(f, ctx, 100); !strings.HasPrefix(got, "⏸ manual approval · ? for shortcuts") ||
+	if got := plainView(f, ctx, 100); !strings.HasPrefix(got, "  ⏸ manual approval · ? for shortcuts") ||
 		strings.Contains(got, "to change") || strings.Contains(got, "/effort") {
 		t.Errorf("manual footer = %q", got)
 	}
@@ -72,7 +72,8 @@ func TestFooterLayoutLikeClaudeCode(t *testing.T) {
 	f.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{PermissionMode: ModePlan}})
 	f.Update(ctx, ev(&proto.SystemInit{Effort: "medium"}))
 	got := plainView(f, ctx, 100)
-	if !strings.HasPrefix(got, "⏸ planning only · shift+tab to change") || !strings.HasSuffix(got, "◑ medium · /effort") ||
+	if !strings.HasPrefix(got, "  ⏸ planning only · shift+tab to change") || !strings.HasSuffix(got, "◑ medium · /effort") ||
+		len([]rune(got)) != 98 || // two columns of margin on each side, as Claude Code
 		strings.Contains(got, "? for shortcuts") {
 		t.Errorf("plan footer = %q", got)
 	}
@@ -318,7 +319,7 @@ func TestStatusLineComponent(t *testing.T) {
 		SessionID: "s1", Cwd: "/w/app", Model: "claude-opus-5-5", ClaudeVersion: "2.1.288", PermissionMode: "default",
 	}})
 	defer c.stop()
-	if got := plainView(c, ctx, 80); got != " Opus | 92% left" {
+	if got := plainView(c, ctx, 80); got != "   Opus | 92% left" { // the footer's two-column inset, then the padding
 		t.Fatalf("view = %q", got)
 	}
 	p := fx.last()
@@ -383,7 +384,7 @@ func TestStatusLineErrorNotice(t *testing.T) {
 	c.Init(ctx)
 	feed(t, ctx, c, ext.SessionChangedMsg{Info: ext.SessionInfo{SessionID: "s"}})
 	defer c.stop()
-	if got := plainView(c, ctx, 80); got != "status line command failed: exit status 1" {
+	if got := plainView(c, ctx, 80); got != "  status line command failed: exit status 1" {
 		t.Errorf("view = %q", got)
 	}
 }
@@ -647,7 +648,7 @@ func TestEffortLineFullscreenOnly(t *testing.T) {
 	}
 	ctx.LayoutMode = ext.Fullscreen
 	e.Update(ctx, ext.LayoutChangedMsg{Mode: ext.Fullscreen})
-	if got := plainView(e, ctx, 40); got != strings.Repeat(" ", 25)+"◔ low · /effort" {
+	if got := plainView(e, ctx, 40); got != strings.Repeat(" ", 23)+"◔ low · /effort" {
 		t.Errorf("fullscreen effort line = %q", got)
 	}
 	if strings.Contains(plainView(f, ctx, 100), "/effort") {
