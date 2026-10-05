@@ -169,6 +169,7 @@ func NewUpgradeDialog(ctx ext.Ctx, _ any) (*eco.Dialog, error) {
 			}},
 		eco.MenuItem{Label: "Upgrade your plan", Detail: "opens Claude Code",
 			Run: func(ctx ext.Ctx, d *eco.Dialog) tea.Cmd {
+				d.CloseLine = ""
 				return tea.Batch(d.Close(ctx), eco.Handoff(ctx, "/upgrade"))
 			}},
 	)
@@ -187,6 +188,7 @@ func (v *upgradeView) Update(ctx ext.Ctx, d *eco.Dialog, msg tea.Msg) tea.Cmd {
 		eco.Fail(ctx, d, m.Err)
 		return nil
 	}
+	d.CloseLine = ""
 	return tea.Batch(d.Close(ctx),
 		ctx.Notify(ext.Notice{Key: "ecosystem.update", Level: ext.NoticeSuccess, Text: "Claude Code update finished"}),
 		eco.RestartEngine(ctx, "to run the updated Claude Code"))

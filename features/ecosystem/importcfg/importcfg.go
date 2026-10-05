@@ -139,6 +139,7 @@ func (v *view) Update(ctx ext.Ctx, d *eco.Dialog, msg tea.Msg) tea.Cmd {
 			return nil
 		}
 		v.result, _ = m.Value.(string)
+		d.CloseLine = "Import finished"
 		eco.Done(ctx, d, "Imported. Restart Claude to load the new settings.")
 	}
 	ctx.Invalidate(d.ID())

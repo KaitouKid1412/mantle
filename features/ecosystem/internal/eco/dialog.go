@@ -51,11 +51,15 @@ type Dialog struct {
 	// Status is a transient line under the title (errors, "Working…").
 	Status    string
 	StatusTok theme.Token
+	// CloseLine is printed into the transcript when the dialog closes, as a
+	// result line under the command's echo. NewDialog sets "<Title> closed";
+	// dialogs whose outcome already shows (a notice, a hand-off) clear it.
+	CloseLine string
 }
 
 // NewDialog returns a dialog with root as its first view.
 func NewDialog(id, title string, root View) *Dialog {
-	return &Dialog{id: id, Title: title, views: []View{root}}
+	return &Dialog{id: id, Title: title, views: []View{root}, CloseLine: title + " closed"}
 }
 
 func (d *Dialog) ID() string               { return d.id }
@@ -114,7 +118,11 @@ func (d *Dialog) Close(ctx ext.Ctx) tea.Cmd {
 		return nil
 	}
 	d.closed = true
-	return ctx.CloseDialog(d.id)
+	if d.CloseLine == "" {
+		return ctx.CloseDialog(d.id)
+	}
+	line := "  ⎿  " + ctx.Theme().Paint(theme.Inactive, d.CloseLine)
+	return tea.Batch(ctx.CloseDialog(d.id), ctx.Print(line))
 }
 
 // SetStatus sets the status line ("" clears it).

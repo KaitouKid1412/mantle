@@ -112,7 +112,9 @@ func NewLogin(ctx ext.Ctx, _ any) (*eco.Dialog, error) {
 		}}
 	}
 	v.MenuView = eco.NewMenu("", []string{"Checking your account…"}, items...)
-	return eco.NewDialog(LoginDialogID, "Sign in", v), nil
+	d := eco.NewDialog(LoginDialogID, "Sign in", v)
+	d.CloseLine = "Sign-in cancelled"
+	return d, nil
 }
 
 type loginView struct{ *eco.MenuView }
@@ -140,6 +142,7 @@ func (v *loginView) Update(ctx ext.Ctx, d *eco.Dialog, msg tea.Msg) tea.Cmd {
 				d.SetStatus(ctx, "Sign-in didn't finish. Try again, or press esc.", theme.Warning)
 				return nil
 			}
+			d.CloseLine = "" // the notice shows the new account
 			return tea.Batch(d.Close(ctx),
 				ctx.Notify(ext.Notice{Key: "auth.login", Level: ext.NoticeSuccess, Text: Describe(a), Source: FeatureID}),
 				eco.RestartEngine(ctx, "to use the new login"))
@@ -168,6 +171,7 @@ func NewLogout(ctx ext.Ctx, _ any) (*eco.Dialog, error) {
 		YesLabel: "Sign out", Danger: true,
 	}}
 	d := eco.NewDialog(LogoutDialogID, "Sign out", v)
+	d.CloseLine = "Sign-out cancelled"
 	v.OnYes = func(ctx ext.Ctx, d *eco.Dialog) tea.Cmd {
 		cmd, err := eco.CLI(ctx).AuthLogoutCmd()
 		if err != nil {
@@ -204,6 +208,7 @@ func (v *logoutView) Update(ctx ext.Ctx, d *eco.Dialog, msg tea.Msg) tea.Cmd {
 		eco.Fail(ctx, d, m.Err)
 		return nil
 	}
+	d.CloseLine = ""
 	return tea.Batch(d.Close(ctx),
 		ctx.Notify(ext.Notice{Key: "auth.logout", Level: ext.NoticeInfo, Text: "Signed out. Use /login to sign in again.", Source: FeatureID}),
 		eco.RestartEngine(ctx, "after signing out"))
