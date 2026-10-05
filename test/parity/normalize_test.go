@@ -56,6 +56,11 @@ func TestNormalizeFrame(t *testing.T) {
 		t.Errorf("Frame = %q", got)
 	}
 	n.Scrollback = 1
+	alt := f
+	alt.AltScreen = true
+	if got := n.Frame(alt, Workspace{}); !slices.Equal(got, []string{AltScreenMarker, "top", "", "bottom"}) {
+		t.Errorf("alt screen frame = %q", got)
+	}
 	if got := n.Frame(f, Workspace{}); !slices.Equal(got[:2], []string{"old 2", ScreenMarker}) {
 		t.Errorf("tail = %q", got)
 	}

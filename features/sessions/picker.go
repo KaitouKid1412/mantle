@@ -444,6 +444,7 @@ func (p *picker) renamed(ctx ext.Ctx, m pickerRenamedMsg) tea.Cmd {
 		}
 	}
 	p.f.titles[m.id] = m.title
+	p.f.names[m.id] = m.title
 	ctx.Invalidate(DialogResume)
 	cmds := []tea.Cmd{notice(ctx, "rename", "Renamed to "+m.title, ext.NoticeSuccess)}
 	if m.id == p.live {

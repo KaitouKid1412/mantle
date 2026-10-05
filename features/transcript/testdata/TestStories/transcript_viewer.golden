@@ -22,7 +22,7 @@
      [38;2;139;139;147m4[m [38;2;230;227;222m    w[m[38;2;170;176;188m.[m[38;2;98;173;236menqueue[m[38;2;170;176;188m([m[38;2;230;227;222mjob[m[38;2;170;176;188m)[m
      [38;2;139;139;147m5[m [38;2;170;176;188m}[m
 
-[38;2;139;139;147mlines 1–22 of 123[m
+[38;2;139;139;147mlines 1–22 of 124[m
 ── width 100 ──
 [1mTranscript[m[38;2;139;139;147m · ctrl+e to expand all · / search · v editor · q or [ to exit[m
 
@@ -47,7 +47,7 @@
 [38;2;111;194;139m⏺[m [1mSearch[m(pattern: "enqueue\(", path: "internal")
   ⎿  [38;2;139;139;147mFound 2 files[m
      internal/queue/worker.go
-[38;2;139;139;147mlines 1–22 of 115[m
+[38;2;139;139;147mlines 1–22 of 116[m
 ── width 160 ──
 [1mTranscript[m[38;2;139;139;147m · ctrl+e to expand all · / search · v editor · q or [ to exit[m
 
@@ -72,4 +72,4 @@
 [38;2;111;194;139m⏺[m [1mSearch[m(pattern: "enqueue\(", path: "internal")
   ⎿  [38;2;139;139;147mFound 2 files[m
      internal/queue/worker.go
-[38;2;139;139;147mlines 1–22 of 115[m
+[38;2;139;139;147mlines 1–22 of 116[m

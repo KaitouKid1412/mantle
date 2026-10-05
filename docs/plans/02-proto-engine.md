@@ -442,7 +442,10 @@ stays 0). `end_session` then exits 0.
 - `/compact` on an empty session gives `status: compacting`, then `status: null` and a
   "not enough messages" result. Real compaction emits `compact_boundary`.
 - `/clear` gives `conversation_reset {new_conversation_id, trigger: "clear",
-  user_message_uuid}`, then a result.
+  user_message_uuid}`, then a result. `new_conversation_id` is **not** the session id the
+  engine continues under (no transcript file has that name); the next `system/init`
+  reports the real one. The tracker clears `SessionInfo.SessionID` on reset and takes
+  the new id from that `system/init` (reported by plan 12's parity audit).
 - `/help` gives "/help isn't available in this environment." with no `local_command`.
 - An unknown `/x` goes to the model as an ordinary turn.
 
