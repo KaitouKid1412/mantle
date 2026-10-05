@@ -43,7 +43,8 @@ func init() {
 // Setup registers /agents.
 func Setup(r ext.Registrar) error {
 	r.AddCommand(ext.Command{
-		Name: "agents", Source: ext.SourceBuiltin, Description: "Browse and edit subagent definitions",
+		// Hidden like Claude Code's own /agents (removed in 2.1.288); typing it works.
+		Name: "agents", Hidden: true, Source: ext.SourceBuiltin, Description: "Browse and edit subagent definitions",
 		Run: func(ctx ext.Ctx, args string) tea.Cmd { return ctx.OpenDialog(DialogID, nil) },
 	})
 	r.AddDialog(DialogID, eco.Factory(New))

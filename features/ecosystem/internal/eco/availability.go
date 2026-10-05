@@ -1,6 +1,8 @@
 package eco
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -42,12 +44,17 @@ func ClassifyAccount(a proto.Account) Auth {
 	return AuthUnknown
 }
 
-// Command availability as Claude Code declares it (the commands' availability
-// lists in the 2.1.288/2.1.289 binary). Commands not listed are available to
-// every account.
+// Command availability. claudeAIOnly holds the commands whose availability
+// list in the 2.1.288/2.1.289 binary is claude.ai only, plus the cloud and
+// claude.ai features that claude 2.1.289's / menu leaves out for an API-key
+// account (checked with the side-by-side harness: remote-control, session,
+// cloud-plugins, passes, privacy-settings, design-login, daemon,
+// usage-credits). Commands not listed are available to every account.
 var (
 	claudeAIOnly = []string{"teleport", "desktop", "web-setup", "remote-env", "ultraplan", "autofix-pr",
-		"chrome", "artifacts", "upgrade", "voice", "install-slack-app"}
+		"chrome", "artifacts", "upgrade", "voice", "install-slack-app",
+		"remote-control", "session", "cloud-plugins", "passes", "privacy-settings", "design-login", "daemon",
+		"usage-credits"}
 	claudeAIOrConsole = []string{"install-github-app", "logout"}
 )
 
@@ -65,6 +72,22 @@ var envGates = map[string]func(getenv func(string) string) bool{
 	"upgrade":            disabledBy("DISABLE_UPGRADE_COMMAND"),
 	"usage-credits":      disabledBy("DISABLE_EXTRA_USAGE_COMMAND"),
 	"install-github-app": disabledBy("DISABLE_INSTALL_GITHUB_APP_COMMAND"),
+	// /import is listed only when another coding agent's config is there.
+	"import": func(g func(string) string) bool { return !otherAgentConfig(g("HOME")) },
+}
+
+// otherAgentConfig reports whether a config directory of an agent claude
+// import knows (Codex, Gemini CLI, Cursor) exists in home.
+func otherAgentConfig(home string) bool {
+	if home == "" {
+		return true // unknown: keep /import visible
+	}
+	for _, d := range []string{".codex", ".gemini", ".cursor"} {
+		if st, err := os.Stat(filepath.Join(home, d)); err == nil && st.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func disabledBy(name string) func(func(string) string) bool {
