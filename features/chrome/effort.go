@@ -43,8 +43,9 @@ func (e *effortLine) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	if hint == "" {
 		return ext.Rendered{}
 	}
-	hint = ansi.Truncate(hint, a.Width, "…")
-	pad := strings.Repeat(" ", max(0, a.Width-ansi.StringWidth(hint)))
+	inset, inner := footerInset(a.Width)
+	hint = ansi.Truncate(hint, inner, "…")
+	pad := inset + strings.Repeat(" ", max(0, inner-ansi.StringWidth(hint)))
 	if ctx.Accessibility().ScreenReader {
 		return ext.Rendered{Text: hint}
 	}
