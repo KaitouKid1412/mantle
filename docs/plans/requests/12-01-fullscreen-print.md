@@ -1,6 +1,6 @@
 # 12 → 01: printed output is lost in the fullscreen layout
 
-**Status:** open (2026-10-05). Found by the plan 12 fullscreen scenarios (fs-*,
+**Status:** resolved 2026-10-05: contracts-v1.10 (ext.PrintedMsg, plan 01 80c6b0c); plan 12's viewport shows printed blocks in place (features/fullscreen/printed.go). Found by the plan 12 fullscreen scenarios (fs-*,
 default-renderer) against claude 2.1.289.
 
 In the fullscreen layout `Ctx.Print` drops its blocks (`internal/app/commit.go`,
