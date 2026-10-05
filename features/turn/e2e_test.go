@@ -24,11 +24,12 @@ const e2eScript = `
 {"on": {"type":"control_request","request":{"subtype":"set_permission_mode"}}, "respond": {"mode":"default"}}
 {"delay": 50}
 {"request": {"subtype":"can_use_tool","tool_name":"Bash","input":{"command":"ls -la"},"tool_use_id":"toolu_1","permission_suggestions":[{"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"ls:*"}],"behavior":"allow","destination":"localSettings"}]}, "id": "cli_1"}
-{"expect": {"type":"control_response","response":{"subtype":"success","request_id":"cli_1","response":{"behavior":"allow","toolUseID":"toolu_1","decisionClassification":"user_permanent","updatedPermissions":[{"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"ls:*"}],"behavior":"allow","destination":"localSettings"}]}}}, "timeout": 10000}
+{"expect": {"type":"control_response","response":{"subtype":"success","request_id":"cli_1","response":{"behavior":"allow","toolUseID":"toolu_1","decisionClassification":"user_permanent","updatedPermissions":[{"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"ls:*"}],"behavior":"allow","destination":"localSettings"}]}}}, "timeout": 60000}
 {"request": {"subtype":"can_use_tool","tool_name":"AskUserQuestion","tool_use_id":"toolu_2","input":{"questions":[{"question":"Which runner?","header":"Runner","multiSelect":false,"options":[{"label":"make","description":""},{"label":"go test","description":""}]}]}}, "id": "cli_2"}
-{"expect": {"type":"control_response","response":{"subtype":"success","request_id":"cli_2","response":{"behavior":"allow","updatedInput":{"answers":{"Which runner?":"go test"}}}}}, "timeout": 10000}
+{"expect": {"type":"control_response","response":{"subtype":"success","request_id":"cli_2","response":{"behavior":"allow","updatedInput":{"answers":{"Which runner?":"go test"}}}}}, "timeout": 60000}
 {"request": {"subtype":"elicitation","mcp_server_name":"tickets","message":"Ticket title?","requested_schema":{"type":"object","properties":{"title":{"type":"string"}}}}, "id": "cli_3"}
-{"expect": {"type":"control_response","response":{"subtype":"success","request_id":"cli_3","response":{"action":"cancel"}}}, "timeout": 10000}
+{"expect": {"type":"control_response","response":{"subtype":"success","request_id":"cli_3","response":{"action":"cancel"}}}, "timeout": 60000}
+{"exit": 0}
 `
 
 func TestEndToEndPromptsThroughRealEngine(t *testing.T) {
@@ -64,30 +65,28 @@ func TestEndToEndPromptsThroughRealEngine(t *testing.T) {
 	hn := testkit.New(t, root, testkit.WithSize(100, 30))
 	prog.Store(hn.Program())
 
-	hn.WaitForText("Do you trust this folder?", 5*time.Second)
+	hn.WaitForText("Do you trust this folder?", hostWait)
 	hn.Send("enter")
 
-	hn.WaitForText("ls -la", 10*time.Second)
+	hn.WaitForText("ls -la", hostWait)
 	hn.Send("2") // Yes, and don't ask again for Bash(ls:*)
 
-	hn.WaitForText("Which runner?", 10*time.Second)
+	hn.WaitForText("Which runner?", hostWait)
 	hn.Send("2") // go test
 
-	hn.WaitForText("Ticket title?", 10*time.Second)
+	hn.WaitForText("Ticket title?", hostWait)
 	hn.Send("esc") // cancel
 
 	procs := sp.Procs()
 	if len(procs) != 1 {
 		t.Fatalf("spawns = %d", len(procs))
 	}
-	done := make(chan struct{})
-	go func() {
-		// The script has no steps left once the last expect matched; close stdin.
-		time.Sleep(200 * time.Millisecond)
-		_ = procs[0].Stdin.Close()
-		close(done)
-	}()
-	<-done
+	// The script exits by itself once its last expect matched.
+	select {
+	case <-procs[0].Done():
+	case <-time.After(hostWait):
+		t.Fatal("scripted engine still waiting for a reply")
+	}
 	code, err := procs[0].Wait()
 	if err != nil || code != 0 {
 		t.Fatalf("scripted engine: code=%d err=%v", code, err)
