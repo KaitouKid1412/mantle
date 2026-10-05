@@ -85,14 +85,17 @@ func Compare(n *Normalizer, sc *Scenario, a, b *Result, allow *Allowlist) []Chec
 		case !okB:
 			d.Status, d.Note = StatusMissing, b.Target+": "+missingNote(b)
 		default:
-			d.Changed = changedLines(d.Left, d.Right)
+			// Where the screen starts depends on how much scrolled off, not on what the
+			// user sees: compare the frames as one document.
+			left, right := document(d.Left), document(d.Right)
+			d.Changed = changedLines(left, right)
 			if d.Changed == 0 {
 				d.Status = StatusSame
 				break
 			}
 			d.Status = StatusDiff
-			d.Unified = udiff.Unified(a.Target, b.Target, joinLines(d.Left), joinLines(d.Right))
-			if reasons, ok := allow.Covers(sc.Name, name, d.Left, d.Right); ok {
+			d.Unified = udiff.Unified(a.Target, b.Target, joinLines(left), joinLines(right))
+			if reasons, ok := allow.Covers(sc.Name, name, left, right); ok {
 				d.Status, d.Note = StatusAllowed, strings.Join(reasons, "; ")
 			}
 		}
@@ -106,6 +109,22 @@ func missingNote(r *Result) string {
 		return r.Err.Error()
 	}
 	return "checkpoint not reached"
+}
+
+// document is a normalized frame without the screen marker, blank runs folded: what
+// the comparison sees.
+func document(frame []string) []string {
+	out := make([]string, 0, len(frame))
+	for _, l := range frame {
+		if l == ScreenMarker {
+			continue
+		}
+		if l == "" && len(out) > 0 && out[len(out)-1] == "" {
+			continue
+		}
+		out = append(out, l)
+	}
+	return out
 }
 
 // changedLines counts the lines a line diff marks as changed: a changed line counts

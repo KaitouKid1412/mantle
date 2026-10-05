@@ -25,6 +25,7 @@ const (
 	DialogAPIKey          = "dialog.apiKey"
 	DialogUsageLimit      = "dialog.usageLimit"
 	DialogEngineCheck     = "dialog.engineCheck"
+	DialogBillingNotice   = "dialog.billingNotice"
 )
 
 // Component IDs.
@@ -71,6 +72,8 @@ type state struct {
 	seenLim  map[string]bool
 	gates    gateQueue
 	trusted  map[string]bool // session-only trust (home directory)
+	// billingShown is set once the billing notice was queued this session.
+	billingShown bool
 
 	// env locates gate files; tests replace it.
 	env func() (gates.Env, error)

@@ -29,10 +29,15 @@ import (
 // Reprint (Ctx.Reprint) goes through the same queue: it writes ESC[2J ESC[3J ESC[H,
 // forces a full redraw, waits for the next frame flush and then delivers
 // ext.ScreenClearedMsg.
+//
+// The fullscreen layout has no scrollback. The queue still keeps prints and clears in
+// call order, but a print is handed to features as ext.PrintedMsg and a clear is a
+// redraw followed at once by ext.ScreenClearedMsg; nothing pauses.
 
 type printItem struct {
-	lines []string // already wrapped
-	clear bool
+	blocks []string // as passed to Print
+	lines  []string // inline: wrapped rows not printed yet (nil until the item starts)
+	clear  bool
 }
 
 type printer struct {
@@ -76,17 +81,10 @@ func (r *Root) wrapBlock(b string) []string {
 }
 
 func (r *Root) enqueuePrint(blocks []string) tea.Cmd {
-	if r.opts.Layout == ext.Fullscreen {
-		return nil // the fullscreen renderer draws the transcript itself; no scrollback
-	}
-	var lines []string
-	for _, b := range blocks {
-		lines = append(lines, r.wrapBlock(b)...)
-	}
-	if len(lines) == 0 {
+	if len(blocks) == 0 {
 		return nil
 	}
-	r.printer.queue = append(r.printer.queue, printItem{lines: lines})
+	r.printer.queue = append(r.printer.queue, printItem{blocks: append([]string(nil), blocks...)})
 	return r.kickPrinter()
 }
 
@@ -128,6 +126,9 @@ func (r *Root) printNext() tea.Cmd {
 	if len(r.printer.queue) == 0 {
 		return nil
 	}
+	if r.opts.Layout == ext.Fullscreen {
+		return r.printNextFullscreen()
+	}
 	if r.layoutMode() != ext.Inline {
 		r.printer.paused = true
 		return nil
@@ -135,6 +136,11 @@ func (r *Root) printNext() tea.Cmd {
 	r.printer.paused = false
 	head := &r.printer.queue[0]
 	r.printer.busy = true
+	if head.lines == nil && !head.clear {
+		for _, b := range head.blocks {
+			head.lines = append(head.lines, r.wrapBlock(b)...)
+		}
+	}
 	if head.clear {
 		r.printer.queue = r.printer.queue[1:]
 		r.invalidateAll()
@@ -152,6 +158,26 @@ func (r *Root) printNext() tea.Cmd {
 		r.printer.queue = r.printer.queue[1:]
 	}
 	return tea.Sequence(tea.Println(strings.Join(chunk, "\n")), ext.Msg(printDoneMsg{}))
+}
+
+// printNextFullscreen finishes the head item without scrollback: a clear redraws and
+// reports ScreenClearedMsg at once, a print reaches features as PrintedMsg.
+func (r *Root) printNextFullscreen() tea.Cmd {
+	head := r.printer.queue[0]
+	r.printer.queue = r.printer.queue[1:]
+	r.printer.paused = false
+	r.printer.busy = true
+	if head.clear {
+		// The fullscreen frame is drawn whole from the components; the transcript
+		// view re-renders from its store.
+		r.invalidateAll()
+		return ext.Msg(clearedMsg{})
+	}
+	blocks := head.blocks
+	if head.lines != nil { // partly printed inline before a /tui switch
+		blocks = []string{strings.Join(head.lines, "\n")}
+	}
+	return tea.Sequence(ext.Msg(ext.PrintedMsg{Blocks: blocks}), ext.Msg(printDoneMsg{}))
 }
 
 // resumePrinter restarts printing after an alt-screen view closed.

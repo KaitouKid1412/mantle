@@ -7,6 +7,9 @@ import (
 )
 
 func TestNormalizeLine(t *testing.T) {
+	if got := DefaultNormalizer().Line("❯\u00a0", Workspace{}); got != "❯" {
+		t.Errorf("trailing no-break space = %q", got)
+	}
 	ws := Workspace{Root: "/r/parity-x-1", WorkDir: "/r/parity-x-1/work", ConfigDir: "/r/parity-x-1/config", HomeDir: "/r/parity-x-1/home"}
 	n := DefaultNormalizer()
 	tests := []struct{ in, want string }{
@@ -51,9 +54,13 @@ func TestNormalizeFrame(t *testing.T) {
 		t.Errorf("collapse = %q", got)
 	}
 	got := n.Frame(f, Workspace{})
-	want := []string{"old 1", "old 2", ScreenMarker, "top", "", "bottom"}
+	// The blank line between scrollback and screen is kept (once).
+	want := []string{"old 1", "old 2", "", ScreenMarker, "top", "", "bottom"}
 	if !slices.Equal(got, want) {
 		t.Errorf("Frame = %q", got)
+	}
+	if doc := document(got); !slices.Equal(doc, []string{"old 1", "old 2", "", "top", "", "bottom"}) {
+		t.Errorf("document = %q", doc)
 	}
 	n.Scrollback = 1
 	alt := f
@@ -61,7 +68,7 @@ func TestNormalizeFrame(t *testing.T) {
 	if got := n.Frame(alt, Workspace{}); !slices.Equal(got, []string{AltScreenMarker, "top", "", "bottom"}) {
 		t.Errorf("alt screen frame = %q", got)
 	}
-	if got := n.Frame(f, Workspace{}); !slices.Equal(got[:2], []string{"old 2", ScreenMarker}) {
+	if got := n.Frame(f, Workspace{}); !slices.Equal(got[:3], []string{"old 2", "", ScreenMarker}) {
 		t.Errorf("tail = %q", got)
 	}
 	n.Scrollback = 0

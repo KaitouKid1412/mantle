@@ -20,7 +20,7 @@ func TestFeatureRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{DialogPermission, DialogAskUserQuestion, DialogPlanApproval, DialogElicitation,
-		DialogTrust, DialogMcpApproval, DialogBypassWarning, DialogAPIKey, DialogUsageLimit, DialogEngineCheck} {
+		DialogTrust, DialogMcpApproval, DialogBypassWarning, DialogAPIKey, DialogUsageLimit, DialogEngineCheck, DialogBillingNotice} {
 		if r.Dialogs[id] == nil {
 			t.Errorf("dialog %s not registered", id)
 		}

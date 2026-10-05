@@ -1,6 +1,8 @@
 package transcript
 
 import (
+	"strings"
+
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
 
@@ -24,11 +26,12 @@ func (s *Store) Lines(c ext.Ctx, w int) (ids []string, blocks []ext.Block) {
 
 // viewKey is everything besides the item that a cached rendering depends on.
 type viewKey struct {
-	rev, w   int
-	children int
-	mode     ext.ViewMode
-	theme    any
-	cfg      renderCfg
+	rev, w     int
+	children   int
+	mode       ext.ViewMode
+	theme      any
+	cfg        renderCfg
+	fullscreen bool
 }
 
 // renderCfg is the comparable part of the settings renderers read.
@@ -50,6 +53,8 @@ func (f *Feature) renderCfg() renderCfg {
 
 // viewLines implements Store.Lines.
 func (f *Feature) viewLines(c ext.Ctx, w int) (ids []string, blocks []ext.Block) {
+	f.fullscreen = c.Layout() == ext.Fullscreen
+	defer func() { f.fullscreen = false }()
 	items := f.store.Items()
 	if f.views == nil || len(f.views) > 2*len(items)+64 {
 		f.views = map[string]viewEntry{} // drop entries of items that are gone
@@ -74,6 +79,13 @@ func (f *Feature) viewLines(c ext.Ctx, w int) (ids []string, blocks []ext.Block)
 				running = running || !it.State.Finished()
 			}
 			i++
+			continue
+		}
+		if n := f.condensedRun(items, i); n > 0 {
+			flush()
+			ids = append(ids, "tools:"+it.ID)
+			blocks = append(blocks, ext.Block{Lines: f.condensedLines(c, items[i:i+n], w), Collapsible: true})
+			i += n
 			continue
 		}
 		if run := f.mcpRun(items, i); run > 1 && !f.mcpHeld(items, i) && allFinished(items[i:i+run]) {
@@ -103,11 +115,79 @@ func (f *Feature) cachedBlock(c ext.Ctx, it *ext.Item, w int) ext.Block {
 	for _, k := range f.store.Children(it.ID) {
 		kids += k.Rev
 	}
-	key := viewKey{it.Rev, w, kids, f.mode(), c.Theme(), f.renderCfg()}
+	key := viewKey{it.Rev, w, kids, f.mode(), c.Theme(), f.renderCfg(), f.fullscreen}
 	if e, ok := f.views[it.ID]; ok && e.key == key && it.State.Finished() {
 		return e.block
 	}
 	b := f.rendererFor(it.Key)(f.renderCtx(c, it, w), it)
 	f.views[it.ID] = viewEntry{key, b}
 	return b
+}
+
+// condensed tool kinds in the fullscreen layout: finished, successful calls of
+// these tools fold into one summary line ("Ran 2 shell commands, read 1 file").
+var condensedKinds = map[string][2]string{
+	"Bash":       {"ran", "shell command"},
+	"PowerShell": {"ran", "shell command"},
+	"Read":       {"read", "file"},
+	"Glob":       {"searched for", "pattern"},
+	"Grep":       {"searched for", "pattern"},
+	"LS":         {"listed", "directory"},
+	"WebFetch":   {"fetched", "page"},
+	"WebSearch":  {"searched the web", "time"},
+}
+
+// condensedRun returns how many items from i fold into one fullscreen summary
+// (0 when none, or outside the fullscreen layout or the verbose view).
+func (f *Feature) condensedRun(items []*ext.Item, i int) int {
+	if !f.fullscreen || verbose(ext.RenderCtx{Mode: f.mode()}) {
+		return 0
+	}
+	n := 0
+	for j := i; j < len(items); j++ {
+		tu := toolUse(items[j])
+		if tu == nil || items[j].ParentID != "" || items[j].State != ext.Done {
+			break
+		}
+		if _, ok := condensedKinds[tu.Name]; !ok {
+			break
+		}
+		n++
+	}
+	return n
+}
+
+// condensedLines renders a run of finished tool calls as one summary line.
+func (f *Feature) condensedLines(c ext.Ctx, run []*ext.Item, w int) []string {
+	type part struct {
+		verb, noun string
+		n          int
+	}
+	var parts []*part
+	index := map[string]*part{}
+	for _, it := range run {
+		k := condensedKinds[toolUse(it).Name]
+		key := k[0] + "|" + k[1]
+		if p := index[key]; p != nil {
+			p.n++
+			continue
+		}
+		p := &part{k[0], k[1], 1}
+		index[key] = p
+		parts = append(parts, p)
+	}
+	var phrases []string
+	for _, p := range parts {
+		many := p.noun + "s"
+		if p.noun == "directory" {
+			many = "directories"
+		}
+		phrases = append(phrases, p.verb+" "+plural(p.n, p.noun, many))
+	}
+	text := strings.Join(phrases, ", ")
+	if text != "" {
+		text = strings.ToUpper(text[:1]) + text[1:]
+	}
+	st := stylesFor(ext.RenderCtx{Theme: c.Theme()})
+	return truncLines([]string{dotIndent + st.dim.Render(text)}, w)
 }
