@@ -37,6 +37,11 @@ type Result struct {
 	Unmatched   []string
 	Workspace   Workspace
 	Duration    time.Duration
+	// ReadyAfter is the time from starting the target to its prompt (the first ready
+	// step); CPU and MaxRSS are the last started process's usage (perf suite).
+	ReadyAfter time.Duration
+	CPU        time.Duration
+	MaxRSS     int64
 }
 
 // Checkpoint returns a checkpoint by name.
@@ -59,6 +64,9 @@ type RunOptions struct {
 	TempDir string
 	// Logf receives progress lines.
 	Logf func(format string, args ...any)
+	// Prepare, when set, runs after the workspace is seeded and before the target starts
+	// (to add sessions, files in the config directory and so on).
+	Prepare func(ws Workspace) error
 	// RawDir, when set, receives each terminal's raw output as
 	// <scenario>.<target>.<n>.raw (n counts restarts), for debugging the emulator.
 	RawDir string
@@ -113,6 +121,12 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		return res
 	}
 	res.Workspace = ws
+	if o.Prepare != nil {
+		if err := o.Prepare(ws); err != nil {
+			res.Err = fmt.Errorf("parity: prepare: %w", err)
+			return res
+		}
+	}
 
 	start1 := func(args []string) (*Term, error) {
 		run := *sc
@@ -151,6 +165,7 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 	defer func() {
 		tg.Quit(t)
 		_ = t.Close()
+		res.CPU, res.MaxRSS = t.Usage()
 		saveRaw()
 		res.Requests = api.Consumed()
 		res.Unmatched = api.Unmatched()
@@ -196,6 +211,9 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 	case StepReady:
 		if err := t.WaitFor(tg.Ready, timeout); err != nil {
 			return fmt.Errorf("prompt never became ready: %w", err)
+		}
+		if res.ReadyAfter == 0 {
+			res.ReadyAfter = time.Since(t.Started())
 		}
 		t.Settle(150*time.Millisecond, time.Second)
 	case StepType:
