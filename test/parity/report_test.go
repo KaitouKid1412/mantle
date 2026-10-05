@@ -52,6 +52,26 @@ func TestCompare(t *testing.T) {
 	}
 }
 
+func TestRepoAllowlist(t *testing.T) {
+	al, err := LoadAllowlist("allowlist.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(al.Entries) == 0 {
+		t.Fatal("test/parity/allowlist.txt has no entries")
+	}
+	// A footer line on each side is covered (mode wording, agent-view hint, effort glyph).
+	left := []string{"  ⏸ manual mode on · ? for shortcuts · ← for agents          ◐ medium · /effort"}
+	right := []string{"  ⏸ manual approval · ? for shortcuts                         ◑ medium · /effort"}
+	if _, ok := al.Covers("plain-qa", "answered", left, right); !ok {
+		t.Error("footer lines should be allowlisted")
+	}
+	// A real reply difference is not.
+	if _, ok := al.Covers("plain-qa", "answered", []string{"⏺ Done."}, []string{"⏺ Done!"}); ok {
+		t.Error("reply text must not be allowlisted")
+	}
+}
+
 func TestAllowlist(t *testing.T) {
 	al, err := ParseAllowlist(`
 # scenario | checkpoint | pattern | reason

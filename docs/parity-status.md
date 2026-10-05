@@ -55,12 +55,16 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 
 | Request | Status |
 |---|---|
+| [12 → 01: printed output is lost in the fullscreen layout](plans/requests/12-01-fullscreen-print.md) | open (2026-10-05). Found by the plan 12 fullscreen scenarios (fs-*, |
 | [12 → 01: turning the fullscreen layout on, live switching, mouse switch, sidebar widths](plans/requests/12-01-fullscreen-switch.md) | resolved 2026-10-04 in `contracts-v1.6` (layout from `tui` / env, `ext.LayoutRequestMsg` / `LayoutChangedMsg`, `Options.NoMouse`, `ext.SidebarResizeMsg`, wheel no longer delivered through OnMouse); empty sidebars stop narrowing the transcript in plan 01 commit 8b9a280. Plan 12's fullscreen feature (B7–B9) renders through the |
 | [12 → 03: streaming-text cache in the fullscreen layout](plans/requests/12-03-fullscreen-text-cache.md) | resolved 2026-10-04 in plan 03 commit 18ce53f: finished text items drop their |
+| [12 → 03: transcript differences, round 2 (parity audit on integration-6)](plans/requests/12-03-transcript-parity-2.md) | open (2026-10-05). Found by the plan 12 side-by-side suite against claude |
 | [12 → 03: transcript rendering differences (parity audit)](plans/requests/12-03-transcript-parity.md) | done by 03 (worktree-mantle-03 986023d: §1, §8, §11 e29603f; §9, §10 d55c26c; §4, §5 850aabe; §6, §7 986023d) (2026-10-05). Found by the plan 12 side-by-side suite against claude |
+| [12 → 04: input differences, round 2 (parity audit on integration-6)](plans/requests/12-04-input-parity-2.md) | open (2026-10-05). Found by the plan 12 side-by-side suite against claude |
 | [12 → 04: prompt, menus, history and esc (parity audit)](plans/requests/12-04-input-parity.md) | plan 04 part done (2026-10-05, worktree-04-input eb8507c): §1, §2 (layout, tiers, no `__` names, no ghost), §3, §4, §5b, §6, §7 (echo of native commands); input.editor sends `EditorStateMsg.Panel` while a menu, hint, help or search shows, and `FrameTitle` "History N/M" (§5a). Left to others: chrome hides the footer on Panel and draws FrameTitle (07); command availability through Command.Hidden or CommandVisibilityMsg (08/09); panel close results (08/09); the transcript's user-prompt glyph (03). Found by the plan 12 side-by-side suite against claude |
-| [12 → 05: permission dialogs, plan approval, esc and auto mode (parity audit)](plans/requests/12-05-permission-and-turn-parity.md) | §1 done (plan 05); §2-5 taken by 05; the "Denied: …" row, "Waiting…" row, "Exited plan mode" row and §6 routed to 03 (12-03 §8-11) (2026-10-04). Found by the plan 12 side-by-side suite against claude |
+| [12 → 05: permission dialogs, plan approval, esc and auto mode (parity audit)](plans/requests/12-05-permission-and-turn-parity.md) | §1–5 done by plan 05 (worktree-mantle-05, 2026-10-05; verified with the side-by-side suite against claude 2.1.289: dialog layout, option sets, diff lines and mode behaviour match, wording is mantle's own); the "Denied: …" row, "Waiting…" row, "Exited plan mode" row and §6 routed to 03 (12-03 §8-11). Found by the plan 12 side-by-side suite against claude |
 | [12 → 06: `/diff` as a right sidebar in fullscreen](plans/requests/12-06-diff-sidebar.md) | resolved 2026-10-04: plan 06 registers `sessions.diffPanel` in `SlotSidebarR` (fullscreen only), opened by /diff at ≥ 110 columns and on its own at ≥ 144 after a turn that edited files. |
+| [12 → 06: sessions differences, round 2 (parity audit on integration-6)](plans/requests/12-06-sessions-parity-2.md) | open (2026-10-05). Found by the plan 12 side-by-side suite against claude |
 | [12 → 06: /clear, resume, compact, rewind and /context (parity audit)](plans/requests/12-06-sessions-parity.md) | done by 06 on worktree-mantle-06 (2026-10-05): §2 and §3 (a15d9cb), §4 (d5bbd0e), |
 | [12 → 07: banner, footer, status line and task panel (parity audit)](plans/requests/12-07-chrome-parity.md) | §1-§4 done by 07 in 006ad5a on worktree-mantle-07 (startup banner, footer layout and effort hint, status line above the modes and at startup, task panel expanded), plus Panel/FrameTitle from contracts-v1.8; §5 is 06 §3 (2026-10-05). Found by the plan 12 side-by-side suite against claude |
 | [12 → 08: /model and /help (parity audit)](plans/requests/12-08-panels-parity.md) | done by 08 (§1 eaebba8, §2 e29e9ba, §3 9d2cd38, §4 dc1d584; /fast and /advisor hidden via CommandVisibilityMsg, 2efb222) (2026-10-05). Found by the plan 12 side-by-side suite against claude |
@@ -202,26 +206,26 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | HI-08 | HistorySearch keys | N | 04 | tagged | tags: features/input/input.go:54 |
 | HI-09 | History restores pastes | N | 04 | tagged | tags: features/input/input.go:54 |
 | HI-10 | History across sessions | N | 04 | tagged | tags: features/input/input.go:54 |
-| TC-01 | Esc interrupts the turn | N | 05 | compared | scenarios: interrupt; tags: features/turn/turn.go:43 |
-| TC-02 | Interrupt and cancel queue | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-03 | Ctrl+C semantics | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-04 | Ctrl+D double press exits | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-05 | Queue while busy | N | 05 | compared | scenarios: queued; tags: features/turn/turn.go:43 |
+| TC-01 | Esc interrupts the turn | N | 05 | compared | scenarios: interrupt; tags: features/turn/turn.go:42 |
+| TC-02 | Interrupt and cancel queue | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-03 | Ctrl+C semantics | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-04 | Ctrl+D double press exits | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-05 | Queue while busy | N | 05 | compared | scenarios: queued; tags: features/turn/turn.go:42 |
 | TC-06 | Mid-turn pickup | E | 05 | untagged |  |
 | TC-07 | Take back queued messages | N | 05 | untagged |  |
 | TC-08 | Send now | N | 05 | untagged |  |
 | TC-09 | Queue submit | N | 05 | untagged |  |
 | TC-10 | Send queued immediately | N | 05 | untagged |  |
-| TC-11 | Background the running task | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-12 | Kill all background agents | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| TC-11 | Background the running task | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-12 | Kill all background agents | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | TC-13 | Mid-turn model, effort or fast switch | E | 05 | untagged |  |
 | TC-14 | Interrupted-turn markers | R | 05 | scenario only | scenarios: interrupt |
-| TC-15 | Waiting-for-you state | R | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-16 | Usage-limit wait and auto-continue | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-17 | Turn and result tracking | R | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-18 | Exit commands | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-19 | Exit cleanup and resume hint | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| TC-20 | Esc precedence | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| TC-15 | Waiting-for-you state | R | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-16 | Usage-limit wait and auto-continue | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-17 | Turn and result tracking | R | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-18 | Exit commands | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-19 | Exit cleanup and resume hint | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| TC-20 | Esc precedence | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | TC-21 | Command lifecycle states | R | 05 | untagged |  |
 | TR-01 | Markdown | R | 03 | compared | scenarios: fs-plain-qa, plain-qa; tags: features/transcript/feature.go:26 |
 | TR-02 | Code block highlighting | R | 03 | compared | scenarios: fs-plain-qa, plain-qa; tags: features/transcript/feature.go:26 |
@@ -307,81 +311,81 @@ States: **compared**, a tagged registration that a side-by-side scenario also ex
 | VW-22 | Fullscreen history-search dialog | N | 12 | scenario only | scenarios: fs-history-search |
 | VW-23 | Renderer env vars | N | 12 | tagged | tags: features/fullscreen/fullscreen.go:14 |
 | VW-24 | Sidebar slots | N | 12 | tagged | tags: features/fullscreen/fullscreen.go:14 |
-| CH-01 | Prompt box frame | N | 07 | tagged | tags: features/chrome/chrome.go:27 |
-| CH-02 | `/color` | N | 07 | tagged | tags: features/chrome/chrome.go:27 |
-| CH-03 | Session name on prompt bar | R | 07 | tagged | tags: features/chrome/chrome.go:27 |
-| CH-04 | Mode-specific border | N | 07 | tagged | tags: features/chrome/chrome.go:27 |
+| CH-01 | Prompt box frame | N | 07 | tagged | tags: features/chrome/chrome.go:29 |
+| CH-02 | `/color` | N | 07 | tagged | tags: features/chrome/chrome.go:29 |
+| CH-03 | Session name on prompt bar | R | 07 | tagged | tags: features/chrome/chrome.go:29 |
+| CH-04 | Mode-specific border | N | 07 | tagged | tags: features/chrome/chrome.go:29 |
 | CH-05 | Permission-mode indicator | R | 07 | compared | scenarios: footer-modes; tags: features/chrome/chrome.go:17 |
 | CH-06 | Key hints | N | 07 | tagged | tags: features/chrome/chrome.go:17 |
 | CH-07 | Notices area | R | 07 | tagged | tags: features/chrome/chrome.go:17 |
-| CH-08 | `companyAnnouncements` | N | 07 | tagged | tags: features/chrome/chrome.go:89 |
-| CH-09 | Startup notices | R | 07 | tagged | tags: features/chrome/chrome.go:89 |
-| CH-10 | Todo panel | R | 07 | compared | scenarios: todos; tags: features/chrome/chrome.go:51 |
-| CH-11 | Subagent panel | R | 07 | compared | scenarios: subagent; tags: features/chrome/chrome.go:66 |
-| CH-12 | `subagentStatusLine` | N | 07 | tagged | tags: features/chrome/chrome.go:66 |
-| CH-13 | `/tasks` (`/bashes`) | N | 07 | tagged | tags: features/chrome/chrome.go:66 |
-| CH-14 | Background tasks indicator | R | 07 | tagged | tags: features/chrome/chrome.go:17, features/chrome/chrome.go:66 |
+| CH-08 | `companyAnnouncements` | N | 07 | tagged | tags: features/chrome/chrome.go:91 |
+| CH-09 | Startup notices | R | 07 | tagged | tags: features/chrome/chrome.go:91 |
+| CH-10 | Todo panel | R | 07 | compared | scenarios: todos; tags: features/chrome/chrome.go:53 |
+| CH-11 | Subagent panel | R | 07 | compared | scenarios: subagent; tags: features/chrome/chrome.go:68 |
+| CH-12 | `subagentStatusLine` | N | 07 | tagged | tags: features/chrome/chrome.go:68 |
+| CH-13 | `/tasks` (`/bashes`) | N | 07 | tagged | tags: features/chrome/chrome.go:68 |
+| CH-14 | Background tasks indicator | R | 07 | tagged | tags: features/chrome/chrome.go:17, features/chrome/chrome.go:68 |
 | CH-15 | PR/MR badge | N | 07 | untagged |  |
 | CH-16 | Issue and custom footer links | N | 07 | untagged |  |
-| CH-17 | Footer navigation | N | 07 | tagged | tags: features/chrome/chrome.go:66 |
-| CH-18 | statusLine runner | N | 07 | compared | scenarios: statusline; tags: features/chrome/chrome.go:41 |
-| CH-19 | statusLine payload | N | 07 | compared | scenarios: statusline; tags: features/chrome/chrome.go:41 |
-| CH-20 | Welcome banner | N | 07 | tagged | tags: features/chrome/chrome.go:89 |
-| CH-21 | Release notes on update | N | 07 | tagged | tags: features/chrome/chrome.go:101 |
-| CH-22 | `/release-notes` | N | 07 | tagged | tags: features/chrome/chrome.go:101 |
-| CH-23 | Terminal title | N | 07 | tagged | tags: features/chrome/chrome.go:115 |
-| CH-24 | Terminal progress bar | N | 07 | tagged | tags: features/chrome/chrome.go:115 |
-| CH-25 | Desktop notifications | N | 07 | tagged | tags: features/chrome/chrome.go:115 |
-| CH-26 | Notification triggers | N | 07 | tagged | tags: features/chrome/chrome.go:115 |
+| CH-17 | Footer navigation | N | 07 | tagged | tags: features/chrome/chrome.go:68 |
+| CH-18 | statusLine runner | N | 07 | compared | scenarios: statusline; tags: features/chrome/chrome.go:43 |
+| CH-19 | statusLine payload | N | 07 | compared | scenarios: statusline; tags: features/chrome/chrome.go:43 |
+| CH-20 | Welcome banner | N | 07 | tagged | tags: features/chrome/chrome.go:91 |
+| CH-21 | Release notes on update | N | 07 | tagged | tags: features/chrome/chrome.go:104 |
+| CH-22 | `/release-notes` | N | 07 | tagged | tags: features/chrome/chrome.go:104 |
+| CH-23 | Terminal title | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| CH-24 | Terminal progress bar | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| CH-25 | Desktop notifications | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| CH-26 | Notification triggers | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
 | CH-27 | Hook `terminalSequence` | N | 07 | untagged |  |
 | CH-28 | Clipboard service | N | 07 | untagged |  |
-| CH-29 | Ctrl+Z suspend | N | 07 | tagged | tags: features/chrome/chrome.go:115 |
-| CH-30 | Redraw / clear screen | N | 07 | tagged | tags: features/chrome/chrome.go:115 |
-| PD-01 | Generic permission dialog | N | 05 | compared | scenarios: fs-tool-approval, tool-approval; tags: features/turn/turn.go:43 |
-| PD-02 | Bash variant | N | 05 | compared | scenarios: fs-tool-approval, tool-always, tool-approval; tags: features/turn/turn.go:43 |
-| PD-03 | Edit variant | N | 05 | compared | scenarios: edit-diff; tags: features/turn/turn.go:43 |
-| PD-04 | Write variant | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-05 | Read / blocked path / working dir variant | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-06 | WebFetch variant | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-07 | MCP tool variant | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-08 | Yes / Yes don't ask again / No | N | 05 | compared | scenarios: tool-always, tool-approval; tags: features/turn/turn.go:43 |
-| PD-09 | "Yes, and switch to auto mode" | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-10 | Deny with feedback | N | 05 | compared | scenarios: tool-approval; tags: features/turn/turn.go:43 |
-| PD-11 | Tab to amend | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-12 | Shift+Tab inside the dialog | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-13 | Esc declines | N | 05 | compared | scenarios: tool-approval; tags: features/turn/turn.go:43 |
-| PD-14 | One-time-only prompts | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| CH-29 | Ctrl+Z suspend | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| CH-30 | Redraw / clear screen | N | 07 | tagged | tags: features/chrome/chrome.go:118 |
+| PD-01 | Generic permission dialog | N | 05 | compared | scenarios: fs-tool-approval, tool-approval; tags: features/turn/turn.go:42 |
+| PD-02 | Bash variant | N | 05 | compared | scenarios: fs-tool-approval, tool-always, tool-approval; tags: features/turn/turn.go:42 |
+| PD-03 | Edit variant | N | 05 | compared | scenarios: edit-diff; tags: features/turn/turn.go:42 |
+| PD-04 | Write variant | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-05 | Read / blocked path / working dir variant | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-06 | WebFetch variant | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-07 | MCP tool variant | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-08 | Yes / Yes don't ask again / No | N | 05 | compared | scenarios: tool-always, tool-approval; tags: features/turn/turn.go:42 |
+| PD-09 | "Yes, and switch to auto mode" | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-10 | Deny with feedback | N | 05 | compared | scenarios: tool-approval; tags: features/turn/turn.go:42 |
+| PD-11 | Tab to amend | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-12 | Shift+Tab inside the dialog | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-13 | Esc declines | N | 05 | compared | scenarios: tool-approval; tags: features/turn/turn.go:42 |
+| PD-14 | One-time-only prompts | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-15 | `.claude` folder session grants | N | 05 | untagged |  |
-| PD-16 | Attribution | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-17 | Cancelled requests close dialogs | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-16 | Attribution | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-17 | Cancelled requests close dialogs | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-18 | Recover pending prompts | N | 05 | untagged |  |
-| PD-19 | Shift+Tab mode cycle | N | 05 | compared | scenarios: footer-modes; tags: features/turn/turn.go:43 |
-| PD-20 | Bypass availability | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-21 | Plan approval dialog | N | 05 | compared | scenarios: plan-mode; tags: features/turn/turn.go:43 |
-| PD-22 | Edit the plan | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-19 | Shift+Tab mode cycle | N | 05 | compared | scenarios: footer-modes; tags: features/turn/turn.go:42 |
+| PD-20 | Bypass availability | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-21 | Plan approval dialog | N | 05 | compared | scenarios: plan-mode; tags: features/turn/turn.go:42 |
+| PD-22 | Edit the plan | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-23 | Clear-context option on approval | N | 05 | untagged |  |
-| PD-24 | AskUserQuestion dialog | N | 05 | compared | scenarios: ask-user; tags: features/turn/turn.go:43 |
-| PD-25 | AskUserQuestion previews | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-24 | AskUserQuestion dialog | N | 05 | compared | scenarios: ask-user; tags: features/turn/turn.go:42 |
+| PD-25 | AskUserQuestion previews | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-26 | `askUserQuestionTimeout` | N | 05 | untagged |  |
-| PD-27 | MCP elicitation, form mode | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-28 | MCP elicitation, URL mode | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-29 | `request_user_dialog` kinds | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-30 | Workspace trust gate | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-31 | `.mcp.json` server approval gate | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-32 | `enableAllProjectMcpServers` | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-33 | Bypass-mode warning | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-34 | Auto-mode first-use prompt | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-35 | `ANTHROPIC_API_KEY` approval | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-27 | MCP elicitation, form mode | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-28 | MCP elicitation, URL mode | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-29 | `request_user_dialog` kinds | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-30 | Workspace trust gate | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-31 | `.mcp.json` server approval gate | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-32 | `enableAllProjectMcpServers` | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-33 | Bypass-mode warning | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-34 | Auto-mode first-use prompt | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-35 | `ANTHROPIC_API_KEY` approval | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-36 | External CLAUDE.md import approval | N | 05 | untagged |  |
-| PD-37 | Invalid settings notice | N | 05 | tagged | tags: features/turn/turn.go:43 |
-| PD-38 | Corrupted `~/.claude.json` notice | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-37 | Invalid settings notice | N | 05 | tagged | tags: features/turn/turn.go:42 |
+| PD-38 | Corrupted `~/.claude.json` notice | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-39 | Sandbox network-host prompt | N | 05 | untagged |  |
 | PD-40 | Sandbox unsandboxed-retry prompt | N | 05 | untagged |  |
-| PD-41 | Confirmation keys | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-41 | Confirmation keys | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-42 | `dialogExpiry` | N | 05 | untagged |  |
-| PD-43 | No spawn before gates | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-43 | No spawn before gates | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | PD-44 | Workflow launch approval | N | 05 | untagged |  |
-| PD-45 | Dialog view-models | N | 05 | tagged | tags: features/turn/turn.go:43 |
+| PD-45 | Dialog view-models | N | 05 | tagged | tags: features/turn/turn.go:42 |
 | SE-01 | Tolerant JSONL reader | N | 06 | tagged | tags: features/sessions/feature.go:28 |
 | SE-02 | cwd → slug | N | 06 | tagged | tags: features/sessions/feature.go:28 |
 | SE-03 | Subagent transcripts | N | 06 | tagged | tags: features/sessions/feature.go:28 |

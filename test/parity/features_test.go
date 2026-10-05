@@ -107,6 +107,28 @@ func TestTargetOnlySteps(t *testing.T) {
 	}
 }
 
+func TestRunMetricsAndPrepare(t *testing.T) {
+	sc := mustParse(t, "---\nready\ntype \"cat marker.txt\\r\"\nwait_for you said: cat marker.txt\ncheckpoint c\n")
+	var seeded string
+	res := Run(context.Background(), argTarget(t), sc, RunOptions{Timeout: 30 * time.Second,
+		Prepare: func(ws Workspace) error {
+			seeded = filepath.Join(ws.ConfigDir, "seeded")
+			return os.WriteFile(seeded, []byte("x"), 0o644)
+		}})
+	if res.Err != nil {
+		t.Fatalf("run: %v", res.Err)
+	}
+	if seeded == "" {
+		t.Error("Prepare did not run")
+	}
+	if res.ReadyAfter <= 0 || res.ReadyAfter > res.Duration {
+		t.Errorf("ReadyAfter = %v (run %v)", res.ReadyAfter, res.Duration)
+	}
+	if res.MaxRSS <= 0 {
+		t.Errorf("MaxRSS = %d", res.MaxRSS)
+	}
+}
+
 func TestSplitArgs(t *testing.T) {
 	for _, tt := range []struct {
 		in   string

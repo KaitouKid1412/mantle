@@ -64,6 +64,7 @@ type transcriptView struct {
 	ready      bool // Scroll context activated
 
 	panes paneTracker
+	print printed // what features printed (Ctx.Print) in this layout
 
 	env terminal.Env
 }
@@ -121,7 +122,15 @@ func (v *transcriptView) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 	case ext.SettingsMsg:
 		v.readSettings(ctx)
 		v.invalidate(ctx)
-	case ext.EngineEventMsg, ext.TranscriptHistoryMsg, ext.ScreenClearedMsg, ext.ThemeChangedMsg,
+	case ext.PrintedMsg:
+		v.print.add(ctx.Transcript(), m.Blocks)
+		v.invalidate(ctx)
+		return nil
+	case ext.ScreenClearedMsg:
+		v.print.reset() // printed blocks are gone with a cleared screen, as scrollback is
+		v.invalidate(ctx)
+		return v.maybeTick(ctx)
+	case ext.EngineEventMsg, ext.TranscriptHistoryMsg, ext.ThemeChangedMsg,
 		ext.TranscriptAttachMsg, tea.WindowSizeMsg:
 		v.invalidate(ctx)
 		return v.maybeTick(ctx)
@@ -165,6 +174,7 @@ func (v *transcriptView) layout(ctx ext.Ctx, a ext.Area) {
 	v.area = a
 	v.width = max(10, a.Width-1) // one column of gutter, like the inline print width
 	v.blocks, v.collapsible, v.items = v.r.blocks(ctx, v.width)
+	v.blocks, v.collapsible, v.items = v.print.merge(ctx.Transcript(), v.blocks, v.collapsible, v.items, v.width)
 	follow := v.vp.Following()
 	v.vp.SetHeight(max(1, a.MaxHeight))
 	if !v.autoScroll && follow {

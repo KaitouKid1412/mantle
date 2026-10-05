@@ -37,6 +37,15 @@ type Result struct {
 	Unmatched   []string
 	Workspace   Workspace
 	Duration    time.Duration
+	// ReadyAfter is the time from starting the target to its prompt (the first ready
+	// step); Marks the time to each wait_for text (first time). CPU and MaxRSS are the
+	// last started process's usage including the children it waited for (mantle's
+	// engine); RSS is its own resident size just before it quit (perf suite).
+	ReadyAfter time.Duration
+	Marks      map[string]time.Duration
+	CPU        time.Duration
+	MaxRSS     int64
+	RSS        int64
 }
 
 // Checkpoint returns a checkpoint by name.
@@ -59,6 +68,12 @@ type RunOptions struct {
 	TempDir string
 	// Logf receives progress lines.
 	Logf func(format string, args ...any)
+	// RealAPI, when set, runs against this endpoint instead of the scripted fakeapi (the
+	// opt-in real end-to-end suite). The config directory is still the run's own.
+	RealAPI *Endpoint
+	// Prepare, when set, runs after the workspace is seeded and before the target starts
+	// (to add sessions, files in the config directory and so on).
+	Prepare func(ws Workspace) error
 	// RawDir, when set, receives each terminal's raw output as
 	// <scenario>.<target>.<n>.raw (n counts restarts), for debugging the emulator.
 	RawDir string
@@ -104,15 +119,26 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		res.Err = err
 		return res
 	}
-	api := fakeapi.New(script)
-	srv := httptest.NewServer(api)
-	defer srv.Close()
-	ws.APIURL, ws.APIKey = srv.URL, fakeapi.FakeAPIKey
+	var api *fakeapi.Server
+	if o.RealAPI != nil {
+		ws.APIURL, ws.APIKey = o.RealAPI.URL, o.RealAPI.Key
+	} else {
+		api = fakeapi.New(script)
+		srv := httptest.NewServer(api)
+		defer srv.Close()
+		ws.APIURL, ws.APIKey = srv.URL, fakeapi.FakeAPIKey
+	}
 	if err := fakeapi.SeedConfig(ws.ConfigDir, ws.APIKey, ws.WorkDir); err != nil {
 		res.Err = err
 		return res
 	}
 	res.Workspace = ws
+	if o.Prepare != nil {
+		if err := o.Prepare(ws); err != nil {
+			res.Err = fmt.Errorf("parity: prepare: %w", err)
+			return res
+		}
+	}
 
 	start1 := func(args []string) (*Term, error) {
 		run := *sc
@@ -149,11 +175,15 @@ func Run(ctx context.Context, tg Target, sc *Scenario, o RunOptions) *Result {
 		runs++
 	}
 	defer func() {
+		res.RSS = t.RSS()
 		tg.Quit(t)
 		_ = t.Close()
+		res.CPU, res.MaxRSS = t.Usage()
 		saveRaw()
-		res.Requests = api.Consumed()
-		res.Unmatched = api.Unmatched()
+		if api != nil {
+			res.Requests = api.Consumed()
+			res.Unmatched = api.Unmatched()
+		}
 	}()
 
 	for _, st := range sc.Steps {
@@ -197,6 +227,9 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 		if err := t.WaitFor(tg.Ready, timeout); err != nil {
 			return fmt.Errorf("prompt never became ready: %w", err)
 		}
+		if res.ReadyAfter == 0 {
+			res.ReadyAfter = time.Since(t.Started())
+		}
 		t.Settle(150*time.Millisecond, time.Second)
 	case StepType:
 		t.Input(st.Text)
@@ -215,6 +248,12 @@ func runStep(ctx context.Context, tg Target, t *Term, st Step, res *Result, star
 		err := t.WaitFor(func(f Frame) bool { return strings.Contains(strings.Join(f.Screen, "\n"), st.Text) }, timeout)
 		if err != nil {
 			return fmt.Errorf("%q never appeared: %w", st.Text, err)
+		}
+		if res.Marks == nil {
+			res.Marks = map[string]time.Duration{}
+		}
+		if _, ok := res.Marks[st.Text]; !ok {
+			res.Marks[st.Text] = time.Since(t.Started())
 		}
 	case StepWaitGone:
 		err := t.WaitFor(func(f Frame) bool { return !strings.Contains(strings.Join(f.Screen, "\n"), st.Text) }, timeout)
@@ -350,4 +389,9 @@ func scenarioSettings(raw string) ([]byte, error) {
 		delete(m, "tui") // "tui": null leaves it unset: each target's own default
 	}
 	return json.MarshalIndent(m, "", "  ")
+}
+
+// Endpoint is a real API endpoint and key for RunOptions.RealAPI.
+type Endpoint struct {
+	URL, Key string
 }
