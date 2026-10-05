@@ -121,6 +121,8 @@ type Root struct {
 
 	frameShown int // height of the last inline frame
 	shrink     shrinkState
+	// shrinkCheckArmed: a shrinkCheckMsg tick is in flight.
+	shrinkCheckArmed bool
 
 	sidebarDelta map[ext.Slot]int // fullscreen sidebar width adjustments
 
@@ -380,15 +382,17 @@ type firstFrameMsg struct{}
 func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	if c := r.shrinkCmd(); c != nil {
+	if c := r.shrinkCmd(msg); c != nil {
 		cmds = append(cmds, c)
 	}
 
 	// Host-internal messages first: they are not part of the feature bus.
 	switch m := msg.(type) {
+	case shrinkCheckMsg:
+		return r, tea.Batch(cmds...)
 	case shrinkReleaseMsg:
 		if m.seq == r.shrink.seq {
-			r.shrink.active = false
+			r.shrink.ready = true // the next View shrinks if the cursor allows (holdHeight)
 		}
 		return r, tea.Batch(cmds...)
 	case panicMsg:

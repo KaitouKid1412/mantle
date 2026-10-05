@@ -81,6 +81,40 @@ func TestM1FlowsBothLayouts(t *testing.T) {
 			// statusLine (plan 07) runs the user's command once a session exists.
 			p.WaitForText("STATUSLINE-OK", ptyWait)
 
+			if layout == "default" {
+				// Scrollback and screen: the permission dialog closing and the turn
+				// ending shrink the live area; the frame moves up over the freed rows,
+				// so the only blank rows are the single ones the transcript and chrome
+				// put between items (no run of two or more).
+				p.Settle(200*time.Millisecond, 5*time.Second)
+				lines := p.All()
+				from, to := -1, -1
+				for i, l := range lines {
+					if from < 0 && strings.Contains(l, "Bash(ls -la /tmp/m1-probe)") { // the fake does not echo the prompt
+						from = i
+					}
+					if from >= 0 && strings.Contains(l, "listing finished OK") {
+						to = i
+					}
+				}
+				for to >= 0 && to+1 < len(lines) && !strings.Contains(lines[to], "───") {
+					to++ // through the prompt frame's top rule
+				}
+				if from < 0 || to < 0 {
+					t.Fatalf("turn not found\n%s", all())
+				}
+				run := 0
+				for _, l := range lines[from : to+1] {
+					if strings.TrimSpace(l) == "" {
+						if run++; run > 1 {
+							t.Fatalf("a run of blank rows in the turn (shrink leftovers?)\n%s", strings.Join(lines[from:to+1], "|\n"))
+						}
+					} else {
+						run = 0
+					}
+				}
+			}
+
 			quitWithCtrlC(t, p)
 			if code := p.ExitCode(ptyWait); code != 0 {
 				t.Fatalf("exit code %d\n%s", code, all())
