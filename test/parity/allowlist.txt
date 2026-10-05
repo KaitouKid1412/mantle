@@ -26,3 +26,22 @@
 # Own wording for the same information.
 edit-diff | edited | ^ +⎿ +(Added \d+ lines?, removed \d+ lines?|Updated \S+ with \d+ additions? and \d+ removals?)$ | own wording for the Edit result summary
 ask-user | answered | ^⏺ (User answered Claude's questions:|Questions answered)$ | own wording for the AskUserQuestion result header
+
+# One-time auto-mode notice: same information in mantle's words (claude draws it inside
+# its header, so its lines carry the logo marker).
+* | * | ^<logo> (Auto mode is now Claude Code's default permission mode\.|Auto mode lets Claude handle permission prompts automatically\..*|risky actions and prompt injection before executing.*|blocks the rest\.|https://code\.claude\.com/docs/en/permission-modes)$ | claude's one-time auto-mode notice; mantle shows its own
+* | * | ^(Auto mode is now the default permission mode\.|Claude runs routine tool calls without asking and screens risky ones before they run;|press shift\+tab to pick another mode, or set permissions\.defaultMode\.)$ | mantle's wording of the one-time auto-mode notice
+
+# Footer: mode names are mantle's own; "← for agents" opens the agent view, a hand-off
+# (CL-10) mantle doesn't advertise there; the effort glyph is mantle's own art.
+* | * | ^  (⏸|⏵⏵) (manual mode on|accept edits on|plan mode on|auto mode on)( \(shift\+tab to cycle\))?( · .*)? · ← for agents( +◐ \w+ · /effort)?$ | claude's footer: mode wording, and the agent-view hint (CL-10, hand-off)
+* | * | ^ *(⏸|⏵⏵) (manual approval|edits auto-approved|planning only|auto mode)( · .*)?( +◑ \w+ · /effort)?$ | mantle's footer: its own mode wording and effort glyph
+* | * | ^ +(◐|◑) \w+ · /effort$ | the effort hint's glyph is each program's own art
+
+# Closing lines and hints in each program's own words.
+compact | compacted | ^  ⎿  Compacted \(ctrl\+o (to see full summary|for the summary)\)$ | own wording
+help | closed | ^  ⎿  (Help dialog dismissed|Help closed)$ | own wording
+mcp | closed | ^  ⎿  (MCP dialog dismissed|MCP servers closed)$ | own wording
+* | * | ^  ⎿  Interrupted · (What should Claude do instead\?|tell Claude what to do instead)$ | own wording of the interrupt hint
+ask-user | question | ^  ?[0-9]\. (Type something\.|Type an answer)$ | own wording of the free-text option
+large-paste | pasted | ^  (paste again to expand|paste again to insert the full text)$ | own wording of the paste hint

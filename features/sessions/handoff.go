@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -132,7 +133,47 @@ func (f *feature) onHandoffExec(ctx ext.Ctx, _ handoffExecMsg) tea.Cmd {
 	if h == nil {
 		return nil
 	}
-	return tea.ExecProcess(handoffProcess(h), func(err error) tea.Msg { return handoffDoneMsg{err: err} })
+	return tea.Exec(&cleanExec{Cmd: handoffProcess(h)}, func(err error) tea.Msg { return handoffDoneMsg{err: err} })
+}
+
+// clearScreen homes the cursor and erases the screen and the scrollback. Erasing only
+// the screen is not enough: most terminals move what it held into the scrollback.
+const clearScreen = "\x1b[H\x1b[2J\x1b[3J"
+
+// cleanExec runs a command on a cleared terminal. Bubble Tea leaves mantle's last frame
+// (transcript tail, prompt, footer) on screen when it hands the terminal over, and
+// Claude Code draws inline from the cursor, so it would start below that frame. Nothing
+// is lost: Claude Code shows the resumed conversation, and mantle reprints the session
+// when it gets the terminal back.
+type cleanExec struct {
+	*exec.Cmd
+	out io.Writer
+}
+
+func (c *cleanExec) SetStdin(r io.Reader) {
+	if c.Stdin == nil {
+		c.Stdin = r
+	}
+}
+
+func (c *cleanExec) SetStdout(w io.Writer) {
+	c.out = w
+	if c.Stdout == nil {
+		c.Stdout = w
+	}
+}
+
+func (c *cleanExec) SetStderr(w io.Writer) {
+	if c.Stderr == nil {
+		c.Stderr = w
+	}
+}
+
+func (c *cleanExec) Run() error {
+	if c.out != nil {
+		_, _ = io.WriteString(c.out, clearScreen)
+	}
+	return c.Cmd.Run()
 }
 
 // onHandoffDone restarts the engine on the session and reprints its history, which

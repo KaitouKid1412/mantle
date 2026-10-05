@@ -1,6 +1,9 @@
 package sessions
 
 import (
+	"bytes"
+	"io"
+	"os/exec"
 	"slices"
 	"strings"
 	"testing"
@@ -77,7 +80,7 @@ func TestSessionChangedLoadsHistory(t *testing.T) {
 	h := newHarness(t)
 	h.run(ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{EngineID: ext.MainEngine, SessionID: sidCompact, Cwd: "/work/demo"}}))
 	hist := find[ext.TranscriptHistoryMsg](h)
-	if len(hist) != 1 || len(hist[0].Items) != 3 {
+	if len(hist) != 1 || len(hist[0].Items) != 4 { // boundary, prompt, answer, turn result
 		t.Fatalf("history = %+v", hist)
 	}
 	// Seen once; a repeat does not load again.
@@ -273,4 +276,20 @@ func TestStartupSpawnOptions(t *testing.T) {
 		t.Fatalf("opts = %+v", o)
 	}
 	_ = exttest.Epoch
+}
+
+// The hand-off clears the screen before Claude Code writes anything, so it does not
+// start below mantle's last frame.
+func TestHandoffClearsScreen(t *testing.T) {
+	var out bytes.Buffer
+	c := &cleanExec{Cmd: exec.Command("echo", "hi")}
+	c.SetStdin(strings.NewReader(""))
+	c.SetStdout(&out)
+	c.SetStderr(io.Discard)
+	if err := c.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != clearScreen+"hi\n" {
+		t.Fatalf("output = %q", got)
+	}
 }

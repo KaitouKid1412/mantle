@@ -103,6 +103,8 @@ func (st *state) onEngineEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 		st.tasks[eng] = kept
 	case *proto.PermissionDenied:
 		return st.deniedNotice(c, eng, ev)
+	case *proto.Informational:
+		return st.onInformational(c, eng, ev)
 	case *proto.RateLimitEvent:
 		return st.onRateLimit(c, eng, ev)
 	case *proto.CommandLifecycle:

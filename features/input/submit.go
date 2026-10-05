@@ -116,6 +116,7 @@ func (s *state) imagesLoaded(c ext.Ctx, m imagesLoadedMsg) tea.Cmd {
 
 // finishSubmit hands the prompt to the pipeline and resets the editor.
 func (s *state) finishSubmit(c ext.Ctx, priority string) tea.Cmd {
+	s.echo, s.echoClear = "", false
 	d := s.buildDraft(priority)
 	entry := s.historyEntry()
 	s.lastSent = s.save()
@@ -176,25 +177,29 @@ func (s *state) stageSlash(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 	if !ok || cmd.Run == nil || cmd.Source == ext.SourceEngine {
 		return ext.Continue, nil
 	}
-	// Echo the command into the transcript first, as the engine echoes the
-	// prompts it runs; panels then print their result line under it.
-	return ext.Consumed, tea.Sequence(echoPrompt(c, d.Text), cmd.Run(c, args))
+	// Echo the command into the transcript the way claude does. Commands
+	// that forward to the engine are echoed by the engine's replay, so the
+	// echo waits for the command's panel to open (DialogOpenedMsg), or, for
+	// /clear (whose replay the transcript drops), for the reset.
+	s.echo, s.echoClear = strings.TrimSpace(d.Text), cmd.Name == "clear"
+	return ext.Consumed, cmd.Run(c, args)
 }
 
-// echoPrompt prints text as a user prompt, with the transcript's own
-// renderer.
-func echoPrompt(c ext.Ctx, text string) tea.Cmd {
-	w, _ := c.Size()
-	r := c.Renderer(ext.KeyUserPrompt)
-	if r == nil || w <= 0 {
+// echoItem adds text to the transcript as a finished user prompt, so it is
+// committed in order (under the header) and survives redraws.
+func (s *state) echoItem(c ext.Ctx) tea.Cmd {
+	text := s.echo
+	s.echo, s.echoClear = "", false
+	if text == "" {
 		return nil
 	}
-	blk := r(ext.RenderCtx{Width: w, Theme: c.Theme(), Now: c.Clock().Now()},
-		&ext.Item{ID: "input:echo", Key: ext.KeyUserPrompt, Data: strings.TrimSpace(text), State: ext.Done, End: c.Clock().Now()})
-	if len(blk.Lines) == 0 {
-		return nil
+	s.echoSeq++
+	now := c.Clock().Now()
+	it := &ext.Item{
+		ID: "input:echo:" + itoa(s.echoSeq), Key: ext.KeyUserPrompt, Data: text,
+		State: ext.Done, Start: now, End: now,
 	}
-	return c.Print(strings.Join(blk.Lines, "\n"))
+	return ext.Msg(ext.TranscriptHistoryMsg{EngineID: ext.MainEngine, Items: []*ext.Item{it}})
 }
 
 // splitCommand splits "/name args" into its parts.

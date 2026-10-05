@@ -45,22 +45,45 @@ func render(s lipgloss.Style, text string) string {
 	return s.Render(text)
 }
 
-// wrap word-wraps plain text to width cells, hard-breaking words that don't fit, and
-// returns the lines. Empty input gives one empty line.
+// wrap word-wraps plain text to width cells at spaces only (URLs, paths and commands
+// with hyphens stay whole), hard-splitting words longer than a line, and returns the
+// lines. Empty input gives one empty line.
 func wrap(s string, width int) []string {
 	if width < 1 {
 		width = 1
 	}
 	var out []string
 	for _, para := range strings.Split(s, "\n") {
-		if para == "" {
-			out = append(out, "")
-			continue
+		line, lw, started := "", 0, false
+		flushLine := func() {
+			out = append(out, strings.TrimRight(line, " "))
+			line, lw, started = "", 0, false
 		}
-		out = append(out, strings.Split(ansi.Wrap(para, width, ""), "\n")...)
-	}
-	for i, l := range out {
-		out[i] = strings.TrimRight(l, " ")
+		for _, word := range strings.Split(para, " ") {
+			ww := ansi.StringWidth(word)
+			if started && lw+1+ww > width && lw > 0 {
+				flushLine()
+			}
+			if started {
+				line += " "
+				lw++
+			}
+			for lw+ww > width {
+				part := ansi.Truncate(word, width-lw, "")
+				if part == "" {
+					flushLine()
+					continue
+				}
+				line += part
+				word = strings.TrimPrefix(word, part)
+				ww = ansi.StringWidth(word)
+				flushLine()
+			}
+			line += word
+			lw += ww
+			started = true
+		}
+		flushLine()
 	}
 	return out
 }

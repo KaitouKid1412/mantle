@@ -209,7 +209,19 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
     General, closing lines.
   - [x] [12-09](requests/12-09-ecosystem-parity.md) (09): /mcp closing line; hand-off
     confirmation kept (note).
-- [ ] **B3 [M2] Performance suite** (`test/e2e/perf`):
+  - Round 2 (integration-6, 2026-10-05):
+    - [ ] [12-01 fullscreen print](requests/12-01-fullscreen-print.md) (01): `Ctx.Print`
+      is dropped in fullscreen (banner, panel closing lines); an additive PrintedMsg for
+      the viewport.
+    - [ ] [12-03 round 2](requests/12-03-transcript-parity-2.md) (03): single newlines
+      joined; "Waiting…" only for Bash; engine notices as replies; resumed turn lines;
+      fullscreen tool rows.
+    - [ ] [12-04 round 2](requests/12-04-input-parity-2.md) (04): history numbering;
+      fullscreen ctrl+r dialog (VW-22 handed to 04); esc restores the prompt; /clear echo;
+      menu entries claude hides.
+    - [ ] [12-06 round 2](requests/12-06-sessions-parity-2.md) (06): hand-off leaves the
+      live area on screen; resumed turn lines.
+- [x] **B3 [M2] Performance suite** (`test/e2e/perf`):
   - **startup:** cold launch to first frame for `mantle` vs `claude` (median of N);
   - **long transcripts:** resume a 10k-item session; time to interactive; steady `View()`
     cost (target < 1 ms); RSS;
@@ -220,9 +232,21 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
 
   Regressions become requests to the owners (01 committer and slot cache, 02 coalescer, 03
   renderers and caches).
-- [ ] **B4 [M2] Opt-in real end-to-end** (`MANTLE_E2E_REAL=1 make e2e-real`). A handful of
+
+  Done: `make perf` (MANTLE_PERF=1), results in `docs/parity-audit.md` and
+  `test/parity/out/perf.md`. On integration-6 mantle is within 10% of claude on
+  streaming, large output and a 10k-item resume, uses 2.0% CPU idle (claude 2.5%), shows
+  no missing or repeated scrollback lines, and draws CJK/emoji/table cells identically;
+  its own process stays at 33–80 MB. No regression needed a request. The harness records
+  ReadyAfter, per-text marks, CPU and RSS per run.
+- [x] **B4 [M2] Opt-in real end-to-end** (`MANTLE_E2E_REAL=1 make e2e-real`). A handful of
   scenarios against the real engine and API: answer, tool approval, resume, `/compact`. It
   costs a few cents, so it never runs by default. Prints the cost.
+
+  Done: `test/e2e/real` (needs `ANTHROPIC_API_KEY`; isolated config and HOME, never
+  ~/.claude; claude-haiku-4-5), one session through an answer, a Bash approval, `-c`
+  resume and `/compact`, then `/cost`. Not run here (it spends money); the make target
+  refuses without MANTLE_E2E_REAL.
 - [ ] **B5 [M2] Terminal matrix and accessibility review.** Run a manual checklist on
   iTerm2, Ghostty, Terminal.app, kitty, WezTerm, the VS Code terminal, tmux, and SSH (OSC 52
   clipboard): shift+enter, image paste, notifications, title, progress bar, colours.
@@ -293,6 +317,12 @@ Status (2026-10-04): B7–B9 done in `features/fullscreen` on plan 01's B14 hook
     working) or **X** (known gap with the reason).
   - Write `docs/parity-audit.md`: the summary, open requests, intentional differences, and
     the engine version audited (2.1.288, plus any newer version `make drift` flagged).
+
+  Status (2026-10-05): `make parity` → `docs/parity-status.md` (572 rows: 58 compared,
+  340 tagged, 2 scenario only, 123 untagged, 36 hand-off, 13 gap) and
+  `docs/parity-audit.md` are written. Open before closing: the round-2 requests (01
+  shipped as contracts-v1.10, 03, 04, 06), the untagged rows to confirm with their owners,
+  and B5's results.
 - [x] **B7 [M3] Fullscreen renderer** (`features/fullscreen`). When `tui` is `fullscreen`
   (setting, `/tui fullscreen`, plan 08's command), the host switches the layout mode to
   `Fullscreen`.

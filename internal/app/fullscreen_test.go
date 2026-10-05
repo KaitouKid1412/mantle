@@ -80,14 +80,82 @@ func TestFullscreenLayout(t *testing.T) {
 	}
 }
 
-func TestFullscreenDropsPrints(t *testing.T) {
-	host := NewHost([]ext.Feature{fullscreenFeature(&box{id: "fs.side"})}, HostOptions{Core: CoreFeatures()})
+func TestFullscreenPrintBroadcasts(t *testing.T) {
+	side := &box{id: "fs.side"}
+	host := NewHost([]ext.Feature{fullscreenFeature(side)}, HostOptions{Core: CoreFeatures()})
 	r := New(Options{Host: host, NoBackgroundQuery: true, Layout: ext.Fullscreen})
 	r.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
-	if cmd := r.Ctx().Print("x"); cmd != nil {
-		t.Fatal("Print in fullscreen must be a no-op")
-	}
 	if r.Ctx().Layout() != ext.Fullscreen {
 		t.Fatal("Layout() should report Fullscreen")
+	}
+	if cmd := r.Ctx().Print(); cmd != nil {
+		t.Fatal("an empty Print is a no-op")
+	}
+	// No scrollback in fullscreen: printed blocks reach features as PrintedMsg (12-01).
+	drive(t, r, cmdMsgs(r.Ctx().Print("banner", "⎿  Help closed"))...)
+	var got []ext.PrintedMsg
+	for _, m := range side.got {
+		if p, ok := m.(ext.PrintedMsg); ok {
+			got = append(got, p)
+		}
+	}
+	if len(got) != 1 || len(got[0].Blocks) != 2 || got[0].Blocks[1] != "⎿  Help closed" {
+		t.Fatalf("PrintedMsg broadcast = %+v", got)
+	}
+
+	// Reprint has no scrollback to clear: it redraws and reports ScreenClearedMsg at
+	// once (plan 06's /resume and plan 03's reprint wait for it). Prints and clears
+	// keep their call order, as inline.
+	side.got = nil
+	c := r.Ctx()
+	out := drive(t, r, cmdMsgs(c.Print("before"))...)
+	out = append(out, drive(t, r, cmdMsgs(c.Reprint())...)...)
+	out = append(out, drive(t, r, cmdMsgs(c.Print("after"))...)...)
+	var order []string
+	for _, m := range side.got {
+		switch m := m.(type) {
+		case ext.PrintedMsg:
+			order = append(order, m.Blocks[0])
+		case ext.ScreenClearedMsg:
+			order = append(order, "cleared")
+		}
+	}
+	if strings.Join(order, ",") != "before,cleared,after" {
+		t.Fatalf("fullscreen print/clear order = %v", order)
+	}
+	for _, m := range out {
+		if _, ok := m.(tea.RawMsg); ok {
+			t.Fatal("fullscreen Reprint must not write the scrollback-clearing sequence")
+		}
+	}
+
+	// Inline, prints go to scrollback and no PrintedMsg is sent.
+	ri := New(Options{Host: NewHost(nil, HostOptions{Core: CoreFeatures()}), NoBackgroundQuery: true})
+	ri.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
+	for _, m := range cmdMsgs(ri.Ctx().Print("x")) {
+		if _, ok := m.(ext.PrintedMsg); ok {
+			t.Fatal("inline Print must not broadcast PrintedMsg")
+		}
+	}
+}
+
+// A clear queued behind an inline alt-screen view (the printer is paused) still
+// completes after a /tui switch to fullscreen.
+func TestPausedClearFinishesInFullscreen(t *testing.T) {
+	side := &box{id: "fs.side"}
+	host := NewHost([]ext.Feature{fullscreenFeature(side)}, HostOptions{Core: CoreFeatures()})
+	r := New(Options{Host: host, NoBackgroundQuery: true, FrameInterval: time.Millisecond})
+	r.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
+	r.printer.queue = append(r.printer.queue, printItem{clear: true})
+	r.printer.paused = true
+	drive(t, r, ext.LayoutRequestMsg{Mode: ext.Fullscreen})
+	cleared := false
+	for _, m := range side.got {
+		if _, ok := m.(ext.ScreenClearedMsg); ok {
+			cleared = true
+		}
+	}
+	if !cleared || len(r.printer.queue) != 0 {
+		t.Fatalf("paused clear did not finish after switching to fullscreen (queue %d)", len(r.printer.queue))
 	}
 }
