@@ -93,28 +93,47 @@ func (c *uiCtx) Command(name string) (ext.Command, bool) {
 	return ext.Command{}, false
 }
 
+// Commands lists the menu-visible commands. A hidden command (registered Hidden, or
+// hidden by a CommandVisibilityMsg overlay) is left out but still reserves its name,
+// so a same-named engine command does not show through in its place.
 func (c *uiCtx) Commands() []ext.Command {
 	seen := map[string]bool{}
 	var out []ext.Command
 	for _, e := range c.r.host.live(KindCommand) {
 		cmd := e.value.(ext.Command)
-		if cmd.Hidden || seen[cmd.Name] {
+		if seen[cmd.Name] {
 			continue
 		}
 		seen[cmd.Name] = true
+		if cmd.Hidden || c.r.commandHidden(cmd.Name) {
+			continue
+		}
 		out = append(out, c.r.safeCommand(cmd))
 	}
 	for _, key := range sortedKeys(c.r.runtimeCmds) {
 		for _, cmd := range c.r.runtimeCmds[key] {
-			if cmd.Hidden || seen[cmd.Name] {
+			if seen[cmd.Name] {
 				continue
 			}
 			seen[cmd.Name] = true
+			if cmd.Hidden || c.r.commandHidden(cmd.Name) {
+				continue
+			}
 			out = append(out, cmd)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
+}
+
+// commandHidden reports whether any visibility overlay hides a command name.
+func (r *Root) commandHidden(name string) bool {
+	for _, hidden := range r.cmdHidden {
+		if hidden[name] {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *uiCtx) Submit(d ext.Draft) tea.Cmd { return c.r.submit(d) }

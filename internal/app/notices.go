@@ -71,6 +71,16 @@ func (r *Root) expireNotice(m noticeExpireMsg) {
 	}
 }
 
+// noticeSeq returns the sequence of the visible notice with key (0 if none).
+func (r *Root) noticeSeq(key string) int {
+	for _, x := range r.notices {
+		if x.n.Key == key {
+			return x.seq
+		}
+	}
+	return 0
+}
+
 // Notices returns the visible notices (for tests).
 func (r *Root) Notices() []ext.Notice {
 	out := make([]ext.Notice, len(r.notices))
