@@ -48,7 +48,26 @@ func (r *Root) fullscreenView() tea.View {
 	remaining := max(1, H-1)
 	var cursor *tea.Cursor
 	cursorRegion := -1 // index into bottom of the focused component
+	// An inline dialog (permission prompt, AskUserQuestion, pickers) takes the input's
+	// place at the bottom, as in inline mode; only PlaceCentered dialogs overlay.
+	inlineDialog := dialog != nil && dialog.d.Placement() == ext.PlaceInline
 	for _, slot := range bottomSlots {
+		if slot == ext.SlotInput && inlineDialog {
+			d := dialog
+			lines := r.render(d.c, func(a ext.Area) ext.Rendered { return d.d.View(r.ctx, a) }, ext.Area{Width: W, MaxHeight: remaining, Focused: true, Mode: mode})
+			if len(lines) > remaining {
+				lines = lines[:remaining]
+			}
+			remaining -= len(lines)
+			if len(lines) > 0 {
+				bottom = append(bottom, region{id: d.d.ID(), w: W, h: len(lines), lines: lines})
+				if d.c.cursor != nil && d.c.cursor.Y < len(lines) {
+					cur := *d.c.cursor
+					cursor, cursorRegion = &cur, len(bottom)-1
+				}
+			}
+			continue
+		}
 		for _, c := range r.comps {
 			if c.m.slot != slot || r.host.Disabled(c.feature) || !r.modeOK(c) {
 				continue
@@ -137,7 +156,7 @@ func (r *Root) fullscreenView() tea.View {
 	for _, rg := range regions {
 		layers = append(layers, lipgloss.NewLayer(strings.Join(rg.lines, "\n")).ID(rg.id).X(rg.x).Y(rg.y).Z(1))
 	}
-	if dialog != nil {
+	if dialog != nil && !inlineDialog {
 		dw := min(W-4, 100)
 		lines := r.render(dialog.c, func(a ext.Area) ext.Rendered { return dialog.d.View(r.ctx, a) }, ext.Area{Width: dw, MaxHeight: H - 2, Focused: true, Mode: mode})
 		lines = lines[:min(len(lines), H-2)]
