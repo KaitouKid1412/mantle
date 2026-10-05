@@ -66,6 +66,21 @@ func TestHardWrap(t *testing.T) {
 	}
 }
 
+func TestTabStopsFromScreenEdge(t *testing.T) {
+	// Text starting at screen column 2 with 8-column stops: the tab reaches 8.
+	if got := ExpandTabsFrom("\treturn\n\t\tx", 8, 2); got != "      return\n              x" {
+		t.Fatalf("got %q", got)
+	}
+	got := WrapWith("\tab", WrapOptions{Width: 40, Hard: true, TabWidth: 8, TabStart: 2})
+	if len(got) != 1 || got[0] != "      ab" {
+		t.Fatalf("wrapped %q", got)
+	}
+	lines := Markdown("```\nfunc f() {\n\treturn\n}\n```", MarkdownOptions{Width: 40, TabWidth: 8, TabColumn: 2, NoHighlight: true})
+	if Strip(lines[1]) != "      return" {
+		t.Fatalf("code line %q", Strip(lines[1]))
+	}
+}
+
 func TestWrapIndent(t *testing.T) {
 	got := WrapIndent("one two three four five", 12, "- ", "  ")
 	want := []string{"- one two", "  three four", "  five"}

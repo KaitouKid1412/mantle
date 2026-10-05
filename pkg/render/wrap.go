@@ -20,6 +20,9 @@ type WrapOptions struct {
 	Hard bool
 	// TabWidth expands tabs (default 4).
 	TabWidth int
+	// TabStart is the screen column where the text starts, so tab stops match
+	// a terminal's (they are counted from the screen edge).
+	TabStart int
 }
 
 // Wrap word-wraps styled text to width cells and returns the lines (without
@@ -48,7 +51,7 @@ func WrapWith(s string, o WrapOptions) []string {
 	if o.TabWidth <= 0 {
 		o.TabWidth = 4
 	}
-	s = ExpandTabs(s, o.TabWidth)
+	s = ExpandTabsFrom(s, o.TabWidth, o.TabStart)
 	w := &wrapper{o: o, firstW: Width(o.First), restW: Width(o.Rest)}
 	w.startLine()
 	for li, hard := range strings.Split(s, "\n") {

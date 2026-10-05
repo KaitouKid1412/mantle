@@ -29,6 +29,10 @@ type MarkdownOptions struct {
 	NoHighlight bool
 	// NoHyperlinks drops OSC 8 sequences; link URLs are still shown as text.
 	NoHyperlinks bool
+	// TabWidth and TabColumn place tab stops in code blocks: every TabWidth
+	// columns (default 4) counted from the screen edge, where the rendering
+	// starts at column TabColumn. A terminal printing a raw tab uses 8.
+	TabWidth, TabColumn int
 }
 
 var mdParser = goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser()
@@ -286,7 +290,8 @@ func (r *mdRenderer) code(src, lang string, open bool, c mdCtx) []string {
 	}
 	out := make([]string, 0, len(lines))
 	for _, l := range lines {
-		out = append(out, WrapWith(l, WrapOptions{Width: c.width, Hard: true})...)
+		out = append(out, WrapWith(l, WrapOptions{Width: c.width, Hard: true,
+			TabWidth: r.o.TabWidth, TabStart: r.o.TabColumn + r.o.Width - c.width})...)
 	}
 	return out
 }
