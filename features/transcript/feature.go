@@ -54,6 +54,9 @@ type Feature struct {
 	spinner *spinner
 
 	views map[string]viewEntry // Store.Lines cache, by item ID
+	// fullscreen is set while Store.Lines renders for the fullscreen layout,
+	// whose tool rows are condensed (see renderBashTool, viewLines).
+	fullscreen bool
 
 	brief      bool   // brief mode (app:toggleBrief), this session only
 	engineView string // view_mode reported by the engine (/focus toggles it)

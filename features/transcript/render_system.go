@@ -68,9 +68,13 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 			body = append(body, "")
 		}
 		body = append(body, st.dim.Render(glyphThought+" Waiting for "+plural(n, "background agent", "background agents")+" to finish"))
-	} else if f.cfg.showTurnDuration && r.NumTurns > 0 && r.TerminalReason != proto.TerminalAbortedStreaming && (r.Interrupted() || !r.IsError) {
+	} else if f.cfg.showTurnDuration && modelTurn(r) && r.TerminalReason != proto.TerminalAbortedStreaming && (r.Interrupted() || !r.IsError) {
 		line := glyphThought + " " + pickVerb(r.UUID+it.ID) + " for " + formatDuration(msToDuration(r.DurationMS))
-		if t := f.formatClock(it.End); t != "" {
+		end := it.End
+		if end.IsZero() {
+			end = it.Start // history items carry the record's timestamp
+		}
+		if t := f.formatClock(end); t != "" {
 			line += " · done " + t
 		}
 		if len(body) > 0 {
@@ -83,6 +87,14 @@ func (f *Feature) renderResult(rc ext.RenderCtx, it *ext.Item) ext.Block {
 		lines = append(lines, "")
 	}
 	return ext.Block{Lines: append(lines, body...)}
+}
+
+// modelTurn reports whether a result ends a model turn (not a local command).
+// Results rebuilt from a session file's turn-duration records (plan 06) have
+// no turn count and no raw engine line; those records exist only for model
+// turns.
+func modelTurn(r *proto.Result) bool {
+	return r.NumTurns > 0 || (len(r.Raw) == 0 && r.LocalCommand == "" && r.DurationMS > 0)
 }
 
 // attached reports whether an item's first line continues the item above it

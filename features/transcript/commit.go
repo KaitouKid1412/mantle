@@ -323,6 +323,9 @@ func (f *Feature) liveItems(c ext.Ctx, w int) (chunks [][]string, running []bool
 		if newItem && !f.attached(it, prevItem(items, i)) {
 			lines = append([]string{""}, lines...)
 		}
+		if f.store.Waiting(it.ID) {
+			lines = append(lines, "") // a gap above the permission dialog, as claude leaves
+		}
 		chunks = append(chunks, lines)
 		running = append(running, !it.State.Finished())
 	}

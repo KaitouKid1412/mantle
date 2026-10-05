@@ -6,6 +6,7 @@ import (
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/ext/exttest"
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/render"
 )
 
@@ -34,12 +35,16 @@ func TestStoreLinesNormal(t *testing.T) {
 	if len(ids) != len(blocks) {
 		t.Fatalf("%d ids for %d blocks", len(ids), len(blocks))
 	}
-	want := []string{"user:u1", "thk:a0:0", "t1", "t2", "txt:a3:0", "result:r1"}
+	// Fullscreen folds finished read and shell calls into one summary row.
+	want := []string{"user:u1", "thk:a0:0", "tools:t1", "txt:a3:0", "result:r1"}
 	if strings.Join(ids, " ") != strings.Join(want, " ") {
 		t.Fatalf("ids = %v", ids)
 	}
-	if !strings.Contains(blockText(blocks[4]), "All good.") {
-		t.Fatalf("answer block = %q", blockText(blocks[4]))
+	if got := blockText(blocks[2]); got != "  Read 1 file, ran 1 shell command" {
+		t.Fatalf("summary = %q", got)
+	}
+	if !strings.Contains(blockText(blocks[3]), "All good.") {
+		t.Fatalf("answer block = %q", blockText(blocks[3]))
 	}
 	if len(g.c.Printed) != 0 {
 		t.Fatal("fullscreen layout printed to scrollback")
@@ -120,5 +125,27 @@ func TestTextCacheForgottenInFullscreen(t *testing.T) {
 	g.f.store.Lines(g.c, 80)
 	if len(g.f.texts) != 0 {
 		t.Fatalf("finished item still cached: %d entries", len(g.f.texts))
+	}
+}
+
+func TestFullscreenPendingShellRow(t *testing.T) {
+	g := fullscreenRig(t)
+	g.send(`{"type":"assistant","uuid":"a1","message":{"id":"m","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"touch marker.txt","description":"Create a marker file"}}]}}`)
+	g.deliver(ext.PermissionMsg{EngineID: ext.MainEngine, RequestID: "r1", Req: proto.CanUseTool{ToolName: "Bash", ToolUseID: "t1"}})
+	_, blocks := g.f.store.Lines(g.c, 80)
+	got := strings.ReplaceAll(blockText(blocks[0]), "\u00a0", " ")
+	if got != "  Create a marker file\n  ⎿  $ touch marker.txt" {
+		t.Fatalf("pending row = %q", got)
+	}
+	// Inline keeps the full row with "Waiting…".
+	g.c.LayoutMode = ext.Inline
+	if live := join(g.live(10)); !strings.Contains(live, "Bash(touch marker.txt)\n  ⎿  Waiting…") {
+		t.Fatalf("inline live = %q", live)
+	}
+	// A failed call stays a row of its own in fullscreen.
+	g.c.LayoutMode = ext.Fullscreen
+	g.send(`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"boom","is_error":true}]}}`)
+	if ids, _ := g.f.store.Lines(g.c, 80); len(ids) != 1 || ids[0] != "t1" {
+		t.Fatalf("ids = %v", ids)
 	}
 }
