@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -27,6 +28,8 @@ func TestParseUnifiedDiff(t *testing.T) {
 	}
 }
 
+var addedLineRE = regexp.MustCompile(`(?m)\+\s?b\s*$`)
+
 func TestDiffTurnsAndViewer(t *testing.T) {
 	edit := toolItem("e1", "Edit", `{"file_path":"/w/a.go"}`, "ok")
 	edit.Result.Structured = json.RawMessage(`{"filePath":"/w/a.go","structuredPatch":[{"oldStart":1,"oldLines":1,"newStart":1,"newLines":1,"lines":["-a","+b"]}]}`)
@@ -48,7 +51,8 @@ func TestDiffTurnsAndViewer(t *testing.T) {
 	}
 	_, _ = d.HandleAction(h.ctx, ext.ActDiffNextSource)
 	v := ansi.Strip(d.View(h.ctx, ext.Area{Width: 80, MaxHeight: 24}).Text)
-	if !strings.Contains(v, "a.go") || strings.Contains(v, "go.sum") || !strings.Contains(v, "+ b") {
+	// An added line holding "b", whatever spacing diffview puts after the marker.
+	if !strings.Contains(v, "a.go") || strings.Contains(v, "go.sum") || !addedLineRE.MatchString(v) {
 		t.Fatalf("turn view (noise hidden):\n%s", v)
 	}
 	_, _ = d.HandleAction(h.ctx, ext.ActAppToggleDiffNoiseFilter)
