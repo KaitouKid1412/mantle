@@ -1,0 +1,23 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Stop here.\n\nThis part never shows: esc lands in the gap after the first chunk."
+        }
+      ],
+      "chunk_delay_ms": 1500
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Fine, a short answer then."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

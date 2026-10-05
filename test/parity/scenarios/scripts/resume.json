@@ -1,0 +1,22 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Remember the word kumquat."
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "You asked me to remember kumquat."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

@@ -3,6 +3,7 @@ package chrome
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/KaitouKid1412/mantle/internal/sessions"
 	"github.com/KaitouKid1412/mantle/internal/term/statusline"
 	"github.com/KaitouKid1412/mantle/internal/term/terminal"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -163,8 +165,9 @@ func TestPromptFrameColourAndInvalidate(t *testing.T) {
 	if !slices.Contains(ctx.Invalidated, EditorID) {
 		t.Error("mode change must invalidate the editor's ID")
 	}
-	if frameToken("bash", ModePlan) != "bashBorder" || frameToken("prompt", ModePlan) != "planMode" ||
-		frameToken("prompt", ModeDefault) != "promptBorder" {
+	if frameToken("bash", ModePlan, "red") != "bashBorder" || frameToken("prompt", ModePlan, "red") != "planMode" ||
+		frameToken("prompt", ModeDefault, "") != "promptBorder" || frameToken("prompt", ModeDefault, "red") != "red_FOR_SUBAGENTS_ONLY" ||
+		frameToken("prompt", ModeDefault, "mauve") != "promptBorder" {
 		t.Error("frame tokens")
 	}
 }
@@ -376,6 +379,10 @@ func TestTranscriptPath(t *testing.T) {
 	if got := transcriptPath("/c", "/Users/me/my.app/x y", "abc"); got != "/c/projects/-Users-me-my-app-x-y/abc.jsonl" {
 		t.Errorf("path = %q", got)
 	}
+	long := "/" + strings.Repeat("deep/", 60) + "proj"
+	if got, want := transcriptPath("/c", long, "id"), sessions.SessionFile(sessions.Layout{ConfigDir: "/c"}.ProjectDir(long), "id"); got != want || len(filepath.Base(filepath.Dir(got))) > 220 {
+		t.Errorf("long path = %q, want %q", got, want)
+	}
 	if transcriptPath("/c", "", "abc") != "" || transcriptPath("/c", "/w", "") != "" {
 		t.Error("unknown parts give no path")
 	}
@@ -395,6 +402,12 @@ func TestRateLimitsInPayload(t *testing.T) {
 	}
 }
 
+// toolOK is the user message carrying a successful result for tool call id.
+func toolOK(id string) *proto.User {
+	return &proto.User{Message: proto.UserMessage{Role: "user", Content: proto.BlockContent(
+		proto.ContentBlock{Type: proto.BlockToolResult, ToolUseID: id, Content: &proto.Content{Text: "ok"}})}}
+}
+
 func todoWrite(id string, todos string) *proto.Assistant {
 	return &proto.Assistant{Message: proto.Message{Content: []proto.ContentBlock{{
 		Type: proto.BlockToolUse, ID: id, Name: "TodoWrite", Input: json.RawMessage(`{"todos":` + todos + `}`)}}}}
@@ -408,6 +421,7 @@ func TestTodoPanel(t *testing.T) {
 		t.Fatal("empty list draws nothing")
 	}
 	p.Update(ctx, ev(todoWrite("t1", `[{"content":"A","status":"in_progress","activeForm":"Doing A"},{"content":"B","status":"pending"}]`)))
+	p.Update(ctx, ev(toolOK("t1")))
 	if got := plainView(p, ctx, 80); got != "Tasks 0/2 done · Doing A (ctrl+t to show)" {
 		t.Errorf("collapsed = %q", got)
 	}
@@ -462,7 +476,8 @@ func TestTodoPanelRebuildsOnResume(t *testing.T) {
 	ctx.TranscriptV = fakeTranscript{items: []*ext.Item{
 		{ID: "c1", Key: "tool.TaskCreate", Data: &proto.ToolUse{ID: "c1", Name: "TaskCreate", Input: json.RawMessage(`{"subject":"Plan"}`)},
 			Result: &proto.ToolResult{ToolUseID: "c1", Content: proto.TextContent("Task #1 created successfully: Plan")}},
-		{ID: "u1", Key: "tool.TaskUpdate", Data: &proto.ToolUse{ID: "u1", Name: "TaskUpdate", Input: json.RawMessage(`{"taskId":"1","status":"completed"}`)}},
+		{ID: "u1", Key: "tool.TaskUpdate", Data: &proto.ToolUse{ID: "u1", Name: "TaskUpdate", Input: json.RawMessage(`{"taskId":"1","status":"completed"}`)},
+			Result: &proto.ToolResult{ToolUseID: "u1", Content: proto.TextContent("Updated task #1")}},
 		{ID: "x", ParentID: "agent", Data: &proto.ToolUse{ID: "x", Name: "TodoWrite", Input: json.RawMessage(`{"todos":[]}`)}},
 	}}
 	p := newTodoPanel()
@@ -531,7 +546,7 @@ func TestTerminalState(t *testing.T) {
 }
 
 func TestActionsRegistered(t *testing.T) {
-	want := map[ext.ActionID]bool{ext.ActAppToggleTodos: false, ext.ActAppRedraw: false, ext.ActChatClearScreen: false}
+	want := map[ext.ActionID]bool{ext.ActAppToggleTodos: false, ext.ActChatClearScreen: false, ActFooterSelect: false}
 	for _, f := range ext.Pending() {
 		if !strings.HasPrefix(f.ID, "chrome.") {
 			continue
@@ -555,18 +570,14 @@ func TestActionsRegistered(t *testing.T) {
 			t.Errorf("action %s not registered", id)
 		}
 	}
-	ctx := exttest.NewCtx()
 	for _, f := range ext.Pending() {
-		if f.ID != TerminalID {
+		if !strings.HasPrefix(f.ID, "chrome.") {
 			continue
 		}
 		r, _ := exttest.Setup(f)
 		for _, a := range r.Actions {
 			if a.ID == ext.ActAppRedraw {
-				a.Run(ctx)
-				if ctx.Reprints != 1 {
-					t.Error("app:redraw reprints")
-				}
+				t.Errorf("%s registers app:redraw; the host core owns it", f.ID)
 			}
 		}
 	}

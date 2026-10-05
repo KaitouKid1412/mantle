@@ -285,10 +285,206 @@ func TestMultipleEngines(t *testing.T) {
 	}
 }
 
+// TestPendingRequestsFromInitialize: prompts listed in the initialize reply are
+// raised like live ones, once, even when the same request also arrives live (PD-18).
+func TestPendingRequestsFromInitialize(t *testing.T) {
+	pending := `{"type":"control_request","request_id":"cli_9","request":{"subtype":"can_use_tool","tool_name":"Bash","input":{"command":"make"},"tool_use_id":"toolu_9"}}`
+	dialog := `{"type":"control_request","request_id":"cli_10","request":{"subtype":"request_user_dialog","kind":"demo"}}`
+	script := enginefake.New(
+		enginefake.Step{On: json.RawMessage(`{"type":"control_request","request":{"subtype":"initialize"}}`),
+			Emit: json.RawMessage(`{"type":"control_response","response":{"subtype":"success","request_id":"${request_id}","response":{"commands":[]},"pending_permission_requests":[` + pending + `],"pending_user_dialog_requests":[` + dialog + `]}}`)},
+		enginefake.Delay(100),
+		enginefake.Emit(pending), // the same request again, live
+		enginefake.Expect(json.RawMessage(`{"type":"control_response","response":{"request_id":"cli_9","response":{"behavior":"allow"}}}`)),
+		enginefake.Emit(`{"type":"result","subtype":"success","result":"done"}`),
+	)
+	m, sp, rec := setup(t, script)
+	if _, err := m.Start("", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	pm := rec.WaitFor(t, func(msg tea.Msg) bool { p, ok := msg.(ext.PermissionMsg); return ok && p.RequestID == "cli_9" }).(ext.PermissionMsg)
+	rec.WaitFor(t, func(msg tea.Msg) bool { c, ok := msg.(ext.ControlRequestMsg); return ok && c.RequestID == "cli_10" })
+	rec.WaitFor(t, isInitialized)
+	time.Sleep(200 * time.Millisecond) // let the live duplicate arrive
+	pm.Reply(pm.Req.Allow(nil))()
+	rec.WaitFor(t, isResult)
+	n := 0
+	for _, msg := range rec.Msgs() {
+		if p, ok := msg.(ext.PermissionMsg); ok && p.RequestID == "cli_9" {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Errorf("cli_9 raised %d times, want 1", n)
+	}
+	e := m.Engine("")
+	e.Stop(context.Background())
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Errorf("script: %d %v", code, err)
+	}
+}
+
+// stdinTypes lists "type[/subtype]" of every line the client wrote.
+func stdinTypes(lines [][]byte) []string {
+	var out []string
+	for _, l := range lines {
+		var h struct {
+			Type    string `json:"type"`
+			Request struct {
+				Subtype string `json:"subtype"`
+			} `json:"request"`
+		}
+		_ = json.Unmarshal(l, &h)
+		k := h.Type
+		if h.Request.Subtype != "" {
+			k += "/" + h.Request.Subtype
+		}
+		out = append(out, k)
+	}
+	return out
+}
+
+// TestNothingBeforeInitialize: prompts and control requests sent while initialize is
+// in flight are held and go out, in order, after its reply (as the SDK does).
+func TestNothingBeforeInitialize(t *testing.T) {
+	script := enginefake.MustParse(`
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"delay": 200}
+{"respond": {"commands":[]}}
+{"expect": {"type":"user","message":{"content":"early"}}}
+{"expect": {"type":"control_request","request":{"subtype":"file_suggestions"}}, "respond": {"suggestions":[]}}
+{"emit": {"type":"result","subtype":"success","is_error":false,"result":"ok","user_message_uuid":"${uuid}"}}
+`)
+	m, sp, rec := setup(t, script)
+	e, err := m.Start("", ext.SpawnOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Both right away, while initialize is unanswered.
+	if msg := e.Send(ext.Prompt{UUID: "u-early", Blocks: []proto.ContentBlock{proto.Text("early")}})(); msg != nil {
+		t.Fatalf("send: %v", msg)
+	}
+	ctl := make(chan tea.Msg, 1)
+	go func() { ctl <- e.Control(proto.SubFileSuggestions, proto.FileSuggestionsRequest{})() }()
+	rec.WaitFor(t, isResult)
+	if r := (<-ctl).(ext.ControlResultMsg); r.Err != nil {
+		t.Errorf("file_suggestions: %v", r.Err)
+	}
+	rec.WaitFor(t, isInitialized)
+	e.Stop(context.Background())
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Fatalf("strict script failed: %d %v", code, err)
+	}
+	got := strings.Join(stdinTypes(sp.Procs()[0].Received()), " ")
+	want := "control_request/initialize control_request/get_binary_version user control_request/file_suggestions control_request/end_session"
+	if got != want {
+		t.Errorf("stdin order:\n got %s\nwant %s", got, want)
+	}
+}
+
+// TestHeldNotDelayedByVersion: held lines go out as soon as initialize is answered,
+// even when the engine never answers get_binary_version.
+func TestHeldNotDelayedByVersion(t *testing.T) {
+	old := engine.VersionTimeout
+	engine.VersionTimeout = 2 * time.Second
+	defer func() { engine.VersionTimeout = old }()
+	script := enginefake.MustParse(`
+{"on": {"type":"control_request","request":{"subtype":"get_binary_version"}}, "emit": {"type":"keep_alive"}}
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}, "respond": {"commands":[]}}
+{"expect": {"type":"user","message":{"content":"quick"}}}
+{"emit": {"type":"result","subtype":"success","is_error":false,"result":"ok","user_message_uuid":"${uuid}"}}
+`)
+	m, _, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	start := time.Now()
+	e.Send(ext.Prompt{UUID: "u-q", Blocks: []proto.ContentBlock{proto.Text("quick")}})()
+	rec.WaitFor(t, isResult)
+	if d := time.Since(start); d > time.Second {
+		t.Errorf("prompt waited %v for the version reply", d)
+	}
+	if r := rec.WaitFor(t, isInitialized).(ext.ControlResultMsg); r.Err != nil {
+		t.Errorf("initialize: %v", r.Err)
+	}
+}
+
+// TestInitializeFailureDropsHeld: when initialize fails, held prompts and requests
+// fail with the cause and never reach the engine.
+func TestInitializeFailureDropsHeld(t *testing.T) {
+	script := enginefake.MustParse(`
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"delay": 150}
+{"respond_error": "initialize exploded"}
+`)
+	m, sp, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	e.Send(ext.Prompt{UUID: "u-held", Blocks: []proto.ContentBlock{proto.Text("hi")}})()
+	ctl := make(chan tea.Msg, 1)
+	go func() { ctl <- e.Control(proto.SubGetSettings, nil)() }()
+
+	init := rec.WaitFor(t, isInitialized).(ext.ControlResultMsg)
+	if init.Err == nil || !strings.Contains(init.Err.Error(), "exploded") {
+		t.Errorf("initialize: %v", init.Err)
+	}
+	failed := rec.WaitFor(t, func(msg tea.Msg) bool {
+		r, ok := msg.(ext.ControlResultMsg)
+		return ok && r.Subtype == proto.TypeUser && r.RequestID == "u-held"
+	}).(ext.ControlResultMsg)
+	if failed.Err == nil || !strings.Contains(failed.Err.Error(), "initialize failed") {
+		t.Errorf("held prompt: %v", failed.Err)
+	}
+	select {
+	case r := <-ctl:
+		if r.(ext.ControlResultMsg).Err == nil {
+			t.Error("held control request should fail")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("held control request never completed")
+	}
+	e.Stop(context.Background())
+	for _, k := range stdinTypes(sp.Procs()[0].Received()) {
+		if k == "user" || k == "control_request/get_settings" {
+			t.Errorf("held line %s reached the engine", k)
+		}
+	}
+}
+
+// TestRepliesNotHeld: answers to the engine's own requests go out during the hold.
+func TestRepliesNotHeld(t *testing.T) {
+	script := enginefake.MustParse(`
+{"expect": {"type":"control_request","request":{"subtype":"initialize"}}}
+{"request": {"subtype":"hook_callback","callback_id":"x","input":{}}, "id": "cli_1"}
+{"expect": {"type":"control_response","response":{"request_id":"cli_1"}}}
+{"respond": {"commands":[]}}
+`)
+	m, sp, rec := setup(t, script)
+	if _, err := m.Start("", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	if r := rec.WaitFor(t, isInitialized).(ext.ControlResultMsg); r.Err != nil {
+		t.Fatalf("initialize: %v", r.Err)
+	}
+	m.Engine("").Stop(context.Background())
+	if code, err := sp.Procs()[0].Wait(); code != 0 || err != nil {
+		t.Errorf("script: %d %v", code, err)
+	}
+}
+
+func TestUpdateEnv(t *testing.T) {
+	script := enginefake.New(enginefake.InitializeRule(nil),
+		enginefake.Expect(json.RawMessage(`{"type":"update_environment_variables","variables":{"FOO":"1"}}`)),
+		enginefake.Emit(`{"type":"result","subtype":"success","result":"ok"}`))
+	m, _, rec := setup(t, script)
+	e, _ := m.Start("", ext.SpawnOpts{})
+	if err := e.UpdateEnv(map[string]string{"FOO": "1"}); err != nil {
+		t.Fatal(err)
+	}
+	rec.WaitFor(t, isResult)
+}
+
 func TestHandleStartStopAndCommands(t *testing.T) {
 	script := enginefake.New(enginefake.InitializeRule(nil),
 		enginefake.Expect(json.RawMessage(`{"type":"user","shouldQuery":false,"inline_pastes":["p"],"pasted_content":[{"id":1}]}`)))
-	m, sp, rec := setup(t, script)
+	m, sp, rec := setup(t, script, enginefake.New(enginefake.InitializeRule(nil)))
 	cmd := m.Handle(ext.EngineStartMsg{EngineID: "builder-1", Opts: ext.SpawnOpts{PermissionMode: "acceptEdits"}})
 	if cmd == nil {
 		t.Fatal("start not handled")
@@ -319,5 +515,19 @@ func TestHandleStartStopAndCommands(t *testing.T) {
 	}
 	if m.Handle(ext.SessionChangedMsg{}) != nil {
 		t.Error("other messages must return nil")
+	}
+
+	// Spawn/StopEngine (app.Options.Spawn/Stop): start, restart in place, stop.
+	if err := m.Spawn("btw", ext.SpawnOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Spawn("btw", ext.SpawnOpts{Model: "haiku"}); err != nil {
+		t.Fatal(err)
+	}
+	if specs := sp.Specs(); !strings.Contains(strings.Join(specs[len(specs)-1].Args, " "), "--model haiku") {
+		t.Error("restart did not use the new options")
+	}
+	if err := m.StopEngine("btw"); err != nil || m.Engine("btw") != nil {
+		t.Errorf("stop: %v", err)
 	}
 }

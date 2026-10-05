@@ -9,13 +9,19 @@ package enginetest
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/creack/pty"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -337,6 +343,127 @@ func TestSpikeS11FileSuggestions(t *testing.T) {
 			t.Logf("S11 round %d %q (%v): %s", round, q, time.Since(t0).Round(time.Millisecond), short(json.RawMessage(resp)))
 		}
 		time.Sleep(2 * time.Second)
+	}
+}
+
+// TestSpikeS14Interactive runs interactive claude (no -p) in a pty against fakeapi
+// with a seeded isolated config, types a prompt and logs the screen text.
+func TestSpikeS14Interactive(t *testing.T) {
+	spike(t)
+	r := NewReal(t, &fakeapi.Script{Turns: []fakeapi.Turn{fakeapi.TextTurn("Interactive hello from fakeapi.")}})
+	cmd := exec.Command("claude", "--model", "claude-sonnet-4-5")
+	cmd.Dir = r.Work
+	cmd.Env = append(fakeapi.Env(os.Environ(), r.URL, r.Config, fakeapi.FakeAPIKey), "TERM=xterm-256color")
+	f, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 40, Cols: 120})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = cmd.Process.Kill(); _, _ = cmd.Process.Wait(); f.Close() }()
+	var mu sync.Mutex
+	var screen bytes.Buffer
+	go func() {
+		buf := make([]byte, 64<<10)
+		for {
+			n, err := f.Read(buf)
+			mu.Lock()
+			screen.Write(buf[:n])
+			mu.Unlock()
+			if err != nil {
+				return
+			}
+		}
+	}()
+	snapshot := func() string {
+		mu.Lock()
+		defer mu.Unlock()
+		return ansiRe.ReplaceAllString(screen.String(), "")
+	}
+	time.Sleep(4 * time.Second)
+	first := snapshot()
+	t.Logf("S14 interactive first screen (tail):\n%s", tail(first, 1500))
+	f.Write([]byte("say hello"))
+	time.Sleep(500 * time.Millisecond)
+	f.Write([]byte("\r"))
+	time.Sleep(4 * time.Second)
+	after := snapshot()
+	t.Logf("S14 interactive answered=%v main requests=%d", strings.Contains(after, "Interactive hello from fakeapi"), len(r.API.RequestsOf(fakeapi.KindMain)))
+}
+
+var ansiRe = regexp.MustCompile(`\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|\x1b[()][0-9A-Za-z]|\x1b[=>78]`)
+
+func tail(s string, n int) string {
+	if len(s) > n {
+		return s[len(s)-n:]
+	}
+	return s
+}
+
+// TestSpikeS17DeltaRate measures the engine's peak stream_event rate (fakeapi sends
+// one rune per delta, as fast as possible) and how many UI messages the bridge makes.
+func TestSpikeS17DeltaRate(t *testing.T) {
+	spike(t)
+	long := strings.Repeat("abcdefghij ", 600) // 6600 runes -> 6600 deltas
+	r := NewReal(t, &fakeapi.Script{Turns: []fakeapi.Turn{fakeapi.TextTurn(long)}}, fakeapi.WithChunkRunes(1))
+	var mu sync.Mutex
+	var first, last time.Time
+	deltas := 0
+	r.Manager.Tap = func(dir engine.Direction, line []byte) {
+		if dir == engine.FromEngine && bytes.Contains(line, []byte(`"content_block_delta"`)) {
+			mu.Lock()
+			if deltas == 0 {
+				first = time.Now()
+			}
+			last = time.Now()
+			deltas++
+			mu.Unlock()
+		}
+	}
+	e, _ := r.Manager.Start("", r.Opts())
+	u := "11111111-1111-4111-8111-111111111111"
+	e.Send(ext.Prompt{UUID: u, Blocks: text("go")})()
+	r.Rec.WaitFor(t, resultFor(u))
+	ui := 0
+	for _, ev := range Events(r.Rec.Msgs()) {
+		if se, ok := ev.(*proto.StreamEvent); ok && se.IsDelta() {
+			ui++
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	span := last.Sub(first)
+	t.Logf("S17 engine printed %d deltas in %v (%.0f/s); bridge delivered %d delta messages (16 ms coalescing)",
+		deltas, span.Round(time.Millisecond), float64(deltas)/span.Seconds(), ui)
+}
+
+// TestSpikeUnstable tries the undocumented subtypes B8 wraps.
+func TestSpikeUnstable(t *testing.T) {
+	spike(t)
+	r := NewReal(t, &fakeapi.Script{DefaultReply: "ok", SideReply: "side answer"})
+	exec.Command("git", "-C", r.Work, "init", "-q").Run()
+	os.WriteFile(filepath.Join(r.Work, "a.txt"), []byte("one\n"), 0o644)
+	exec.Command("git", "-C", r.Work, "add", ".").Run()
+	exec.Command("git", "-C", r.Work, "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "init").Run()
+	os.WriteFile(filepath.Join(r.Work, "a.txt"), []byte("two\n"), 0o644)
+	e, _ := r.Manager.Start("", r.Opts())
+	u1, u2 := "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
+	e.Send(ext.Prompt{UUID: u1, Blocks: text("first")})()
+	r.Rec.WaitFor(t, resultFor(u1))
+	e.Send(ext.Prompt{UUID: u2, Blocks: text("second")})()
+	r.Rec.WaitFor(t, resultFor(u2))
+	for _, req := range []proto.RawRequest{
+		{Subtype: engine.SubGetWorkspaceDiff},
+		{Subtype: engine.SubSideQuestion, Fields: json.RawMessage(`{"question":"what is 2+2?","history":[]}`)},
+		{Subtype: engine.SubRewindConversation, Fields: json.RawMessage(`{"target_message_uuid":"` + u2 + `"}`)},
+	} {
+		n := len(r.Rec.Msgs())
+		resp, err := e.Request(context.Background(), req)
+		t.Logf("B8 %s -> err=%v resp=%s", req.Subtype, err, short(json.RawMessage(resp)))
+		time.Sleep(300 * time.Millisecond)
+		for _, m := range r.Rec.Msgs()[n:] {
+			if ev, ok := m.(ext.EngineEventMsg); ok {
+				t.Logf("   event %s/%s %s", ev.Event.Env().Type, ev.Event.Env().Subtype, short(json.RawMessage(ev.Event.Env().Raw)))
+			}
+		}
 	}
 }
 

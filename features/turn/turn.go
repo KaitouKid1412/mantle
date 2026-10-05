@@ -1,8 +1,3 @@
-//go:build turnwip
-
-// Part B work in progress (plan 05): excluded from normal builds until the remaining
-// pieces (modes.go, control.go, queue.go, gateflow.go, stories.go) exist.
-
 package turn
 
 import (
@@ -30,6 +25,7 @@ const (
 	DialogAPIKey          = "dialog.apiKey"
 	DialogAutoMode        = "dialog.autoMode"
 	DialogUsageLimit      = "dialog.usageLimit"
+	DialogEngineCheck     = "dialog.engineCheck"
 )
 
 // Component IDs.
@@ -79,6 +75,9 @@ type state struct {
 
 	// env locates gate files; tests replace it.
 	env func() (gates.Env, error)
+	// checker runs the engine version check (plan 02's conformance probe) before the
+	// main engine spawns; nil skips that gate.
+	checker engineChecker
 }
 
 func newState() *state {
@@ -94,6 +93,7 @@ func newState() *state {
 		seenLim:  map[string]bool{},
 		trusted:  map[string]bool{},
 		env:      gates.FromOS,
+		checker:  engineAdapter{},
 	}
 }
 

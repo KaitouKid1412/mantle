@@ -190,9 +190,12 @@ Two jobs:
 - [x] **B12 [M1] Spike S16 (with plan 10).** UI plus claude in a separate process group:
   ctrl+z and `fg`, `tea.ExecProcess($EDITOR)` with ctrl+c inside the editor, crash restore
   of termios.
-- [ ] **B13 [M2] API steward duties.** Review `docs/plans/requests/*-01-*.md`, add additive
+- [x] **B13 [M2] API steward duties.** Review `docs/plans/requests/*-01-*.md`, add additive
   API, keep `Alias` for renamed IDs, bump `ext.APIVersion` only for breaking changes (avoid
   them). Hold integration windows: full `go test ./...`, tag `integration-N`.
+  *Ongoing role. Every request to date is answered (`contracts-v1.1` … `v1.7`, no
+  breaking change, `APIVersion` still 1); integration windows are run by the
+  coordinator session (`integration-N` tags).*
 - [x] **B14 [M3] Fullscreen layout hooks** (sidebar slots, Compositor layering) for plan 12.
 
 ## `pkg/ext` v1 sketch (implement this shape)
@@ -598,9 +601,29 @@ Spike S16 (process groups):
 - Under a test harness that makes mantle-ui its own session leader, SIGTSTP is
   discarded (orphaned process group). Real shells don't do that, which is why the test
   runs a shell.
-- **`tea.ExecProcess($EDITOR)` with ctrl+c**: during exec Bubble Tea restores the
-  terminal and sets `ignoreSignals`, so the SIGINT from ctrl+c in the editor neither
-  quits mantle nor reaches the engine (separate process group). An end-to-end test needs
-  plan 04's ctrl+g editor action.
+- **`tea.ExecProcess($EDITOR)` with ctrl+c** (`TestCtrlCInsideEditor`, bash on a pty,
+  plan 04's ctrl+g): during exec Bubble Tea restores the terminal and sets
+  `ignoreSignals`. The SIGINT from ctrl+c in the editor kills the editor, but mantle-ui
+  keeps running and redraws, and the engine (its own process group) is untouched.
 - Crash restore of termios and killing the engine group are the launcher's job (plan
   10, `internal/launcher`: `TestCrashKillsEngineGroup`, `termios*.go`).
+
+## Startup layout (user decision, 2026-10-04)
+
+mantle starts in the same renderer as the installed claude (`app.StartupLayout`,
+`cmd/mantle-ui`):
+1. `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN` or screen-reader mode: inline.
+2. An explicit `tui` setting in any scope (user, project, local, `--settings`) wins:
+   `"fullscreen"` or `"default"` (inline).
+3. `CLAUDE_CODE_NO_FLICKER`: fullscreen.
+4. Otherwise claude's own default for its version, from plan 11's table
+   (`cli.DefaultsFor`): inline before 2.1.289, fullscreen from 2.1.289. Unknown versions
+   get the newest entry. `make drift` probes a fresh-config claude and flags a change.
+
+The version comes from `engineVersionHint`, which never runs claude: the pinned
+version, the native installer's `versions/<v>` symlink target, or the npm
+`package.json`. The startup gate still verifies the real version. `/tui` switches at
+runtime (`ext.LayoutRequestMsg`). In fullscreen, `PlaceInline` dialogs (permission
+prompts, pickers) take the input's place at the bottom, as inline; only
+`PlaceCentered` dialogs overlay. `TestM1FlowsBothLayouts` runs the / menu, a permission
+prompt, the reply and the statusLine in both layouts.

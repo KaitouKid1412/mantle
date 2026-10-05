@@ -62,12 +62,14 @@ func (f *Feature) rendererTable() map[ext.ContentKey]ext.Renderer {
 		KeyToolUseSummary:            f.renderToolSummary,
 		KeyTaskNotification:          f.renderTaskNotification,
 		KeyNotification:              f.renderNotification,
+		KeyMemoryRecall:              f.renderMemoryRecall,
 		ext.KeyDefault:               f.renderUnknown,
 	}
 	for _, name := range oneLinerTools {
 		t[ext.ToolKey(name)] = f.renderOneLiner
 	}
 	t[ext.ToolKey("SendUserMessage")] = f.renderSendUserMessage
+	t[ext.ToolKey("Brief")] = f.renderSendUserMessage // alias
 	return t
 }
 

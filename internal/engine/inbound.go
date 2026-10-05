@@ -16,9 +16,35 @@ import (
 type inboundSet struct {
 	mu      sync.Mutex
 	pending map[string]string // request id -> subtype
+	seen    map[string]bool   // every request id ever handled (dedupe replays)
 }
 
-func newInboundSet() *inboundSet { return &inboundSet{pending: map[string]string{}} }
+func newInboundSet() *inboundSet {
+	return &inboundSet{pending: map[string]string{}, seen: map[string]bool{}}
+}
+
+// first reports whether id is new, and marks it seen. The engine may deliver one
+// request twice (live, and again in an initialize reply's pending list).
+func (s *inboundSet) first(id string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.seen[id] {
+		return false
+	}
+	s.seen[id] = true
+	return true
+}
+
+// drainPeek returns the pending ids without removing them.
+func (s *inboundSet) drainPeek() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ids := make([]string, 0, len(s.pending))
+	for id := range s.pending {
+		ids = append(ids, id)
+	}
+	return ids
+}
 
 func (s *inboundSet) add(id, subtype string) {
 	s.mu.Lock()
@@ -51,6 +77,9 @@ func (s *inboundSet) drain() []string {
 // it directly when mantle has nothing to ask the user.
 func (r *run) handleRequest(cr *proto.ControlRequest) {
 	id := cr.RequestID
+	if !r.inbound.first(id) {
+		return
+	}
 	sub := cr.RequestSubtype()
 	switch sub {
 	case proto.SubCanUseTool:
@@ -128,7 +157,7 @@ func (r *run) answer(id string, resp any, err error) {
 	if merr != nil {
 		line, _ = proto.MarshalControlError(id, "mantle: "+merr.Error())
 	}
-	if serr := r.tr.Send(line); serr != nil {
+	if serr := r.tr.SendNow(line); serr != nil { // answers to the engine never wait behind the handshake hold
 		r.e.mgr.logf("engine %s: reply %s: %v", r.e.id, id, serr)
 	}
 }

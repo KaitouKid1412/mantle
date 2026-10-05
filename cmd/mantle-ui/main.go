@@ -60,23 +60,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "mantle:", err)
 		return 1
 	}
-	resolver := cli.ResolverFuncs{
-		ContinueFunc: func(cwd string) (string, error) {
-			m, err := ix.Continue(cwd)
-			return m.ID, err
-		},
-		ResolveFunc: func(cwd, arg string) (string, string, error) {
-			r, err := ix.Resolve(cwd, arg)
-			if err != nil {
-				return "", "", err
-			}
-			if r.Session != nil {
-				return r.Session.ID, "", nil
-			}
-			return "", r.Query, nil
-		},
-	}
-	st, err := p.Startup(cwd, resolver)
+	st, err := p.Startup(cwd, cli.IndexResolver{Index: ix}) // plan 06's index, saved on exit
 	if err != nil {
 		fmt.Fprintln(stderr, "mantle:", err)
 		return 1
@@ -103,6 +87,8 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		return ext.ExitUsage
 	}
 	store := config.NewStore(paths, flag)
+	env := config.ReadEnv(os.Getenv)
+	store.SetEnv(env)
 	host := app.NewHost(ext.Pending(), app.HostOptions{
 		Safe:     os.Getenv(ext.EnvSafe) == "1",
 		Disabled: config.DisabledIDs(config.ReadDisabled(paths)),
@@ -117,6 +103,23 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		logger.Warn("custom theme", "err", e)
 	}
 	ui := store.UI()
+	a11y := ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || env.ScreenReader, ReducedMotion: ui.PrefersReducedMotion}
+	// Start in the same renderer as the installed claude when `tui` is unset (user
+	// decision): explicit tui > alt-screen/screen-reader rules > no-flicker > claude's
+	// default for its version (plan 11's table; unknown version = newest default).
+	explicitTUI := ""
+	if v, ok := store.Claude("tui"); ok {
+		explicitTUI, _ = v.(string)
+	}
+	engineVersion := engineVersionHint(filepath.Join(paths.StateDir(), "engines.json"))
+	layout := app.StartupLayout(app.LayoutInputs{
+		TUI:              explicitTUI,
+		EngineDefaultTUI: cli.DefaultsFor(engineVersion).TUI,
+		NoAltScreen:      env.DisableAltScreen,
+		ScreenReader:     a11y.ScreenReader,
+		NoFlicker:        env.NoFlicker,
+	})
+	logger.Info("layout", "mode", layout.String(), "tui", explicitTUI, "claude", engineVersion)
 
 	var prog *tea.Program
 	mgr := engine.NewManager(func(m tea.Msg) { prog.Send(m) })
@@ -127,20 +130,19 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		Host:          host,
 		Settings:      store,
 		Logger:        logger,
-		A11y:          ext.Accessibility{ScreenReader: st.ScreenReader || ui.AxScreenReader || truthy(os.Getenv("CLAUDE_AX_SCREEN_READER")), ReducedMotion: ui.PrefersReducedMotion},
+		A11y:          a11y,
+		Layout:        layout,
+		NoAltScreen:   env.DisableAltScreen,
+		NoMouse:       env.DisableMouse,
+		NoTitle:       env.DisableTerminalTitle,
 		KeymapSources: config.LoadKeymapSources(paths),
 		StateDir:      paths.StateDir(),
 		CustomThemes:  config.ThemeMap(themes),
 		Session:       st.Session,
 		MainSpawn:     st.MainSpawn(),
-		Spawn: func(id string, o ext.SpawnOpts) error {
-			_, err := mgr.Start(id, o)
-			return err
-		},
-		Stop: func(id string) error {
-			mgr.Remove(context.Background(), id)
-			return nil
-		},
+		Spawn:         mgr.Spawn,
+		Stop:          mgr.StopEngine,
+		Adopt:         adoptHook(mgr, st.AttachEngineFDs),
 		OnDisable: func(feature, reason string) {
 			logger.Error("feature disabled", "feature", feature, "reason", reason)
 			if err := config.RecordDisabled(paths, feature, reason, time.Now()); err != nil {
@@ -173,6 +175,20 @@ func runUI(ctx context.Context, cwd string, st cli.Startup, stdout, stderr io.Wr
 		fmt.Fprintln(stdout, reason)
 	}
 	return root.ExitCode()
+}
+
+// adoptHook returns the host's Adopt hook for an in-place restart (request 10-02):
+// with --attach-engine-fds, the engines the previous mantle-ui handed over are adopted
+// instead of spawning a new one (the file is deleted by AdoptFile). nil without the
+// flag. If adopting fails, the host falls back to MainSpawn, which carries --resume.
+func adoptHook(mgr *engine.Manager, handoff string) func() error {
+	if handoff == "" {
+		return nil
+	}
+	return func() error {
+		_, err := mgr.AdoptFile(handoff)
+		return err
+	}
 }
 
 // ix is shared so the index cache is saved on exit.

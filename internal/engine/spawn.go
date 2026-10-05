@@ -217,11 +217,8 @@ type OutputCloser interface {
 	CloseOutput()
 }
 
-// FindBinary returns the claude binary to run: $MANTLE_CLAUDE_BIN, else "claude" on
-// PATH.
+// FindBinary returns the claude binary to run: $MANTLE_CLAUDE_BIN, else the binary
+// pinned in ~/.mantle/state/engines.json, else "claude" on PATH.
 func FindBinary() (string, error) {
-	if p := os.Getenv("MANTLE_CLAUDE_BIN"); p != "" {
-		return p, nil
-	}
-	return exec.LookPath("claude")
+	return ResolveBinary(DefaultEngineStatePath())
 }

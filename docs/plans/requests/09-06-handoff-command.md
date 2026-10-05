@@ -1,30 +1,22 @@
-# 09 → 06: a hidden `handoff` command for the generic hand-off
+# 09 → 06: hand-off seam for plan 09's H commands
 
-**Status:** open (2026-10-03).
+**Status:** agreed (2026-10-03): one hand-off mechanism, plan 06's dialog.
 
 Plan 09 registers ~30 commands that open interactive Claude Code (`/remote-control`,
-`/teleport`, `/upgrade`, `/feedback`, `/install-github-app`, …, see plan 09 B10). They
-call plan 06's generic hand-off (B5) by ID, without importing `features/sessions`.
-
-Proposal: register a hidden command
+`/teleport`, `/upgrade` (plan part), `/feedback`, `/bug`, `/install-github-app`, …, see
+plan 09 B10). They use plan 06's B5 hand-off through its dialog, without importing
+`features/sessions`:
 
 ```go
-ext.Command{Name: "handoff", ID: "cmd.handoff", Hidden: true, Source: ext.SourceBuiltin,
-	Run: func(ctx ext.Ctx, args string) tea.Cmd { /* B5 procedure */ }}
+ctx.OpenDialog("dialog.handoff", []string{"/remote-control"}) // extra claude args
+ctx.OpenDialog("dialog.handoff", nil)                         // just open the session
 ```
 
-`args` is the slash command line to run in Claude Code (`"/remote-control"`,
-`"/feedback my report"`), or `""` to just open the session. Plan 09 looks it up with
-`ctx.Command("handoff")` and calls `Run(ctx, "/<cmd> <args>")`.
+The single element is the slash command line (`"/feedback some text"`), which plan 06
+passes as `claude --resume <sid> <arg>`, so interactive Claude Code runs it at startup.
+Plan 09 decides E vs H first (commands the engine lists headlessly are sent to the
+engine instead), so the dialog only sees real hand-offs.
 
-The B5 procedure as planned: wait for idle and warn about background tasks, stop the
-engine, `tea.ExecProcess(claude --resume <sid> [cmdline])`, restart with `--resume`
-and reprint new history.
-
-Until it exists, plan 09 shows a notice telling the user to run
-`claude --resume <sid>` and type the command.
-
-Spike note: plan 09 assumes `claude --resume <sid> "/<cmd>"` runs the slash command at
-startup in interactive mode (the initial prompt goes through the same input path as
-typed text). Please confirm when you build B5; if it doesn't, keep `args` for the
-notice ("type /remote-control") and open the session without it.
+Spike to confirm in B5: `claude --resume <sid> "/<cmd>"` runs the slash command at
+startup in interactive mode (the initial prompt takes the same input path as typed
+text). If it doesn't, open the session without the arg and show "type /<cmd>".

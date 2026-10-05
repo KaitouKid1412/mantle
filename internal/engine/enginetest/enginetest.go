@@ -149,6 +149,34 @@ func (r *Recorder) WaitFor(t testing.TB, match func(tea.Msg) bool) tea.Msg {
 	}
 }
 
+// Len returns how many messages were recorded so far (a mark for WaitAfter).
+func (r *Recorder) Len() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.msgs)
+}
+
+// WaitAfter is WaitFor over messages recorded after mark (see Len).
+func (r *Recorder) WaitAfter(t testing.TB, mark int, match func(tea.Msg) bool) tea.Msg {
+	t.Helper()
+	deadline := time.After(30 * time.Second)
+	for {
+		msgs := r.Msgs()
+		for i := mark; i < len(msgs); i++ {
+			if match(msgs[i]) {
+				return msgs[i]
+			}
+		}
+		select {
+		case <-r.wake:
+		case <-time.After(20 * time.Millisecond):
+		case <-deadline:
+			t.Fatalf("enginetest: timed out after mark %d; got %d messages: %s", mark, len(r.Msgs()), r.Summary())
+			return nil
+		}
+	}
+}
+
 // Summary lists the recorded message types (for failure output).
 func (r *Recorder) Summary() string {
 	s := ""

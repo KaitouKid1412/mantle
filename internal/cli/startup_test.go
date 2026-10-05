@@ -289,6 +289,79 @@ func TestFlagSettings(t *testing.T) {
 	}
 }
 
+// RestartArgs round-trips: parsing them again gives the same engine options, resuming
+// the session, in the same worktree, with the UI flags kept and nothing re-submitted.
+func TestRestartArgs(t *testing.T) {
+	old := newWorktreeName
+	newWorktreeName = func() string { return "brisk-comet-3f9a" }
+	t.Cleanup(func() { newWorktreeName = old })
+
+	s := startup(t, "fix it", "-w", "--model", "sonnet", "--add-dir", "../a", "../b", "--settings", "{}", "--ax-screen-reader",
+		"--prompt-suggestions", "off", "-n", "work", "--fork-session", "--session-id", "55555555-5555-4555-8555-555555555555",
+		"--prefill", "x", "--allowed-tools", "Bash", "Edit")
+	args := s.RestartArgs(RestartOpts{SessionID: "66666666-6666-4666-8666-666666666666", PermissionMode: "acceptEdits"})
+
+	p, err := Parse(args)
+	if err != nil {
+		t.Fatalf("%q: %v", args, err)
+	}
+	r, err := p.Startup("/work/repo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := r.Spawn
+	if o.Resume != "66666666-6666-4666-8666-666666666666" || o.Model != "sonnet" || o.PermissionMode != "acceptEdits" ||
+		!slices.Equal(o.AddDirs, []string{"../a", "../b"}) || o.Settings != "{}" || o.Name != "work" || o.ForkSession || o.SessionID != "" {
+		t.Errorf("spawn %+v", o)
+	}
+	if !slices.Equal(o.ExtraArgs, []string{"-w", "brisk-comet-3f9a", "--allowed-tools", "Bash", "Edit"}) || r.Worktree != "brisk-comet-3f9a" {
+		t.Errorf("extra args %q", o.ExtraArgs)
+	}
+	if !r.ScreenReader || r.PromptSuggestions == nil || *r.PromptSuggestions || r.Prompt != "" || r.Prefill != "" {
+		t.Errorf("startup %+v", r)
+	}
+}
+
+// The in-place restart's argv: RestartArgs plus the hand-off file. The flag is consumed,
+// and Spawn still resumes the session as the host's fallback, even when the session
+// index can't find it.
+func TestStartupAttachEngineFDs(t *testing.T) {
+	s := startup(t, "--model", "sonnet", "-n", "work")
+	argv := append(s.RestartArgs(RestartOpts{SessionID: "33333333-3333-4333-8333-333333333333"}), "--attach-engine-fds=/run/42.handoff.json")
+	p, err := Parse(argv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := p.Startup("/work/repo", resolver) // resolver says this ID doesn't exist
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.AttachEngineFDs != "/run/42.handoff.json" || r.Spawn.Resume != "33333333-3333-4333-8333-333333333333" || r.MainSpawn() == nil {
+		t.Errorf("startup %+v", r)
+	}
+	if slices.ContainsFunc(r.Spawn.ExtraArgs, func(a string) bool { return strings.Contains(a, "attach-engine-fds") }) {
+		t.Errorf("hand-off flag forwarded: %q", r.Spawn.ExtraArgs)
+	}
+	// Without the hand-off a missing session is still an error.
+	p, _ = Parse([]string{"-r", "33333333-3333-4333-8333-333333333333"})
+	if _, err := p.Startup("/work/repo", resolver); err == nil {
+		t.Error("want an error for a missing session")
+	}
+
+	// A session ID that isn't a UUID (the resolver would treat it as a search) still
+	// resumes verbatim: no lookup, no picker, MainSpawn kept as the fallback.
+	called := false
+	lookup := ResolverFuncs{
+		ContinueFunc: func(string) (string, error) { called = true; return "", nil },
+		ResolveFunc:  func(_, arg string) (string, string, error) { called = true; return "", arg, nil },
+	}
+	p, _ = Parse([]string{"--resume=sess-not-a-uuid", "--attach-engine-fds=/run/h.json"})
+	r, err = p.Startup("/work/repo", lookup)
+	if err != nil || r.Picker || r.MainSpawn() == nil || r.Spawn.Resume != "sess-not-a-uuid" || called {
+		t.Errorf("non-UUID hand-off: %+v err %v resolver called %v", r, err, called)
+	}
+}
+
 func TestCurrent(t *testing.T) {
 	ClearCurrent()
 	if _, ok := Current(); ok {

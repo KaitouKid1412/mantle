@@ -1,0 +1,23 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Working through the first request slowly, one piece at a time, before the queued one runs."
+        }
+      ],
+      "chunk_delay_ms": 300
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Second request handled."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

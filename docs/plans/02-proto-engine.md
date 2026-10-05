@@ -189,7 +189,7 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
 
 ## Part A: start immediately
 
-- [ ] **A1 Spikes S1–S14, S17.** These use real `claude` and cost a few cents. Script each
+- [x] **A1 Spikes S1–S14, S17.** These use real `claude` and cost a few cents. Script each
   in `scripts/spikes/` and record the facts in a "Facts verified on 2.1.288" section at the
   bottom of this file.
   - **S1** What an interrupt produces mid-text vs mid-tool; the `interrupt(cancel_queued)`
@@ -218,7 +218,7 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
   - **S14** Real claude (headless and interactive) against fakeapi with an isolated
     `CLAUDE_CONFIG_DIR` (pre-seed API-key approval). Do this together with A6.
   - **S17** CPU at peak delta rates; choose the coalescing interval (default 16 ms).
-- [ ] **A2 `pkg/proto`.** All types above; envelope decode; `Unknown`; marshal helpers for
+- [x] **A2 `pkg/proto`.** All types above; envelope decode; `Unknown`; marshal helpers for
   stdin messages; JSON round-trip tests on hand-written and recorded samples.
   - If plan 01 created placeholders (`pkg/proto/placeholder.go`), replace them with the
     real types under the same names.
@@ -228,73 +228,73 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
     - Run `go build ./...` before committing.
   - Commit, run `git tag proto-v1`, and add a line under "Milestones" in
     `docs/plans/00-overview.md`.
-- [ ] **A3 Transport (`internal/engine/transport.go`).**
+- [x] **A3 Transport (`internal/engine/transport.go`).**
   - A reader goroutine that accumulates multi-MB lines and decodes them.
   - A writer goroutine with a queue and a mutex-free single writer; never block the UI on a
     pipe.
   - A stderr ring buffer (last 64 KB).
-- [ ] **A4 fakeclaude script format and runner (`internal/testkit/enginefake`,
+- [x] **A4 fakeclaude script format and runner (`internal/testkit/enginefake`,
   `cmd/fakeclaude`).**
   - A JSONL script of steps: `emit <json>`, `expect <matcher>` (stdin message or control
     response), `respond <json>` (reply to a client control request), `request <json>` (CLI →
     client control request), `delay <ms>`, `exit <code>`.
   - Runs in-process (`io.Pipe`) or as a binary on the PATH as `claude`.
-- [ ] **A5 Fixture recorder (`scripts/record-fixture.sh` plus a Go helper).**
+- [x] **A5 Fixture recorder (`scripts/record-fixture.sh` plus a Go helper).**
   - Tees both directions with timestamps into `testdata/fixtures/02/<name>.jsonl`.
   - Sanitises home paths (`$HOME` → `/home/user`), usernames, emails, tokens and
     session-specific UUIDs (stable remap).
-- [ ] **A6 fakeapi (`cmd/fakeapi`).** A Messages API SSE mock: scripted text, thinking and
+- [x] **A6 fakeapi (`cmd/fakeapi`).** A Messages API SSE mock: scripted text, thinking and
   tool_use turns; generic replies for title and Haiku side calls; `/v1/messages` and count
   tokens. Used with `ANTHROPIC_BASE_URL` and an isolated `CLAUDE_CONFIG_DIR`, for free,
   deterministic end-to-end tests of the real engine.
 
 ## Part B: after `contracts-v1`
 
-- [ ] **B1 [M1] Process supervisor (`internal/engine/process.go`).**
+- [x] **B1 [M1] Process supervisor (`internal/engine/process.go`).**
   - Flag builder (the table above) and environment cleanup; `Setpgid`.
   - Restart with `resume`, `fork-session` or `resume-session-at`.
   - On unexpected exit: an `EngineExitedMsg` carrying the stderr tail; the UI offers
     "restart with --resume".
   - `Stop()` for handoff (plan 06), so the engine never runs while interactive `claude`
     writes the same JSONL.
-- [ ] **B2 [M1] Correlator.** `request_id` → pending map, with timeouts (60 s for
+- [x] **B2 [M1] Correlator.** `request_id` → pending map, with timeouts (60 s for
   initialize, 30 s by default); `control_cancel_request` for our own requests; error
   responses become typed errors.
-- [ ] **B3 [M1] Capability cache.** From the initialize response and init
+- [x] **B3 [M1] Capability cache.** From the initialize response and init
   `capabilities[]`. An "unsupported subtype" error turns the capability off.
   `Supports(subtype)` feeds the UI.
-- [ ] **B4 [M1] CLI → client requests.** Each becomes a `tea.Msg` carrying a `Reply` func
+- [x] **B4 [M1] CLI → client requests.** Each becomes a `tea.Msg` carrying a `Reply` func
   that writes exactly one `control_response`. `control_cancel_request` closes the matching
   dialog (send a `CancelMsg`).
   - Declare only the dialog kinds that plans 05/09 actually implement in
     `supportedDialogKinds`.
   - Answer `hook_callback` with `{}` unless a feature registered a callback.
-- [ ] **B5 [M1] Coalescer.** Merge `stream_event` deltas per (message id, content index);
+- [x] **B5 [M1] Coalescer.** Merge `stream_event` deltas per (message id, content index);
   flush at most every 16 ms (S17 value), or immediately on any non-delta event; preserve
   order.
-- [ ] **B6 [M1] `ext.Engine` implementation and tea bridge (`internal/engine/bridge.go`).**
+- [x] **B6 [M1] `ext.Engine` implementation and tea bridge (`internal/engine/bridge.go`).**
   - Several engines keyed by `EngineID` (main, builder, btw, bg).
   - `Send` (stamps `uuid` and `origin:{kind:"human"}` for user input), `Interrupt`,
     `Control`, `Supports`, `Restart`.
-- [ ] **B7 [M1] Session tracker.** Session id (updated on `conversation_reset`), model,
+- [x] **B7 [M1] Session tracker.** Session id (updated on `conversation_reset`), model,
   permission mode, state (idle / running / requires_action), cwd, and init data (tools,
   commands, skills, plugins, MCP servers, output style, fast mode). Exposed through
   `ext.SessionInfo`.
-- [ ] **B8 [M2] `unstable.go`.** Wrappers for the undocumented subtypes, each with
+- [x] **B8 [M2] `unstable.go`.** Wrappers for the undocumented subtypes, each with
   `Supports` and a documented fallback:
   - `rewind_conversation` → `--resume-session-at`;
   - `side_question` → forked engine;
   - `get_workspace_diff` → `git diff`.
-- [ ] **B9 [M2] Conformance probe and pinning.**
+- [x] **B9 [M2] Conformance probe and pinning.**
   - Run S6's probe when `claude --version` changes; store passing versions in
     `~/.mantle/state/engines.json`.
   - On failure, notify and offer to pin the last passing binary
     (`~/.local/share/claude/versions/<v>`).
   - Guards against `--bare` becoming the headless default.
-- [ ] **B10 [M2] `scripts/sdk-diff`.** Fetch `@anthropic-ai/claude-agent-sdk@0.3.<patch>`
+- [x] **B10 [M2] `scripts/sdk-diff`.** Fetch `@anthropic-ai/claude-agent-sdk@0.3.<patch>`
   for CLI `2.1.<patch>` into a cache (never commit the .d.ts) and diff the message unions
   and control subtypes against a table in `pkg/proto`.
-- [ ] **B11 [M1] Fixtures for every flow,** recorded through fakeapi where possible:
+- [x] **B11 [M1] Fixtures for every flow,** recorded through fakeapi where possible:
   - plain answer; tool use allow / deny / always; AskUserQuestion; ExitPlanMode;
   - interrupt during text and during a tool; queued message with priority;
   - `/compact`; `/clear`; resume; subagent; background task; elicitation;
@@ -349,4 +349,157 @@ only, never in `pkg/proto`'s stable set: `rewind_conversation`, `fork_conversati
 
 ## Facts verified on 2.1.288
 
-_(fill in from the spikes)_
+Verified live on 2026-10-03. Sources: zero-token runs and a few Haiku calls (scripts in
+`scripts/spikes/`), plus offline runs of the real binary against fakeapi
+(`MANTLE_SPIKES=1 go test -run Spike -v ./internal/engine/enginetest`). Recorded flows are
+in `testdata/fixtures/02/`.
+
+**Transport and lifecycle**
+- SessionStart hook frames can arrive before the initialize reply. `get_binary_version` works
+  before any turn (`{version, buildTime}`); the engine asks it alongside initialize because
+  `system/init` only comes with the first turn.
+- The initialize reply carries `pending_permission_requests` / `pending_user_dialog_requests`
+  on the response body next to `response` (full `control_request` frames; present since
+  2.1.268). The same request may also arrive live: raise it once.
+- An unknown subtype gets `{"subtype":"error","error":"Unsupported control request
+  subtype: <x>"}`, with no `error_code`.
+- `end_session` gets a success reply with no `response`; the process then exits 0 (~1 s).
+- Every prompt gets `command_lifecycle` queued → started → completed|cancelled. The
+  `isReplay` echo comes when the message starts, not when it is queued.
+  `session_state_changed` running/idle brackets each turn.
+- Each turn: UserPromptSubmit hooks, then `system/init`, `status: requesting`, and the
+  stream. `init.memory_paths` is an object (`{"auto": dir}`). New fields seen
+  (`messaging_socket_path`, timing fields on `result`, `caller` on tool_use blocks, …) are
+  modelled in `pkg/proto`; the drift report over 963 live frames and every fixture shows no
+  unmodelled fields.
+- An API error (HTTP 400) gives an `assistant` with `error: "invalid_request"` and
+  `is_api_error_message`, then `result` with subtype **success**, `is_error: true`,
+  `api_error_status: 400` and a `terminal_reason` (`prompt_too_long`). A 529 gives
+  `system/api_retry {attempt, max_retries, retry_delay_ms, error_status, error:
+  "overloaded"}`, then the retry.
+- Read-only Bash commands (`ls`, `sleep`, `echo`) never prompt. Writes prompt
+  `can_use_tool` with `display_name` and two `permission_suggestions` (no `title` in
+  default mode).
+
+**S1 interrupt**
+- Mid-text: the reply is `{"still_queued": []}`. Then come an `assistant` with
+  `aborted: true` carrying the partial text, a synthetic user text block saying the user
+  interrupted, `result` `error_during_execution`, `is_error: true`,
+  `terminal_reason: aborted_streaming`, lifecycle `cancelled`, and idle.
+- Mid-tool: an error `tool_result` (the tool use was refused), a synthetic user message,
+  then `result` `error_during_execution` with `terminal_reason: aborted_tools`.
+- A `priority: "now"` message ends the running turn with `result` subtype **success** and
+  `terminal_reason: aborted_streaming`; then the new message runs. So use
+  `Result.Interrupted()` (`terminal_reason`), never the subtype.
+
+**S2 priority and queue**
+- No priority behaves like `next` on 2.1.288: the message is folded into the running turn
+  after the current tool round. One `result` lists every folded uuid in
+  `user_message_uuids`.
+- `later` runs as its own turn afterwards, with its own `result` (`result_index`
+  increments).
+- Each mid-turn message gets `command_lifecycle: queued` at once; that is the queue ack.
+- `cancel_async_message` on a queued message returns `{"cancelled": true}` plus lifecycle
+  `cancelled`; an unknown uuid returns `{"cancelled": false}`.
+
+**S3** Headless writes neither `~/.claude/history.jsonl` nor `paste-cache/` (also
+confirmed by plan 04 with an isolated config). mantle writes both itself (plan 04).
+
+**S4 hooks** With `--include-hook-events`, these produce `hook_started`/`hook_response`:
+SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse,
+PostToolBatch, Stop and MessageDisplay. `hook_progress` streams a hook's stdout while it
+runs. Notification, SessionEnd and InstructionsLoaded hooks run headlessly but emit no
+frames. Hooks passed via `--settings` are honoured.
+
+**S5 entrypoint** `CLAUDE_CODE_ENTRYPOINT` unset → `sdk-cli`; `cli` is rewritten to
+`sdk-cli`; any other value (`mantle`, `sdk-ts`) is written as-is into the JSONL
+`entrypoint`. **Decision: leave it unset.** That keeps the SDK path Anthropic maintains.
+Sessions stay hidden from Claude Code's own picker, but mantle's picker (plan 06) lists
+them, and `claude --resume <id>` works for hand-off.
+
+**S6 conformance probe** initialize, `get_hooks_listing`, `get_context_usage` (its
+`memoryFiles` lists CLAUDE.md as type `Project`), `mcp_status`, `list_models`,
+`get_usage`, `get_session_cost` and `get_binary_version` cost nothing (`total_cost_usd`
+stays 0). `end_session` then exits 0.
+
+**S7 resume, fork and rewind**
+- `--resume=<id>` keeps the session id and replays no history on stdout. The next API
+  request carries the earlier messages.
+- `--fork-session` gives a new session id and keeps the history.
+- `--resume-session-at=<uuid>` keeps JSONL entries up to and including that entry. JSONL
+  user entries use the client's message `uuid`.
+- `--resume-drops-turn=<uuid>` passes only when it names the same uuid as
+  `--resume-session-at` and exactly one turn follows. Otherwise the turn fails with
+  `result` `error_during_execution` ("Resume rejected by --resume-drops-turn: …") and the
+  process exits 1. `SpawnOpts.ResumeDropsTurn` therefore passes the `ResumeSessionAt` uuid.
+- `rewind_files {user_message_id: <client uuid>, dry_run: true}` returns
+  `{canRewind, filesChanged[], insertions, deletions}`.
+
+**S8 local slash commands**
+- A synthetic `assistant` (model `<synthetic>`, `local_command_run {command, args}`,
+  `local_command_source`, `context_usage` for `/context`), then the user replay, then
+  `result` success with `num_turns: 0` and `local_command: <name>`.
+- `/compact` on an empty session gives `status: compacting`, then `status: null` and a
+  "not enough messages" result. Real compaction emits `compact_boundary`.
+- `/clear` gives `conversation_reset {new_conversation_id, trigger: "clear",
+  user_message_uuid}`, then a result.
+- `/help` gives "/help isn't available in this environment." with no `local_command`.
+- An unknown `/x` goes to the model as an ordinary turn.
+
+**S9** `--settings '{"disabledMcpjsonServers":["x"]}'` is honoured headlessly: `x` is
+absent from `mcp_status`, and `flagSettings` appears in `get_settings` sources.
+
+**S10 trust** Headless in an untrusted directory loads everything: project hooks run, the
+project `env` applies, `.mcp.json` servers start without approval, and CLAUDE.md is read.
+So mantle's gate must run before spawning. In Claude Code's own trust check, a trusted
+ancestor directory counts: it walks up from the cwd and stops at the git root when inside
+a repository. Trusting the home directory lasts only for the session. Plan 05's gate
+should match this.
+
+**S11 `file_suggestions`** Answers in ~1 ms. Query `""` lists top-level entries (dirs end
+in `/`). Other queries return `[]` until the background index is ready (~1–2 s after
+start), then fuzzy path matches. No control request lists MCP resources.
+
+**S12 subagents** On 2.1.288 the Task tool starts the agent asynchronously:
+- the `tool_result` returns at once ("async agent launched…");
+- `task_started` has `task_type: local_agent`, `is_backgrounded: true`, `spawn_depth` and
+  `prompt`;
+- subagent `assistant` messages are forwarded (`--forward-subagent-text`) with
+  `parent_tool_use_id` = the Task tool_use id and a `task_description`;
+- the subagent's text gets no `stream_event`s;
+- at the end come `task_updated {patch: {status, end_time}}` and `task_notification
+  {status, summary, output_file, usage}`, and the main loop runs a new turn.
+
+**S13 thinking** The default API request has `thinking: {type: enabled, budget_tokens:
+31999, display: updates}`. `--thinking-display summarized` sets `display`;
+`--max-thinking-tokens N` sets the budget. The stream has `thinking_delta` (with
+`estimated_tokens`), then `signature_delta`, plus `system/thinking_tokens` estimates.
+`stream_event` frames carry `thinking_display`.
+
+**S14 fakeapi** The real claude runs fully offline against fakeapi with an isolated
+`CLAUDE_CONFIG_DIR` seeded by `fakeapi.SeedConfig`. That covers headless runs (tests in
+`internal/testkit/enginefake/fakeapi`, `internal/engine/enginetest`) and the interactive
+TUI in a pty: no onboarding, the prompt reaches fakeapi. Trust is keyed by the real path
+(`EvalSymlinks`). Startup probes `HEAD /api/hello`. Side calls carry no tools. With API-key
+auth the engine never emits `rate_limit_event`.
+
+**Undocumented subtypes (B8; re-checked on 2.1.289, 2026-10-04)** All three work in
+headless mode against fakeapi:
+- `get_workspace_diff` returns `{diff: {stats, perFileStats, hunks, skippedLarge,
+  restricted, source}}`.
+- `side_question {question, history}` returns `{response, synthetic}` and emits
+  `system/control_request_progress`.
+- `rewind_conversation {target_message_uuid}` returns `{rewound, targetMessageUuid,
+  prefillText, precedingAssistantUuid}`.
+
+The fallbacks (`git diff`, a forked engine, a restart at `--resume-session-at`) are tested
+against fakeclaude.
+
+**Conformance probe (B9)** The probe sees a project CLAUDE.md, a project hook and a project
+skill on 2.1.289. It makes no model calls, but `get_context_usage` makes ~16 free
+`count_tokens` requests. `scripts/sdk-diff` against SDK 0.3.289 finds no SDK-only names.
+
+**S17 coalescing** Fed by an API that floods deltas, the engine prints ~50,000
+`stream_event` deltas/s. Decoding costs ~1.8 µs per delta. The 16 ms coalescer delivered
+6,600 deltas as 8 messages, so the UI sees at most ~60 delta messages/s per stream.
+**Keep 16 ms.**

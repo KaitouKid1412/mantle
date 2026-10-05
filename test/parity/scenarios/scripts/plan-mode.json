@@ -1,0 +1,29 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Here is my plan."
+        },
+        {
+          "type": "tool_use",
+          "name": "ExitPlanMode",
+          "input": {
+            "plan": "## Plan\n\n1. Rename greet to welcome.\n2. Update the call site.\n3. Run go vet."
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Plan approved; starting with the rename."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

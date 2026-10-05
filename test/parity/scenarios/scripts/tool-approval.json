@@ -1,0 +1,21 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {"type": "text", "text": "I'll create the marker file."},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "touch parity-marker.txt", "description": "Create a marker file"}}
+      ]
+    },
+    {"reply": [{"type": "text", "text": "Created parity-marker.txt."}]},
+    {
+      "reply": [
+        {"type": "text", "text": "Removing the scratch directory."},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "rm -rf scratch-dir", "description": "Remove the scratch directory"}}
+      ]
+    },
+    {"reply": [{"type": "text", "text": "Noted: keep the scratch directory."}]},
+    {"reply": [{"type": "text", "text": "Noted: keep the scratch directory."}]}
+  ],
+  "side_reply": "Marker file",
+  "default_reply": "OK."
+}

@@ -12,6 +12,7 @@ import (
 func storyFeature() *Feature {
 	sf := New("story")
 	sf.store.now = storyClock()
+	sf.cfg.timeZone = "UTC"
 	for _, line := range strings.Split(sampleSession, "\n") {
 		if line = strings.TrimSpace(line); line == "" {
 			continue
@@ -79,6 +80,15 @@ func (f *Feature) registerStories(r ext.Registrar) {
 			},
 		})
 	}
+	r.AddStory(ext.Story{
+		ID: FeatureID + "/viewer",
+		Render: func(c ext.Ctx, a ext.Area) ext.Rendered {
+			sf := storyFeature()
+			v := &viewer{f: sf}
+			a.MaxHeight = 24
+			return v.View(c, a)
+		},
+	})
 	r.AddStory(ext.Story{
 		ID: FeatureID + "/session",
 		Render: func(c ext.Ctx, a ext.Area) ext.Rendered {

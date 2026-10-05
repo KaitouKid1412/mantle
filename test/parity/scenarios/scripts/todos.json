@@ -1,0 +1,68 @@
+{
+  "turns": [
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Planning the work."
+        },
+        {
+          "type": "tool_use",
+          "name": "TaskCreate",
+          "input": {
+            "subject": "Read main.go",
+            "description": "Read it",
+            "activeForm": "Reading main.go"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "tool_use",
+          "name": "TaskCreate",
+          "input": {
+            "subject": "Rename greet",
+            "description": "Rename it",
+            "activeForm": "Renaming greet"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "tool_use",
+          "name": "TaskUpdate",
+          "input": {
+            "taskId": "1",
+            "status": "completed"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "tool_use",
+          "name": "TaskUpdate",
+          "input": {
+            "taskId": "2",
+            "status": "in_progress"
+          }
+        }
+      ]
+    },
+    {
+      "reply": [
+        {
+          "type": "text",
+          "text": "Todo list ready."
+        }
+      ]
+    }
+  ],
+  "side_reply": "Parity session",
+  "default_reply": "OK."
+}

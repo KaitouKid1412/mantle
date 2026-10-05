@@ -28,9 +28,11 @@ func init() {
 			"TR-10", "TR-11", "TR-12", "TR-13", "TR-14", "TR-15", "TR-16", "TR-17", "TR-18",
 			"TR-19", "TR-20", "TR-21", "TR-22", "TR-23", "TR-24", "TR-25", "TR-26", "TR-27",
 			"TR-28", "TR-29", "TR-30", "TR-31", "TR-32", "TR-33", "TR-34", "TR-35", "TR-36",
-			"TR-37", "TR-38", "TR-39", "TR-40", "TR-41", "TR-42", "TR-44", "TR-45", "TR-46",
+			"TR-37", "TR-38", "TR-39", "TR-40", "TR-41", "TR-42", "TR-43", "TR-44", "TR-45", "TR-46",
 			"TR-47", "TR-48", "TR-49", "TR-50", "TR-51", "TR-52", "TR-53", "TR-54", "TR-55",
-			"TR-56", "TR-57", "TR-58", "TR-59", "TR-60", "VW-08", "VW-13",
+			"TR-56", "TR-57", "TR-58", "TR-59", "TR-60",
+			"VW-01", "VW-02", "VW-03", "VW-04", "VW-05", "VW-06", "VW-07", "VW-08", "VW-09",
+			"VW-10", "VW-11", "VW-12", "VW-13",
 		},
 		Setup: func(r ext.Registrar) error { return New(ext.MainEngine).Setup(r) },
 	})
@@ -51,6 +53,8 @@ type Feature struct {
 	live    *liveView
 	spinner *spinner
 
+	views map[string]viewEntry // Store.Lines cache, by item ID
+
 	brief      bool   // brief mode (app:toggleBrief), this session only
 	engineView string // view_mode reported by the engine (/focus toggles it)
 }
@@ -62,6 +66,7 @@ func New(engineID string) *Feature {
 		texts: map[string]*textEntry{},
 		cfg:   defaultConfig(),
 	}
+	f.store.view = f.viewLines
 	f.live = &liveView{f: f}
 	f.spinner = newSpinner(f)
 	return f
@@ -79,7 +84,11 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		f.store.now = c.Clock().Now
 		f.cfg = loadConfig(c.Settings())
 		f.resolve = c.Renderer
-		return ext.Msg(ext.TranscriptAttachMsg{Transcript: f.store})
+		attach := ext.Msg(ext.TranscriptAttachMsg{Transcript: f.store})
+		if f.cfg.defaultView == "transcript" {
+			return tea.Sequence(attach, c.OpenDialog(ViewerDialogID, nil))
+		}
+		return attach
 	})
 	ext.Subscribe(r, "transcript.events", f.onEvent)
 	ext.Subscribe(r, "transcript.cleared", func(c ext.Ctx, _ ext.ScreenClearedMsg) tea.Cmd {
@@ -101,7 +110,7 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		}
 		if m.Reset {
 			f.store.Reset()
-			f.texts = map[string]*textEntry{}
+			f.texts, f.views = map[string]*textEntry{}, nil
 			f.commit = commitState{}
 		}
 		f.store.AppendHistory(m.Items)
@@ -120,6 +129,7 @@ func (f *Feature) Setup(r ext.Registrar) error {
 			return true, tea.Batch(c.Notify(ext.Notice{Key: "transcript.brief", Text: label, Source: FeatureID}), c.Reprint())
 		},
 	})
+	f.registerViewer(r)
 	f.spinner.setup(r)
 	f.registerStories(r)
 	return nil
@@ -148,7 +158,7 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	}
 	if _, ok := m.Event.(*proto.ConversationReset); ok {
 		f.store.Apply(m.Event)
-		f.texts = map[string]*textEntry{}
+		f.texts, f.views = map[string]*textEntry{}, nil
 		f.commit = commitState{}
 		c.Invalidate(LiveID)
 		return tea.Batch(spin, c.Reprint())

@@ -264,15 +264,71 @@ func TestEndToEndEditKeepsModID(t *testing.T) {
 	if prompt := BuildPrompt(ed); !strings.Contains(prompt, "greeting mod") || !strings.Contains(prompt, "say hello instead") || !strings.Contains(prompt, "mods/"+r.ID+"/") {
 		t.Errorf("edit prompt:\n%s", prompt)
 	}
+	// A later mod: squashing rewrites it too.
+	later, _ := e.ws.Start("later mod", RequestMod, "")
+	e.build(later, demoMod(later.ID))
+	e.promote(later)
+	ed, err = e.ws.Load(ed.ID) // base moved on: start the edit again
+	if err == nil {
+		e.ws.Abandon(ed)
+	}
+	ed, err = e.ws.StartEdit(r.ID, "say hello instead")
+	if err != nil {
+		t.Fatal(err)
+	}
 	pkg := strings.ReplaceAll(r.ID, "-", "")
 	e.build(ed, map[string]string{"mods/" + r.ID + "/extra.go": "package " + pkg + "\n\n// Hello2 says hello.\nfunc Hello2() string { return \"hello\" }\n"})
-	e.promote(ed)
+	p := e.promote(ed)
+	if !p.Squashed {
+		t.Error("edit was not squashed")
+	}
 	mods, _ := e.ws.Mods()
-	if len(mods) != 1 || mods[0].ID != r.ID || len(mods[0].Commits) != 2 {
-		t.Errorf("mods after edit = %+v", mods)
+	if len(mods) != 2 || mods[0].ID != r.ID || mods[1].ID != later.ID {
+		t.Fatalf("mods after edit = %+v", mods)
+	}
+	if len(mods[0].Commits) != 1 || mods[0].Request != "greeting mod" || mods[0].Kind() != KindMod {
+		t.Errorf("edited mod = %+v; want one commit with the original request", mods[0])
+	}
+	files := mustGit(t, e.ws.src(), "show", "--name-only", "--format=", mods[0].Commits[0].SHA)
+	if !strings.Contains(files, "mods/"+r.ID+"/extra.go") {
+		t.Errorf("edit not folded into the mod commit: %s", files)
+	}
+	if !slices.Equal(p.Version.Manifest.Mods, []string{r.ID, later.ID}) {
+		t.Errorf("manifest mods = %v", p.Version.Manifest.Mods)
+	}
+	// undo still reverts the whole mod.
+	u, _ := e.ws.StartUndo(r.ID)
+	e.promote(u)
+	if _, err := os.Stat(filepath.Join(e.ws.Source, "mods", r.ID)); !os.IsNotExist(err) {
+		t.Error("undo after edit left files behind")
 	}
 	if _, err := e.ws.StartEdit("nope", "x"); err == nil {
 		t.Error("edit of an unknown mod accepted")
+	}
+}
+
+func TestEditWithMovedBranchKeepsSeparateCommits(t *testing.T) {
+	e := newE2E(t)
+	r, _ := e.ws.Start("greeting mod", RequestMod, "")
+	e.build(r, demoMod(r.ID))
+	e.promote(r)
+	ed, _ := e.ws.StartEdit(r.ID, "say hello instead")
+	pkg := strings.ReplaceAll(r.ID, "-", "")
+	e.build(ed, map[string]string{"mods/" + r.ID + "/extra.go": "package " + pkg + "\n\n// Hello2 says hello.\nfunc Hello2() string { return \"hello\" }\n"})
+	rep := e.vet(ed)
+	other, _ := e.ws.Start("other mod", RequestMod, "")
+	e.build(other, demoMod(other.ID))
+	e.promote(other)
+	p, err := e.ws.Promote(e.ctx, ed, rep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Squashed || !p.Rebased {
+		t.Errorf("promotion = %+v", p)
+	}
+	mods, _ := e.ws.Mods()
+	if len(mods) != 2 || len(mods[0].Commits) != 2 || mods[0].Request != "greeting mod" {
+		t.Errorf("mods = %+v", mods)
 	}
 }
 

@@ -1,0 +1,18 @@
+{
+  "skills": [
+    {
+      "name": "deploy",
+      "description": "Deploy the app",
+      "argumentHint": "[env]"
+    },
+    {
+      "name": "demo:status",
+      "description": "(Demo) Show status",
+      "argumentHint": ""
+    },
+    {
+      "name": "simplify",
+      "description": "Review changed code for reuse and quality"
+    }
+  ]
+}
