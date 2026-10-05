@@ -48,8 +48,8 @@ func TestModelPickerApplyAndPersist(t *testing.T) {
 	if jsonOf(user) != `{"model":"opus[1m]","modelSettings":{"claude-opus-5-5":{"effortLevel":"xhigh"}}}` {
 		t.Errorf("user settings %s", jsonOf(user))
 	}
-	if n := g.noticeTexts(); len(n) != 1 || n[0] != "Model set to Opus (1M context) with xhigh effort" {
-		t.Errorf("notices %q", n)
+	if p := g.printed(); len(p) != 1 || p[0] != "  ⎿  Model set to Opus (1M context) with xhigh effort" {
+		t.Errorf("printed %q", p)
 	}
 	if res, ok := g.closed[0].Result.(interface{}); !ok || res == nil {
 		t.Error("no dialog result")
@@ -67,8 +67,8 @@ func TestModelPickerSessionOnly(t *testing.T) {
 	if len(g.writes) != 0 {
 		t.Errorf("session-only wrote %v", g.writes)
 	}
-	if !strings.HasSuffix(g.noticeTexts()[0], "for this session") {
-		t.Errorf("notice %q", g.noticeTexts())
+	if p := g.printed(); len(p) != 1 || !strings.HasSuffix(p[0], "for this session") {
+		t.Errorf("printed %q", p)
 	}
 }
 
@@ -81,6 +81,9 @@ func TestModelPickerCancelAndDisabled(t *testing.T) {
 	g.press(ext.ActSelectCancel)
 	if g.dialog != nil || len(g.writes) != 0 || len(g.eng.controls) != 1 {
 		t.Errorf("cancel had effects: %v %v", g.writes, g.eng.subtypes())
+	}
+	if p := g.printed(); len(p) != 1 || p[0] != "  ⎿  Kept model as Default (recommended)" {
+		t.Errorf("printed %q", p)
 	}
 }
 

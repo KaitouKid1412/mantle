@@ -342,7 +342,7 @@ func (p *permPanel) HandleAction(c ext.Ctx, id ext.ActionID) (bool, tea.Cmd) {
 	case ext.ActSelectAccept:
 		return true, p.activate(c, items)
 	case ext.ActSelectCancel:
-		return true, c.CloseDialog(dialogPermissions)
+		return true, tea.Sequence(c.CloseDialog(dialogPermissions), resultLine(c, "Permissions closed"))
 	default:
 		return false, nil
 	}
