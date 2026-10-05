@@ -1,6 +1,6 @@
 # 12 → 07: banner, footer, status line and task panel (parity audit)
 
-**Status:** open (2026-10-04). Found by the plan 12 side-by-side suite against claude
+**Status:** §1-§4 done by 07 in 006ad5a on worktree-mantle-07 (startup banner, footer layout and effort hint, status line above the modes and at startup, task panel expanded), plus Panel/FrameTitle from contracts-v1.8; §5 is 06 §3 (2026-10-05). Found by the plan 12 side-by-side suite against claude
 2.1.289 (inline renderer, fakeapi). Plan 07's session is now plan 12's, so plan 12 can
 take these if the coordinator agrees. Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"` and read
