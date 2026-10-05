@@ -241,7 +241,29 @@ func (g Git) identityArgs() []string {
 // commit-split rule: files outside mods/ go into a core-seam commit first,
 // then files under mods/ go into a mod commit. Both carry the same
 // Mantle-Mod id. It returns the new commit shas, oldest first.
-func (g Git) CommitMod(m ModCommit) ([]string, error) {
+func (g Git) CommitMod(m ModCommit) ([]string, error) { return g.commitMod(m, nil) }
+
+// CommitModFixups commits like CommitMod, except that a part whose kind
+// appears in fixupOf (kind → subject of the mod's existing commit of that
+// kind) becomes a "fixup! <subject>" commit, for Autosquash.
+func (g Git) CommitModFixups(m ModCommit, fixupOf map[string]string) ([]string, error) {
+	return g.commitMod(m, fixupOf)
+}
+
+// Autosquash folds fixup! commits into their targets: a non-interactive
+// `rebase -i --autosquash` from base. On conflicts it aborts and returns a
+// *ConflictError, leaving the branch as it was.
+func (g Git) Autosquash(base string) error {
+	args := append(g.identityArgs(), "rebase", "-i", "--autosquash", "--no-autostash", base)
+	if _, err := g.run(args...); err != nil {
+		err = g.conflicts("rebase", err)
+		g.RebaseAbort()
+		return err
+	}
+	return nil
+}
+
+func (g Git) commitMod(m ModCommit, fixupOf map[string]string) ([]string, error) {
 	if !ValidModID(m.ID) {
 		return nil, fmt.Errorf("invalid mod id %q", m.ID)
 	}
@@ -271,7 +293,12 @@ func (g Git) CommitMod(m ModCommit) ([]string, error) {
 		if _, err := g.runRaw(nulJoin(part.files), "add", "-A", "--pathspec-from-file=-", "--pathspec-file-nul"); err != nil {
 			return shas, err
 		}
-		sha, err := g.commit(CommitMessage(m, part.kind))
+		msg := CommitMessage(m, part.kind)
+		if subject, ok := fixupOf[part.kind]; ok && subject != "" {
+			_, trailers, _ := strings.Cut(msg, "\n\n")
+			msg = "fixup! " + subject + "\n\n" + trailers
+		}
+		sha, err := g.commit(msg)
 		if err != nil {
 			return shas, err
 		}

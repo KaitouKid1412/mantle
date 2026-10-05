@@ -124,3 +124,4 @@
 --version,-v                                   none       consume    CLI-13
 --help,-h                                      none       consume    CLI-14
 --safe                                         none       consume    CLI-01  mantle
+--attach-engine-fds                            required   consume    MT-32   hidden,mantle

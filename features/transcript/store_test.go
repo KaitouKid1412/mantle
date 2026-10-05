@@ -226,7 +226,7 @@ func TestStoreUserMessages(t *testing.T) {
 {"type":"user","uuid":"u5","isReplay":true,"isSynthetic":true,"message":{"role":"user","content":"expanded skill text"}}
 {"type":"user","uuid":"u6","message":{"role":"user","content":"not a replay"}}
 `)
-	if keys(s.Items()) != "user.prompt user.bash" {
+	if keys(s.Items()) != "user.prompt user.bash system.local_command" {
 		t.Fatalf("items = %s", keys(s.Items()))
 	}
 	bash := s.Items()[1].Data.(*proto.User).Message.Content.PlainText()

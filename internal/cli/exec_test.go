@@ -42,6 +42,11 @@ esac
 	}
 	t.Setenv(EnvClaudeBin, bin)
 	t.Setenv("MANTLE_HOME", filepath.Join(dir, "mantle"))
+	// Generous timeouts: a loaded machine (a full go test ./...) can take seconds to
+	// start even a shell script. Tests that check timeouts set their own.
+	oldV, oldH := VersionTimeout, HelpTimeout
+	VersionTimeout, HelpTimeout = time.Minute, time.Minute
+	t.Cleanup(func() { VersionTimeout, HelpTimeout = oldV, oldH })
 	return bin, out
 }
 

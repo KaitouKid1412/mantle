@@ -63,6 +63,26 @@ func relTime(now, t time.Time) string {
 	return t.Local().Format("Jan 2, 2006")
 }
 
+// dateGroup is the picker's section for a time: Today, Yesterday, This week, This
+// month or Older (local dates).
+func dateGroup(now, t time.Time) string {
+	y1, m1, d1 := now.Local().Date()
+	y2, m2, d2 := t.Local().Date()
+	day := func(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, time.UTC) }
+	days := int(day(y1, m1, d1).Sub(day(y2, m2, d2)).Hours() / 24)
+	switch {
+	case days <= 0:
+		return "Today"
+	case days == 1:
+		return "Yesterday"
+	case days < 7:
+		return "This week"
+	case days < 30:
+		return "This month"
+	}
+	return "Older"
+}
+
 // shortPath replaces the home directory prefix with "~".
 func shortPath(p, home string) string {
 	if home != "" && (p == home || strings.HasPrefix(p, home+"/")) {

@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/cli"
 	"github.com/KaitouKid1412/mantle/internal/launcher"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
@@ -55,10 +56,49 @@ func (c *controller) onStart(ctx ext.Ctx) tea.Cmd {
 	return ctx.Clock().Tick(HealthyAfter, func(time.Time) tea.Msg { return healthyTickMsg{} })
 }
 
+// handoffArgs are the arguments a relaunch (exit 75, rollback, in-place
+// restart) uses: plan 11's Startup.RestartArgs, which keeps the forwarded
+// flags, -w with the worktree name given at startup and the UI flags, takes
+// the live session name, model and permission mode, and adds --resume. The
+// initial prompt and session selection are never repeated. The startup comes
+// from cmd/mantle-ui (cli.Current); without it, it is rebuilt from argv. On
+// an error it returns nil and the launcher falls back to --resume <session>.
+func handoffArgs(argv []string, cwd string, live ext.SessionInfo) []string {
+	if live.SessionID == "" {
+		return nil
+	}
+	st, ok := cli.Current()
+	if !ok {
+		p, err := cli.Parse(argv)
+		if err != nil {
+			return nil
+		}
+		if st, err = p.Startup(cwd, nil); err != nil {
+			return nil
+		}
+	}
+	return st.RestartArgs(cli.RestartOpts{
+		SessionID:      live.SessionID,
+		Name:           live.Title,
+		Model:          live.Model,
+		PermissionMode: live.PermissionMode,
+	})
+}
+
+// relaunchArgs are handoffArgs for this session as it is now.
+func (c *controller) relaunchArgs() []string {
+	live := c.mainInfo
+	if live.SessionID == "" {
+		live.SessionID = c.run.rf.SessionID
+	}
+	return handoffArgs(c.env.args, c.env.cwd, live)
+}
+
 func (c *controller) writeRunFile(ctx ext.Ctx) {
 	if !c.run.enabled {
 		return
 	}
+	c.run.rf.HandoffArgs = c.relaunchArgs()
 	if err := launcher.WriteRunFile(c.run.path, c.run.rf); err != nil {
 		ctx.Log().Warn("selfmod: run file", "err", err)
 	}
@@ -71,8 +111,13 @@ func (c *controller) onSession(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd {
 		}
 		return nil
 	}
-	if c.run.enabled && m.Info.SessionID != "" && m.Info.SessionID != c.run.rf.SessionID {
-		c.run.rf.SessionID = m.Info.SessionID
+	changed := m.Info.SessionID != "" && m.Info.SessionID != c.run.rf.SessionID ||
+		m.Info.Model != c.mainInfo.Model || m.Info.PermissionMode != c.mainInfo.PermissionMode || m.Info.Title != c.mainInfo.Title
+	c.mainInfo = m.Info
+	if c.run.enabled && changed {
+		if m.Info.SessionID != "" {
+			c.run.rf.SessionID = m.Info.SessionID
+		}
 		c.writeRunFile(ctx)
 	}
 	return nil
@@ -142,6 +187,9 @@ func (c *controller) restart(ctx ext.Ctx) tea.Cmd {
 	if reason := c.busyReason(); reason != "" {
 		return c.notify(ctx, ext.NoticeWarning, "restart",
 			"Not restarting now: "+reason+". The new build starts the next time you run mantle.")
+	}
+	if cmd, ok := c.instantRestart(ctx); ok {
+		return cmd
 	}
 	c.writeRunFile(ctx)
 	return ext.Msg(ext.ExitMsg{Code: ext.ExitRestart, Reason: "/mantle restart"})

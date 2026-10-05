@@ -112,6 +112,13 @@ func fakeUI(dir string) int {
 		WriteRunFile(l.RunFile(os.Getpid()), runFile)
 		os.WriteFile(filepath.Join(dir, "engine.pgid"), []byte(strconv.Itoa(cmd.Process.Pid)), 0o644)
 		return code
+	case "handoff", "handoffhealthy":
+		// An in-place restart into build v2 (same pid), then exit code.
+		if name == "handoffhealthy" {
+			MarkHealthy(l, "v2")
+		}
+		WriteRunFile(l.RunFile(os.Getpid()), RunFile{PID: os.Getpid(), Version: "v2", SessionID: "sess-h"})
+		return code
 	case "enginerecord":
 		// Like internal/engine: a record per engine, naming this UI.
 		cmd := exec.Command("sleep", "30")

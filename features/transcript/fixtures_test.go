@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/x/exp/golden"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/ext/exttest"
 )
 
 // fixtureFiles lists engine stdout recordings: plan 02's (recorded from the
@@ -54,6 +55,8 @@ func TestFixtureReplays(t *testing.T) {
 			var b strings.Builder
 			for _, w := range []int{60, 100, 160} {
 				g := newRig(t, w+1) // print width w
+				g.c.SettingsV = exttest.NewSettings(map[string]any{"timeZone": "UTC"})
+				g.deliver(ext.SettingsMsg{})
 				g.send(onlyJSON(string(raw)))
 				for _, blk := range g.c.Printed {
 					checkLines(t, strings.Split(blk, "\n"), w)

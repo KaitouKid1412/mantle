@@ -43,6 +43,8 @@ func (f *feature) registerPicker(r ext.Registrar) {
 		return newPicker(f, ctx, a), nil
 	})
 	r.AddStory(ext.Story{ID: "sessions.resume-picker", Render: pickerStory})
+	r.AddStory(ext.Story{ID: "sessions.context-grid", Render: contextStory})
+	r.AddStory(ext.Story{ID: "sessions.handoff-dialog", Render: handoffStory})
 }
 
 type pickerScope struct {
@@ -543,18 +545,38 @@ func (p *picker) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 // listView draws two lines per session around the selection.
 func (p *picker) listView(ctx ext.Ctx, w, rows int) []string {
 	th := ctx.Theme()
-	per := rows / 2
-	if per < 1 {
-		per = 1
+	now := ctx.Clock().Now()
+	group := func(vi int) string { return dateGroup(now, p.list[p.view[vi]].Modified) }
+	// end returns the first row index that no longer fits when the window starts at top
+	// (two lines per session, plus a header line where the date group changes).
+	end := func(top int) int {
+		used, prev := 0, ""
+		i := top
+		for ; i < len(p.view); i++ {
+			need := 2
+			if g := group(i); g != prev {
+				need, prev = 3, g
+			}
+			if used+need > rows && i > top {
+				break
+			}
+			used += need
+		}
+		return i
 	}
 	if p.sel < p.top {
 		p.top = p.sel
 	}
-	if p.sel >= p.top+per {
-		p.top = p.sel - per + 1
+	for p.top < p.sel && end(p.top) <= p.sel {
+		p.top++
 	}
 	var out []string
-	for vi := p.top; vi < len(p.view) && vi < p.top+per; vi++ {
+	prev := ""
+	for vi := p.top; vi < end(p.top); vi++ {
+		if g := group(vi); g != prev {
+			out = append(out, fit(th.Fg(theme.Inactive).Bold(true).Render(g), w))
+			prev = g
+		}
 		m := p.list[p.view[vi]]
 		title := m.Title()
 		if title == "" {

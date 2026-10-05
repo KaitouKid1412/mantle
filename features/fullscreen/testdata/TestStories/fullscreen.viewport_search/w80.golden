@@ -1,0 +1,10 @@
+  2. Write the lexer.
+  3. Add tests.
+
+[38;2;111;194;139m⏺[m Bash(go test ./...)
+  ⎿ ok   example.com/[38;2;22;22;26;48;2;231;183;95mpkg0[m1  0.01s
+  ⎿ ok   example.com/[1;38;2;22;22;26;48;2;147;180;251mpkg0[m2  0.02s
+  ⎿ ok   example.com/[38;2;22;22;26;48;2;231;183;95mpkg0[m3  0.03s
+  ⎿ ok   example.com/[38;2;22;22;26;48;2;231;183;95mpkg0[m4  0.04s
+  ⎿ ok   example.com/[38;2;22;22;26;48;2;231;183;95mpkg0[m5  0.05s
+[38;2;139;139;147m/pkg0 · 2 of 9 · n/N next/previous · esc done[m

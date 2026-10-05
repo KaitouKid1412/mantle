@@ -189,6 +189,24 @@ func TestPickerWithoutEngine(t *testing.T) {
 	}
 }
 
+func TestStoriesFitWidths(t *testing.T) {
+	h := newHarness(t)
+	ctx := exttest.NewCtx()
+	for _, s := range h.r.Stories {
+		for _, w := range []int{40, 60, 100, 160} {
+			out := s.Render(ctx, ext.Area{Width: w})
+			for _, line := range strings.Split(out.Text, "\n") {
+				if ansi.StringWidth(line) > w {
+					t.Fatalf("%s at %d: line too wide: %q", s.ID, w, ansi.Strip(line))
+				}
+			}
+			if strings.TrimSpace(out.Text) == "" {
+				t.Fatalf("%s at %d is empty", s.ID, w)
+			}
+		}
+	}
+}
+
 func TestPickerStoryFitsWidths(t *testing.T) {
 	ctx := exttest.NewCtx()
 	for _, w := range []int{40, 60, 100, 160} {

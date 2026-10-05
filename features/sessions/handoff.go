@@ -56,6 +56,16 @@ func (f *feature) registerHandoff(r ext.Registrar) {
 			return ctx.OpenDialog(DialogHandoff, extra)
 		},
 	})
+	// /subtask runs a subagent with the full conversation; the headless engine has no
+	// twin of it, so it opens in Claude Code.
+	r.AddCommand(ext.Command{
+		ID: ext.CommandID("subtask"), Name: "subtask", Source: ext.SourceBuiltin,
+		Description: "Run a task in a subagent that sees the whole conversation (in Claude Code)",
+		ArgHint:     "<task>",
+		Run: func(ctx ext.Ctx, args string) tea.Cmd {
+			return ctx.OpenDialog(DialogHandoff, []string{joinCommand("/subtask", args)})
+		},
+	})
 	r.AddDialog(DialogHandoff, func(ctx ext.Ctx, args any) (ext.Dialog, error) {
 		extra, _ := args.([]string)
 		st := f.engine(ext.MainEngine)

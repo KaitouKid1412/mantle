@@ -209,9 +209,10 @@ or redraw cost.
   answers and `SendUserMessage`; verbose; the engine's `init.view_mode` wins, so
   `/focus` passthrough works; `--verbose` arrives as the flag-scope `verbose`
   setting, see request 03-11) and the ctrl+o viewer (`dialog.transcript`).
-- Fixture replays: `testdata/fixtures/03/*.ndjson` plus plan 02's
-  `testdata/fixtures/02/*.ndjson` when they land (skipped until a golden is recorded
-  with `go test ./features/transcript -run TestFixtureReplays -update`).
+- Fixture replays: `testdata/fixtures/03/*.ndjson` plus all 20 of plan 02's recordings
+  of the real 2.1.288 engine (`testdata/fixtures/02/*.ndjson`), goldens at 60/100/160 in
+  `features/transcript/testdata/TestFixtureReplays/`. A new fixture is skipped until its
+  golden is recorded with `go test ./features/transcript -run TestFixtureReplays -update`.
 - `TestEveryToolRenders` covers every 2.1.288 tool name, MCP and an unknown tool.
 - Tests: store and commit unit tests on `exttest`; vt replays through the real host
   (`TestReplayScrollback` at 80×24, 120×40, 61×16; `TestStreamingNoArtifacts`):

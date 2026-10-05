@@ -1,10 +1,12 @@
 package sessions
 
 import (
+	"strings"
 	"time"
 
 	"github.com/KaitouKid1412/mantle/internal/sessions"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
+	"github.com/KaitouKid1412/mantle/pkg/proto"
 )
 
 // storySessions is fixed picker data for stories and tests.
@@ -21,6 +23,29 @@ func storySessions(now time.Time) []sessions.SessionMeta {
 	}
 }
 
+func contextStory(ctx ext.Ctx, a ext.Area) ext.Rendered {
+	cu := proto.ContextUsage{
+		TotalTokens: 151_000, MaxTokens: 200_000, Percentage: 75.5,
+		Categories: []proto.ContextCategory{
+			{Name: "System prompt", Tokens: 3_100, Color: "promptBorder"},
+			{Name: "System tools", Tokens: 12_000, Color: "inactive"},
+			{Name: "MCP tools", Tokens: 6_400, Color: "ide"},
+			{Name: "Memory files", Tokens: 1_500, Color: "remember"},
+			{Name: "Messages", Tokens: 128_000, Color: "claude"},
+			{Name: "Autocompact buffer", Tokens: 33_000, Kind: "buffer"},
+			{Name: "Free space", Tokens: 16_000, Kind: "free"},
+		},
+	}
+	it := &ext.Item{Key: KeyContextUsage, Data: &ContextReport{Usage: cu, Model: "claude-opus-5-5"}}
+	b := renderContextReport(ext.RenderCtx{Width: a.Width, Theme: ctx.Theme()}, it)
+	return ext.Rendered{Text: strings.Join(b.Lines, "\n")}
+}
+
+func handoffStory(ctx ext.Ctx, a ext.Area) ext.Rendered {
+	d := &handoffDialog{extra: []string{"/privacy-settings"}, tasks: 1, sid: "11111111-1111-4111-8111-111111111111"}
+	return d.View(ctx, a)
+}
+
 func pickerStory(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	p := &picker{
 		f:    newFeature(sessions.Layout{ConfigDir: "/nonexistent"}, ""),
@@ -30,7 +55,7 @@ func pickerStory(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	p.refilter()
 	p.sel = 1
 	if a.MaxHeight == 0 {
-		a.MaxHeight = 14
+		a.MaxHeight = 18
 	}
 	return p.View(ctx, a)
 }

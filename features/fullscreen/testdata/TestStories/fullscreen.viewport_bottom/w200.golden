@@ -1,0 +1,10 @@
+  ⎿ ok   example.com/pkg05  0.05s
+  ⎿ ok   example.com/pkg06  0.06s
+  ⎿ ok   example.com/pkg07  0.07s
+  ⎿ ok   example.com/pkg08  0.08s
+  ⎿ ok   example.com/pkg09  0.09s
+  ⎿ ok   example.com/pkg10  0.10s
+  ⎿ ok   example.com/pkg11  0.11s
+  ⎿ ok   example.com/pkg12  0.12s
+
+[38;2;139;139;147m❯[m Now run the tests

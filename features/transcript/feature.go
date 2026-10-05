@@ -53,6 +53,8 @@ type Feature struct {
 	live    *liveView
 	spinner *spinner
 
+	views map[string]viewEntry // Store.Lines cache, by item ID
+
 	brief      bool   // brief mode (app:toggleBrief), this session only
 	engineView string // view_mode reported by the engine (/focus toggles it)
 }
@@ -64,6 +66,7 @@ func New(engineID string) *Feature {
 		texts: map[string]*textEntry{},
 		cfg:   defaultConfig(),
 	}
+	f.store.view = f.viewLines
 	f.live = &liveView{f: f}
 	f.spinner = newSpinner(f)
 	return f
@@ -107,7 +110,7 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		}
 		if m.Reset {
 			f.store.Reset()
-			f.texts = map[string]*textEntry{}
+			f.texts, f.views = map[string]*textEntry{}, nil
 			f.commit = commitState{}
 		}
 		f.store.AppendHistory(m.Items)
@@ -155,7 +158,7 @@ func (f *Feature) onEvent(c ext.Ctx, m ext.EngineEventMsg) tea.Cmd {
 	}
 	if _, ok := m.Event.(*proto.ConversationReset); ok {
 		f.store.Apply(m.Event)
-		f.texts = map[string]*textEntry{}
+		f.texts, f.views = map[string]*textEntry{}, nil
 		f.commit = commitState{}
 		c.Invalidate(LiveID)
 		return tea.Batch(spin, c.Reprint())

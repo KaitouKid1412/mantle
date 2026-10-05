@@ -129,6 +129,20 @@ func (e *Engine) SendPrompt(p ext.Prompt) error {
 	return r.tr.Send(line)
 }
 
+// UpdateEnv changes environment variables of the running engine
+// (update_environment_variables; there is no reply).
+func (e *Engine) UpdateEnv(vars map[string]string) error {
+	r := e.current()
+	if r == nil {
+		return ErrNotRunning
+	}
+	line, err := proto.UpdateEnvironmentVariables{Variables: vars}.MarshalLine()
+	if err != nil {
+		return err
+	}
+	return r.tr.Send(line)
+}
+
 // Interrupt stops the running turn (interrupt control request).
 func (e *Engine) Interrupt(cancelQueued bool) tea.Cmd {
 	return e.Control(proto.SubInterrupt, proto.InterruptRequest{CancelQueued: cancelQueued})
@@ -262,6 +276,7 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 	r.tr = NewTransport(proc.Stdout(), proc.Stdin())
 	r.tr.Tap = m.Tap
 	r.corr = newCorrelator(r.tr.Send)
+	r.corr.sendNow = r.tr.SendNow
 	r.coal = newCoalescer(e.id, m.CoalesceInterval, e.pump.Enqueue)
 
 	e.mu.Lock()
@@ -274,13 +289,14 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 		ext.SessionChangedMsg{EngineID: e.id, Info: r.track.Info()},
 	})
 	r.runFile = m.writeRunFile(e.id, bin, proc.Pid())
-	stderrDone := make(chan struct{})
+	r.stderrDone = make(chan struct{})
 	go func() {
 		_, _ = io.Copy(r.stderr, proc.Stderr())
-		close(stderrDone)
+		close(r.stderrDone)
 	}()
+	r.tr.Hold() // until the initialize handshake is over
 	r.tr.Start(r.onEvent, func(err error) { m.logf("engine %s: %v", e.id, err) })
-	go r.wait(stderrDone)
+	go r.wait(r.stderrDone)
 	go r.initialize(m.DialogKinds)
 	return nil
 }
@@ -310,7 +326,13 @@ type run struct {
 	stopMu   sync.Mutex
 	stopping bool
 
-	exited  chan struct{}
+	exited chan struct{}
+
+	stderrDone chan struct{}
+
+	initMu  sync.Mutex
+	initRsp json.RawMessage // the initialize response (for hand-off)
+	handed  bool            // handed to another process: exit silently
 	exitErr error
 }
 
@@ -318,31 +340,78 @@ type run struct {
 var VersionTimeout = 5 * time.Second
 
 func (r *run) initialize(dialogKinds []string) {
+	// Nothing else may reach the engine before the initialize reply (the SDK waits
+	// too): the transport holds every other line until the handshake is over.
+	req := proto.InitializeRequest{PromptSuggestions: true, SupportedDialogKinds: dialogKinds}
+	id, body, err := r.corr.RequestBodyNow(context.Background(), req, InitializeTimeout)
+	resp := body.Response
+	if err != nil {
+		r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Err: err})
+		r.failHeld(r.tr.DropHeld(), err)
+		return
+	}
+	r.saveInit(resp)
 	// The version gates unstable subtypes; system/init only reports it on the first
-	// turn, so ask now (zero tokens) alongside initialize.
-	verDone := make(chan struct{})
-	go func() {
-		defer close(verDone)
-		_, resp, err := r.corr.Request(context.Background(), proto.GetBinaryVersionRequest{}, VersionTimeout)
+	// turn, so ask now (zero tokens), still ahead of held lines.
+	if _, vb, verr := r.corr.RequestBodyNow(context.Background(), proto.GetBinaryVersionRequest{}, VersionTimeout); verr == nil {
 		var v proto.BinaryVersion
-		if err == nil && json.Unmarshal(resp, &v) == nil {
+		if json.Unmarshal(vb.Response, &v) == nil {
 			r.caps.SetVersion(v.Version)
 		}
-	}()
-	req := proto.InitializeRequest{PromptSuggestions: true, SupportedDialogKinds: dialogKinds}
-	id, resp, err := r.corr.Request(context.Background(), req, InitializeTimeout)
-	<-verDone
-	if err == nil {
-		var ir proto.InitializeResponse
-		if derr := json.Unmarshal(resp, &ir); derr == nil {
-			r.caps.AddCapabilities(ir.Capabilities)
-			if r.track.ObserveInitialize(&ir) {
-				r.coal.PushMsg(ext.SessionChangedMsg{EngineID: r.e.id, Info: r.track.Info()})
-			}
-			r.coal.PushMsg(r.commandsMsg(ir.Commands))
+	}
+	var ir proto.InitializeResponse
+	if derr := json.Unmarshal(resp, &ir); derr == nil {
+		r.caps.AddCapabilities(ir.Capabilities)
+		if r.track.ObserveInitialize(&ir) {
+			r.coal.PushMsg(ext.SessionChangedMsg{EngineID: r.e.id, Info: r.track.Info()})
+		}
+		r.coal.PushMsg(r.commandsMsg(ir.Commands))
+	}
+	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp})
+	r.replayPending(body.PendingPermissionRequests)
+	r.replayPending(body.PendingUserDialogRequests)
+	r.tr.Release()
+}
+
+// failHeld reports lines that were held for the handshake and never sent: prompts as
+// ControlResultMsg{Subtype: "user"} errors, control requests through their callers.
+func (r *run) failHeld(lines [][]byte, cause error) {
+	err := fmt.Errorf("engine: not sent, initialize failed: %w", cause)
+	for _, l := range lines {
+		var h struct {
+			Type      string `json:"type"`
+			UUID      string `json:"uuid"`
+			RequestID string `json:"request_id"`
+		}
+		if json.Unmarshal(l, &h) != nil {
+			continue
+		}
+		switch h.Type {
+		case proto.TypeUser:
+			r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.TypeUser, RequestID: h.UUID, Err: err})
+		case proto.TypeControlRequest:
+			r.corr.Fail(h.RequestID, err)
 		}
 	}
-	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp, Err: err})
+}
+
+// replayPending re-raises prompts the engine was already waiting on when this client
+// attached (initialize's pending_* lists hold control_request frames). A request that
+// also arrives live is shown once (inboundSet dedupes by request_id).
+func (r *run) replayPending(list json.RawMessage) {
+	var frames []json.RawMessage
+	if len(list) == 0 || json.Unmarshal(list, &frames) != nil {
+		return
+	}
+	for _, f := range frames {
+		ev, err := proto.Decode(f)
+		if err != nil {
+			continue
+		}
+		if cr, ok := ev.(*proto.ControlRequest); ok && cr.RequestID != "" {
+			r.handleRequest(cr)
+		}
+	}
 }
 
 // onEvent runs on the reader goroutine, in stdout order.
@@ -421,6 +490,9 @@ func (r *run) isStopping() bool {
 // wait reaps the process and reports the exit, after all of its output.
 func (r *run) wait(stderrDone <-chan struct{}) {
 	werr := r.proc.Wait()
+	if r.handedOff() {
+		return // the next mantle-ui owns the process now
+	}
 	select {
 	case <-r.tr.ReadDone():
 	case <-time.After(OutputDrainGrace):

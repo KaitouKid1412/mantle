@@ -175,7 +175,7 @@ Everything about conversations as objects:
 - [x] **B5 [M1] Generic H handoff command** (`ext.Command` helper used by plans 08 and 09
   for any not-yet-native `local-jsx` command). Procedure as above, with a notice "Opening in
   Claude Code; exit to return to mantle".
-- [ ] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
+- [x] **B6 [M2] Rewind (`mantle:rewind`, `/rewind`, aliases `checkpoint`, `undo`; double-esc
   on an empty prompt).**
   - A message selector (context `MessageSelector`) over user turns, with a diff summary from
     `rewind_files` dry-run.
@@ -185,7 +185,7 @@ Everything about conversations as objects:
 - [x] **B7 [M2] `/branch [name]` and `/fork [prompt]`.** Branch = fork at the current point
   (`--fork-session`, restart, keep the old one resumable). `/fork` = spawn a background
   session via `claude --bg` or H (Claude Code sends forks to the background).
-- [ ] **B8 [M2] `/export [filename]` and `/copy [N]`.**
+- [x] **B8 [M2] `/export [filename]` and `/copy [N]`.**
   - `/export`: render the normalized transcript as markdown or plain text to a file or the
     clipboard; use the unstable `export_conversation` if supported.
   - `/copy`: copy the last or Nth-latest response; a code-block picker when several blocks
@@ -193,29 +193,59 @@ Everything about conversations as objects:
 - [x] **B9 [M2] Rename and recap.** `/rename [name]` → `rename_session`. `/recap` is
   headless-capable (engine). Away summary: after N minutes away (`awaySummaryEnabled`),
   request a one-line recap and show it (headless has no auto recap).
-- [ ] **B10 [M2] `/btw [question]`.**
+- [x] **B10 [M2] `/btw [question]`.**
   - A side-question overlay that doesn't interrupt.
   - Uses `side_question` if `Supports()`; otherwise a forked one-shot engine
     (`--resume=<sid> --fork-session --no-session-persistence --tools ""`).
   - Keeps about 20 exchanges of history; shift+left/right history; `c` copy, `f` fork,
     `x` clear.
-- [ ] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
+- [x] **B11 [M2] `/diff`.** Uncommitted changes and per-turn diffs: `get_workspace_diff` if
   supported, else `git diff` plus mantle's own tracking of Edit/Write results per turn.
   Alt-screen viewer with a file list (context `DiffDialog`) using `pkg/ui/diffview`.
 - [x] **B12 [M2] Passthrough commands with native polish.** `/goal [condition|clear]`
   (engine; show the active goal from `active_goal`), `/plan [open|desc]` (enable plan mode
   or open the plan file in `$EDITOR`), `/add-dir <path>` (engine command plus
   `register_repo_root`), `/cd <path>` (unstable `set_cwd` or H).
-- [ ] **B13 [M2] `/context`.** A coloured grid from `get_context_usage` (categories: system
+- [x] **B13 [M2] `/context`.** A coloured grid from `get_context_usage` (categories: system
   prompt, tools, MCP tools, memory files, messages, free space), with percentages and token
   counts; `/context all` for detail.
-- [ ] **B14 [M2] `/usage` (aliases cost, stats).** Session cost and tokens per model
+- [x] **B14 [M2] `/usage` (aliases cost, stats).** Session cost and tokens per model
   (`result.modelUsage`), plan usage bars from `get_usage` (rate limits with
   utilization/resetsAt; `d`/`w` toggles day/week), local stats from the index. Auto-compact
   warning when context is high ("Context left until auto-compact: N%") from
   `get_context_usage` or result usage.
-- [ ] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
+- [x] **B15 [M2] Resume-from-summary dialog** (idle > 1 h and > 100k tokens). Offer resume
   as is, or compact first. Mark as H if the engine offers no wire.
+
+**Part B notes (what other plans can rely on):**
+- History reaches the store with `ext.TranscriptHistoryMsg`; startup resume prints the
+  history of `Session().SessionID` from OnStart (the host sets it from plan 11's
+  `Startup.Session`). `/resume <id>` restarts through `ext.EngineStartMsg` with the running
+  engine's own options (`Options()`), or `cli.Current().Spawn` when no engine ran yet.
+- IDs: commands `cmd.resume` (continue), `cmd.clear` (reset, new), `cmd.compact`,
+  `cmd.handoff` (hidden), `cmd.rewind` (checkpoint, undo), `cmd.branch`, `cmd.fork`,
+  `cmd.export`, `cmd.copy`, `cmd.rename`, `cmd.recap`, `cmd.btw`, `cmd.diff`, `cmd.goal`,
+  `cmd.plan`, `cmd.add-dir`, `cmd.cd`, `cmd.context`, `cmd.usage` (cost, stats); action
+  `mantle:rewind`; dialogs `dialog.resume`, `dialog.handoff` (args: `[]string` of extra
+  claude args), `dialog.rewind`, `dialog.rewind-options`, `dialog.export`, `dialog.copy`,
+  `dialog.usage`, `dialog.diff`, `dialog.btw`, `dialog.resume-summary`; renderer key
+  `system.context_usage`; components `sessions.context` (auto-compact countdown),
+  `sessions.goal`, and `sessions.diffPanel` (the fullscreen /diff sidebar in
+  `SlotSidebarR`, request 12-06: `/diff` opens it at ≥ 110 columns in fullscreen, it opens
+  on its own at ≥ 144 once a turn edited files, and draws nothing while closed).
+- Unstable requests used only when `Supports()`: `set_cwd` (else hand-off), `side_question`
+  (`{question, history}` → `{response}`; else a forked `claude -p`). Not used:
+  `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
+  (no documented shapes; mantle has its own path for each).
+- Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
+- PARITY rows without a box above, also done: SE-04 (full output of large tool results
+  on resume, read only from the session's `tool-results` dir), SE-14 (picker grouped by
+  date; project shown in all-projects mode), SE-18 (mantle titles its own sessions after
+  the first turn with `generate_session_title`), SE-21 (`/subtask` hands off). Not done:
+  CU-10 cost warnings (M3; Claude Code gates them on the account's org role).
+- Verified (plan 09's pty spike, Claude Code 2.1.289): an interactive `claude "/status"`
+  runs the slash command at startup, so `dialog.handoff`'s `claude --resume <sid> /cmd`
+  opens the panel directly.
 
 ## Design notes
 

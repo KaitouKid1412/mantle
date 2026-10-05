@@ -18,6 +18,7 @@ const stubGo = `#!/bin/sh
 echo "$* | GOTOOLCHAIN=$GOTOOLCHAIN MANTLE_HOME=$MANTLE_HOME BASE=$ANTHROPIC_BASE_URL" >> "$STUB_DIR/go.calls"
 sub="$1"
 [ "$sub" = test ] && [ "$2" = -race ] && sub=race
+[ "$sub" = test ] && [ "$2" = -count=1 ] && sub=retry
 [ -f "$STUB_DIR/$sub.sleep" ] && { echo $$ > "$STUB_DIR/$sub.pid"; sleep "$(cat "$STUB_DIR/$sub.sleep")"; }
 [ -f "$STUB_DIR/$sub.out" ] && cat "$STUB_DIR/$sub.out"
 if [ "$sub" = build ]; then
@@ -145,7 +146,9 @@ func TestPipelineAllPass(t *testing.T) {
 			t.Errorf("go calls missing %q:\n%s", want, calls)
 		}
 	}
-	if strings.Contains(strings.Split(calls, "\n")[0], "BASE=http") {
+	// vet does not get the safety env (the parent's environment may have its
+	// own MANTLE_HOME when this runs inside a pipeline, so compare paths).
+	if strings.Contains(strings.Split(calls, "\n")[0], "MANTLE_HOME="+filepath.Join(f.logDir, "home")) {
 		t.Errorf("vet should not get the test safety env: %s", calls)
 	}
 	var onDisk Report
@@ -282,6 +285,9 @@ func TestTestFailure(t *testing.T) {
 	f.change(map[string]string{"mods/a/a.go": "package a\n"})
 	f.stub("test.out", "=== RUN   TestX\n--- FAIL: TestX (0.00s)\n    a_test.go:9: got 1, want 2\nFAIL\nFAIL\texample.com/m/mods/a\t0.1s\nok  \texample.com/m/pkg/b\t0.1s\n")
 	f.stub("test.exit", "1")
+	// It fails again when re-run alone: a real failure.
+	f.stub("retry.out", "--- FAIL: TestX (0.00s)\n    a_test.go:9: got 1, want 2\nFAIL\texample.com/m/mods/a\t0.1s\n")
+	f.stub("retry.exit", "1")
 	rep := f.run()
 	r := mustResult(t, rep, StepTest)
 	if r.OK || !slices.Equal(r.Errors, []string{"--- FAIL: TestX (0.00s)", "    a_test.go:9: got 1, want 2"}) {
@@ -289,6 +295,44 @@ func TestTestFailure(t *testing.T) {
 	}
 	if _, ran := rep.Result(StepSelftest); ran {
 		t.Error("selftest ran after failing tests")
+	}
+}
+
+func TestFlakyPackageReRunAlone(t *testing.T) {
+	flaky := "--- FAIL: TestPanelsVT (79.52s)\n    vt.go:12: condition not met after 20s\nFAIL\nFAIL\texample.com/m/features/eco\t85.152s\nok  \texample.com/m/pkg/b\t0.1s\n"
+
+	// Passes when re-run alone: the step passes with a note.
+	f := newPipeFixture(t)
+	f.change(map[string]string{"mods/a/a.go": "package a\n"})
+	f.stub("test.out", flaky)
+	f.stub("test.exit", "1")
+	rep := f.run(StepTest)
+	r := mustResult(t, rep, StepTest)
+	if !r.OK || len(r.Notes) != 1 || r.Notes[0] != "passed when re-run alone: example.com/m/features/eco" {
+		t.Errorf("rescued = %+v", r)
+	}
+	if !strings.Contains(f.calls(), "test -count=1 -p=1 example.com/m/features/eco") {
+		t.Errorf("calls:\n%s", f.calls())
+	}
+
+	// Fails again: a real failure.
+	g := newPipeFixture(t)
+	g.change(map[string]string{"mods/a/a.go": "package a\n"})
+	g.stub("test.out", flaky)
+	g.stub("test.exit", "1")
+	g.stub("retry.out", "--- FAIL: TestPanelsVT (1.00s)\n    vt_test.go:12: wrong\nFAIL\texample.com/m/features/eco\t1.0s\n")
+	g.stub("retry.exit", "1")
+	if r := mustResult(t, g.run(StepTest), StepTest); r.OK || r.Summary != "go test: failed again when re-run alone" || !slices.Contains(r.Errors, "    vt_test.go:12: wrong") {
+		t.Errorf("real failure = %+v", r)
+	}
+
+	// Build failures and many failing packages are not retried.
+	h := newPipeFixture(t)
+	h.change(map[string]string{"mods/a/a.go": "package a\n"})
+	h.stub("test.out", "# example.com/m/x\nx.go:1:1: bad\nFAIL\texample.com/m/x [build failed]\nFAIL\texample.com/m/y\t1.0s\n")
+	h.stub("test.exit", "1")
+	if r := mustResult(t, h.run(StepTest), StepTest); r.OK || strings.Contains(h.calls(), "-count=1") {
+		t.Errorf("build failure retried: %+v\n%s", r, h.calls())
 	}
 }
 
@@ -353,28 +397,53 @@ func TestStepTimeoutKillsProcessGroup(t *testing.T) {
 	f := newPipeFixture(t)
 	f.change(map[string]string{"mods/a/a.go": "package a\n"})
 	f.stub("vet.sleep", "30")
-	f.cfg.Timeouts[StepVet] = 300 * time.Millisecond
+
+	// A step that overruns its timeout is reported as timed out.
+	f.cfg.Timeouts[StepVet] = 200 * time.Millisecond
 	start := time.Now()
 	rep := f.run(StepVet)
-	if d := time.Since(start); d > 10*time.Second {
+	if d := time.Since(start); d > 15*time.Second {
 		t.Errorf("timeout took %s", d)
 	}
-	r := mustResult(t, rep, StepVet)
-	if r.OK || !r.TimedOut || r.Summary != "timed out after 300ms" {
+	if r := mustResult(t, rep, StepVet); r.OK || !r.TimedOut || r.Summary != "timed out after 200ms" {
 		t.Errorf("vet = %+v", r)
 	}
-	// The stub runs in its own process group (pid = pgid); its sleep child
-	// must be gone too.
-	data, err := os.ReadFile(filepath.Join(f.stubDir, "vet.pid"))
-	if err != nil {
-		t.Fatal(err)
+
+	// Ending a step kills its whole process group: the stub (pid = pgid) and
+	// its sleep child. Cancel only once the stub has written its pid, so a
+	// slow start on a loaded machine cannot race the check.
+	f.cfg.Timeouts[StepVet] = time.Minute
+	pidFile := filepath.Join(f.stubDir, "vet.pid")
+	os.Remove(pidFile)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		NewPipeline(f.cfg).Run(ctx, Run{BuildID: "b2", Dir: f.repo.Dir, Base: f.base, LogDir: f.logDir + "-2", Steps: []StepID{StepVet}})
+	}()
+	var pgid int
+	deadline := time.Now().Add(30 * time.Second)
+	for pgid == 0 {
+		if data, err := os.ReadFile(pidFile); err == nil {
+			pgid, _ = strconv.Atoi(strings.TrimSpace(string(data)))
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the stub never wrote its pid")
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-	pgid, _ := strconv.Atoi(strings.TrimSpace(string(data)))
-	deadline := time.Now().Add(3 * time.Second)
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("the pipeline did not return after cancel")
+	}
+	deadline = time.Now().Add(5 * time.Second)
 	for syscall.Kill(-pgid, 0) == nil {
 		if time.Now().After(deadline) {
 			syscall.Kill(-pgid, syscall.SIGKILL)
-			t.Fatalf("process group %d survived the timeout", pgid)
+			t.Fatalf("process group %d survived", pgid)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}

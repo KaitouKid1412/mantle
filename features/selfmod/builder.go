@@ -170,13 +170,34 @@ func (c *controller) onStarted(ctx ext.Ctx, m startedMsg) tea.Cmd {
 	return tea.Batch(c.changed(ctx), c.startEngine(b))
 }
 
+// startEngine starts the builder engine through the startup gates (plan 05
+// subscribes to ext.SpawnGateMsg: builders are auto-trusted, but the API
+// key, bypass and .mcp.json checks still apply). Proceed starts it; Abort
+// fails the build.
 func (c *controller) startEngine(b *build) tea.Cmd {
 	opts := sm.BuilderSpawnOpts(sm.BuilderOptions{
 		RequestID: b.req.ID, Worktree: b.req.Dir, RulesFile: b.rules,
 		Model: b.model, MaxBudgetUSD: b.budget,
 	})
 	opts.Resume = b.sessionID
-	return ext.Msg(ext.EngineStartMsg{EngineID: b.engineID(), Opts: opts})
+	id, reqID := b.engineID(), b.req.ID
+	return ext.Msg(ext.SpawnGateMsg{
+		EngineID: id,
+		Opts:     opts,
+		Proceed:  func(o ext.SpawnOpts) tea.Cmd { return ext.Msg(ext.EngineStartMsg{EngineID: id, Opts: o}) },
+		Abort:    func(reason string) tea.Cmd { return ext.Msg(builderAbortedMsg{id: reqID, reason: reason}) },
+	})
+}
+
+// builderAbortedMsg: the startup gates refused to start the builder.
+type builderAbortedMsg struct{ id, reason string }
+
+func (c *controller) onBuilderAborted(ctx ext.Ctx, m builderAbortedMsg) tea.Cmd {
+	b := c.builds[m.id]
+	if b == nil || !activePhase(b.phase) {
+		return nil
+	}
+	return c.fail(ctx, b, "the builder was not started: "+m.reason, nil)
 }
 
 func (c *controller) stopEngine(b *build) tea.Cmd {
