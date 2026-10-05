@@ -68,12 +68,18 @@ func (f *promptFrame) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	// /rename) on the right.
 	top := frameRule(t, tok, a.Width, f.s.FrameTitle, f.s.Title)
 	bottom := frameRule(t, tok, a.Width, "", "")
+	// One blank row separates the prompt from the transcript above, as in Claude Code. In
+	// fullscreen the effort line sits between them and carries the blank row itself.
+	gap, shift := "", 1
+	if ctx.Layout() != ext.Fullscreen || effortHint(ctx, f.s) == "" {
+		gap, shift = "\n", 2
+	}
 	if r.Cursor != nil {
 		c := *r.Cursor
-		c.Y++
+		c.Y += shift
 		r.Cursor = &c
 	}
-	r.Text = top + "\n" + r.Text + "\n" + bottom
+	r.Text = gap + top + "\n" + r.Text + "\n" + bottom
 	return r
 }
 

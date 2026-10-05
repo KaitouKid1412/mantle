@@ -22,9 +22,9 @@ const WelcomeID = "chrome.welcome"
 // welcome prints mantle's banner into scrollback and raises the startup notices
 // (company announcements, invalid settings files, MCP servers that need sign-in).
 //
-// Like Claude Code it prints the banner at startup, as soon as the engine answers
-// initialize (before any turn, so before the session id is known), and again for each
-// later session (/clear, a resume from the picker).
+// Like Claude Code it prints the banner first thing at startup (OnStart, before any
+// input can be echoed above it, so before the engine has answered initialize or named a
+// session), and again for each later session (/clear, a resume from the picker).
 type welcome struct {
 	s        sessionState
 	account  proto.Account
@@ -50,10 +50,7 @@ func (w *welcome) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 			if json.Unmarshal(m.Resp, &r) == nil {
 				w.account = r.Account
 			}
-			if !w.started {
-				w.observeStartup(ctx)
-				return w.print(ctx, w.s.SessionID)
-			}
+			return w.start(ctx) // only when OnStart didn't run (tests, hosts without it)
 		}
 	case ext.SessionChangedMsg:
 		if !isMain(m.EngineID) || w.s.SessionID == "" || w.s.SessionID == w.printed {
@@ -78,6 +75,15 @@ func (w *welcome) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+// start prints the startup banner once.
+func (w *welcome) start(ctx ext.Ctx) tea.Cmd {
+	if w.started {
+		return nil
+	}
+	w.observeStartup(ctx)
+	return w.print(ctx, w.s.SessionID)
+}
+
 // observeStartup fills in what the host knew at launch (working directory, a --model
 // or resumed session) before any engine event.
 func (w *welcome) observeStartup(ctx ext.Ctx) {
@@ -95,7 +101,11 @@ func (w *welcome) observeStartup(ctx ext.Ctx) {
 func (w *welcome) print(ctx ext.Ctx, sessionID string) tea.Cmd {
 	first := !w.started
 	w.started, w.printed, w.onScreen = true, sessionID, true
-	cmds := []tea.Cmd{ctx.Print(w.banner(ctx, max(20, termWidth(ctx))))}
+	cols := termWidth(ctx)
+	if cols <= 0 {
+		cols = 1 << 10 // size not known yet (startup): the host wraps the print
+	}
+	cmds := []tea.Cmd{ctx.Print(w.banner(ctx, max(20, cols)))}
 	if first {
 		seed := sessionID
 		if seed == "" {

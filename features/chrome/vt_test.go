@@ -82,6 +82,15 @@ func TestVTTitleAndProgress(t *testing.T) {
 	waitOutput(t, hs, "\x1b]2;parser work\a")
 }
 
+func TestVTBannerBeforeTheEngine(t *testing.T) {
+	// The banner comes first, before the engine answers or names a session, so nothing
+	// the user types (or a positional prompt) can be echoed above it.
+	hs := startChrome(t, nil)
+	hs.WaitFor(func(string) bool {
+		return strings.Contains(strings.Join(hs.All(), "\n"), "/help for commands")
+	}, 5*time.Second)
+}
+
 func TestVTStatusLineAndFooter(t *testing.T) {
 	t.Setenv("TERM_PROGRAM", "Apple_Terminal") // no progress bar, no desktop notifications
 	hs := startChrome(t, map[string]any{
