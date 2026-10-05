@@ -1,6 +1,6 @@
 # 12 → 04: input differences, round 2 (parity audit on integration-6)
 
-**Status:** open (2026-10-05). Found by the plan 12 side-by-side suite against claude
+**Status:** done by plan 04 (2026-10-05, worktree-04-input 672c1fa and b734706), verified with make parity-side-by-side: §1 "History 2/2" counted oldest first; §2 VW-22 fullscreen ctrl+r is dialog.historySearch; §3 esc in that dialog restores the prompt; §4 /clear echoed after the reset; §5 skills stay out of the unfiltered / menu (from reload_skills, system/init and a cache), and the headless auto-mode-setup, /agents (hidden in 2.1.289), heapdump and __* engine commands are Hidden. Left to plan 09: its native /agents, /agent-view and the cloud hand-offs (/cloud-plugins, /daemon, ...) need Command.Hidden or an auth-based CommandVisibilityMsg (asked). Found by the plan 12 side-by-side suite against claude
 2.1.289 on integration-6. Regenerate a frame with
 `make parity-side-by-side PARITY_ARGS="-run <scenario>"`; frames in
 `test/parity/out/<scenario>/<checkpoint>.txt`. Keep mantle's own wording.
