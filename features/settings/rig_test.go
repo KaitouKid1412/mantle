@@ -128,6 +128,7 @@ func newRig(t *testing.T) *rig {
 		return termsetup.Proposal{Status: termsetup.Unsupported, Summary: "stub"}, nil
 	}
 	g.a.termApply = func(string, termsetup.Proposal) (string, error) { return "", nil }
+	g.a.autoModeDefaults = nil // never run the real claude in tests
 	g.r = exttest.NewRegistrar()
 	for _, f := range g.a.features() {
 		g.r.Feature = f.ID
@@ -172,6 +173,10 @@ func (g *rig) run(cmd tea.Cmd) {
 }
 
 func (g *rig) deliver(msg tea.Msg) { g.run(ext.Msg(msg)) }
+
+// runCmd executes a Cmd without delivering its messages (for messages only the host
+// handles, such as ExitMsg or a dialog another plan registers).
+func runCmd(cmd tea.Cmd) []tea.Msg { return exttest.Exec(cmd) }
 
 func (g *rig) deliverOne(msg tea.Msg) []tea.Msg {
 	g.msgs = append(g.msgs, msg)

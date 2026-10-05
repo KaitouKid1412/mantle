@@ -55,6 +55,10 @@ type Startup struct {
 	Verbose           bool  // --verbose
 	Safe              bool  // mantle --safe reached mantle-ui: skip user mods
 	PromptSuggestions *bool // --prompt-suggestions, for initialize.promptSuggestions
+	// AttachEngineFDs is the hand-off file of an in-place restart (request 10-02). When
+	// set, the host adopts the engines it lists instead of spawning; Spawn (resuming the
+	// session) is the fallback if adopting fails.
+	AttachEngineFDs string
 	// Worktree is the -w worktree name ("" without -w). The engine creates
 	// .claude/worktrees/<name> on branch worktree-<name> and runs there (init.cwd).
 	// Headless claude never offers to remove it on exit.
@@ -87,6 +91,54 @@ func (s Startup) FlagSettings() (string, error) {
 	return MergeSettings(s.Spawn.Settings, overlay)
 }
 
+// RestartOpts are the live values a relaunch should use instead of the command line's.
+type RestartOpts struct {
+	SessionID      string // the session to resume (required)
+	Name           string // current session name; "" keeps the command line's
+	Model          string // current model; "" keeps the command line's
+	PermissionMode string // current mode; "" keeps the command line's
+}
+
+// RestartArgs is the mantle command line that relaunches this session (the launcher's
+// exit-75 handoff): every forwarded flag, in the form the engine got it (an unnamed -w
+// carries the name mantle gave it, so the restart reuses that worktree and its session
+// directory), the UI flags that must survive (--ax-screen-reader, --prompt-suggestions),
+// and --resume. The prompt, -c, -r, --fork-session, --session-id and --prefill are not
+// repeated.
+func (s Startup) RestartArgs(o RestartOpts) []string {
+	var args []string
+	pick := func(live, startup string) string {
+		if live != "" {
+			return live
+		}
+		return startup
+	}
+	if v := pick(o.Name, s.Spawn.Name); v != "" {
+		args = append(args, "--name="+v)
+	}
+	if v := pick(o.Model, s.Spawn.Model); v != "" {
+		args = append(args, "--model="+v)
+	}
+	if v := pick(o.PermissionMode, s.Spawn.PermissionMode); v != "" {
+		args = append(args, "--permission-mode="+v)
+	}
+	for _, d := range s.Spawn.AddDirs {
+		args = append(args, "--add-dir="+d)
+	}
+	if s.Spawn.Settings != "" {
+		args = append(args, "--settings="+s.Spawn.Settings)
+	}
+	if s.ScreenReader {
+		args = append(args, "--ax-screen-reader")
+	}
+	if s.PromptSuggestions != nil {
+		args = append(args, fmt.Sprintf("--prompt-suggestions=%t", *s.PromptSuggestions))
+	}
+	args = append(args, s.Spawn.ExtraArgs...)
+	// Last, in = form: it starts with "-", so a variadic flag before it ends there.
+	return append(args, "--resume="+o.SessionID)
+}
+
 // ErrNoSession is returned for -c when the directory has no session to continue.
 var ErrNoSession = errors.New("no conversation found to continue in this directory")
 
@@ -109,6 +161,7 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 		ScreenReader:      m.ScreenReader,
 		Verbose:           m.Verbose,
 		Safe:              m.Safe,
+		AttachEngineFDs:   m.AttachEngineFDs,
 		PromptSuggestions: m.PromptSuggestions,
 		Warnings:          slices.Clone(p.Warnings),
 		Unknown:           slices.Clone(p.Unknown),
@@ -162,6 +215,11 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 			break
 		}
 		id, query, err := res.Resolve(cwd, m.ResumeQuery)
+		if err != nil && m.AttachEngineFDs != "" {
+			// An in-place restart must not stop on a lookup: the engine is alive and the
+			// fallback resumes by the ID the old process passed.
+			id, query, err = m.ResumeQuery, "", nil
+		}
 		if err != nil {
 			return s, fmt.Errorf("no conversation found for %q: %w", m.ResumeQuery, err)
 		}

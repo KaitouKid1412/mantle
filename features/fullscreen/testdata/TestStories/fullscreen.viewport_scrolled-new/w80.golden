@@ -1,0 +1,10 @@
+
+[38;2;224;149;110m⏺[m The parser needs three changes:
+  1. Read the grammar.
+  2. Write the lexer.
+  3. Add tests.
+
+[38;2;111;194;139m⏺[m Bash(go test ./...)
+  ⎿ ok   example.com/pkg01  0.01s
+  ⎿ ok   example.com/pkg02  0.02s
+                                                      [38;2;22;22;26;48;2;147;180;251m ↓ 3 new lines · ctrl+end [m

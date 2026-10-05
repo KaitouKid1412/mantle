@@ -135,6 +135,9 @@ func checkOne(rel, imp string) (rule string, bad bool) {
 			return "features must not import mods", true
 		}
 	case under(rel, "mods"):
+		if rel == "mods" && under(impRel, "mods") {
+			return "", false // the root package links every mod (mods/link_<id>.go)
+		}
 		if !under(impRel, "pkg") && !sameMod(rel, impRel) {
 			return "mods may import only pkg/... from mantle", true
 		}

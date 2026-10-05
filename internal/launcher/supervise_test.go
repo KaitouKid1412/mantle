@@ -336,6 +336,7 @@ func TestQuickRestartLoopGivesUp(t *testing.T) {
 	h.install("v1", true)
 	h.current("v1")
 	h.sup.MaxQuickRestarts = 3
+	h.sup.QuickRestartWindow = time.Minute // every launch counts as quick, even on a loaded machine
 	if code := h.run(); code != 1 {
 		t.Fatalf("exit code %d", code)
 	}
@@ -537,6 +538,38 @@ func TestPruneLogs(t *testing.T) {
 	slices.Sort(left)
 	if len(left) != 2 || filepath.Base(left[0]) != "3.log" || filepath.Base(left[1]) != "4.log" {
 		t.Errorf("left = %v", left)
+	}
+}
+
+func TestHandoffAccountsToTheNewBuild(t *testing.T) {
+	// v1 (healthy) execs v2 in place, then crashes: the failure is v2's.
+	h := newHarness(t, "handoff:3")
+	h.install("v1", true)
+	h.install("v2", false)
+	h.current("v2")
+	h.lastGood("v1")
+	h.current("v1") // the launcher starts v1; v1 hands off to v2
+	if code := h.run(); code != 3 {
+		t.Fatalf("exit code %d", code)
+	}
+	if st := LoadProbation(h.l, "v2"); st.Failures != 1 {
+		t.Errorf("v2 state = %+v, want one failure", st)
+	}
+	if st := LoadProbation(h.l, "v1"); st.Failures != 0 || !st.Healthy {
+		t.Errorf("v1 state = %+v", st)
+	}
+
+	// v2 passes probation after a hand-off: last-good follows.
+	g := newHarness(t, "handoffhealthy:0")
+	g.install("v1", true)
+	g.install("v2", false)
+	g.current("v1")
+	g.lastGood("v1")
+	if code := g.run(); code != 0 {
+		t.Fatalf("exit code %d", code)
+	}
+	if g.store.LastGoodID() != "v2" {
+		t.Errorf("last-good = %s, want v2", g.store.LastGoodID())
 	}
 }
 

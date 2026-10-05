@@ -2,6 +2,9 @@ package sessions
 
 import (
 	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -24,6 +27,45 @@ type NormalizeOptions struct {
 	// SubagentsDir is the session's subagents directory (sessions.SubagentsDir); when
 	// set, subagent transcripts are nested under their Agent tool call.
 	SubagentsDir string
+	// Leaf, when set, normalizes the branch ending at that message instead of the
+	// active one (a rewound conversation before the engine has written to it).
+	Leaf string
+	// ToolResultsDir is the session's tool-results directory; when set, results the
+	// engine cut to a preview (<persisted-output>) get their saved full output back.
+	ToolResultsDir string
+}
+
+// maxPersisted caps how much of a saved tool output history loads.
+const maxPersisted = 1 << 20
+
+var persistedPathRE = regexp.MustCompile(`saved to:\s*(\S+)`)
+
+// persistedOutput replaces a <persisted-output> preview with the full output the
+// engine saved under the session's tool-results directory (only there, at most 1 MB).
+func (n *normalizer) persistedOutput(c proto.Content) proto.Content {
+	dir := n.opts.ToolResultsDir
+	text := c.PlainText()
+	if dir == "" || !strings.Contains(text, "<persisted-output>") {
+		return c
+	}
+	m := persistedPathRE.FindStringSubmatch(text)
+	if m == nil {
+		return c
+	}
+	p := filepath.Clean(m[1])
+	if rel, err := filepath.Rel(dir, p); err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+		return c
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return c
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, maxPersisted))
+	if err != nil || len(b) == 0 {
+		return c
+	}
+	return proto.TextContent(string(b))
 }
 
 // Normalize turns a transcript's active branch into transcript items, using the same
@@ -38,7 +80,14 @@ func Normalize(t *sessions.Transcript, opts NormalizeOptions) []*ext.Item {
 		}
 	}
 	n.inline = sessions.Sidechains(t.Entries)
-	n.entries(t.Main(sessions.BranchOptions{AcrossCompaction: opts.AcrossCompaction}), "", 0)
+	bo := sessions.BranchOptions{AcrossCompaction: opts.AcrossCompaction}
+	branch := t.Main(bo)
+	if opts.Leaf != "" {
+		if leaf := t.Tree.Node(opts.Leaf); leaf != nil {
+			branch = t.Tree.Branch(leaf, bo)
+		}
+	}
+	n.entries(branch, "", 0)
 	return n.items
 }
 
@@ -194,6 +243,7 @@ func (n *normalizer) user(e *sessions.Entry, parent string, depth int) {
 			continue
 		}
 		res := r
+		res.Content = n.persistedOutput(res.Content)
 		n.finishTool(tool, &res, e.Timestamp)
 		if depth < maxDepth && isAgentTool(tool.Key) {
 			n.nestSubagent(tool, e, depth)

@@ -1,0 +1,21 @@
+[1;38;2;224;149;110mMemory[m
+
+  [1;38;2;230;227;222mUser[m
+  [38;2;147;180;251m❯ [m[38;2;156;200;230m●[m [38;2;147;180;251m~/.claude/CLAUDE.md[m
+    [38;2;156;200;230m●[m [38;2;230;227;222m~/notes/style.md    [m  [38;2;139;139;147mimported by CLAUDE.md[m
+
+  [1;38;2;230;227;222mProject[m
+    [38;2;156;200;230m●[m [38;2;230;227;222mCLAUDE.md[m
+    [38;2;156;200;230m●[m [38;2;230;227;222m.claude/rules/api.md[m  [38;2;139;139;147mrule · for src/api/**[m
+
+  [1;38;2;230;227;222mLocal · only you[m
+    [38;2;85;85;92m+[m [38;2;230;227;222mCLAUDE.local.md     [m  [38;2;139;139;147mnot created yet[m
+
+  [1;38;2;230;227;222mAuto memory[m
+    [38;2;156;200;230m●[m [38;2;230;227;222m~/.claude/projects/-work-repo/memory/MEMORY.md[m
+
+  [1;38;2;230;227;222mSettings[m
+    [38;2;230;227;222mAuto memory: on     [m  [38;2;139;139;147mClaude saves what it learns; press enter to turn off[m
+    [38;2;230;227;222mOpen the auto-memory folder[m  [38;2;139;139;147m~/.claude/projects/-work-repo/memory[m
+
+  [38;2;139;139;147menter open · a auto memory on/off · esc close[m

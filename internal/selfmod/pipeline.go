@@ -158,6 +158,8 @@ type Result struct {
 	Errors []string `json:"errors,omitempty"`
 	// More counts error lines dropped by MaxErrorLines.
 	More int `json:"more,omitempty"`
+	// Notes record what the step tolerated (packages that passed on a re-run).
+	Notes []string `json:"notes,omitempty"`
 }
 
 // Report is a pipeline run's outcome.
@@ -317,6 +319,7 @@ func (p *Pipeline) runStep(ctx context.Context, n int, s StepID, r Run, rep *Rep
 		stepErr = fmt.Errorf("unknown step %q", s)
 	}
 	res.Duration = time.Since(start)
+	res.Notes = sc.notes
 	var skip errSkip
 	var fail *stepFailure
 	switch {
@@ -344,10 +347,11 @@ func (p *Pipeline) runStep(ctx context.Context, n int, s StepID, r Run, rep *Rep
 
 // stepCtx carries one step's state.
 type stepCtx struct {
-	p   *Pipeline
-	r   Run
-	rep *Report
-	log io.Writer
+	p     *Pipeline
+	r     Run
+	rep   *Report
+	log   io.Writer
+	notes []string
 }
 
 // safetyEnv keeps tests and smoke boots away from the real API and the
@@ -580,10 +584,34 @@ func (sc *stepCtx) build(ctx context.Context) error {
 	return nil
 }
 
-// test is step 7.
+// MaxRetriedPackages is how many failed packages step 7 re-runs once before
+// it gives up: more failures than that are not load flakes.
+const MaxRetriedPackages = 3
+
+// failedTestRe matches a package whose tests failed (not a build failure).
+var failedTestRe = regexp.MustCompile(`(?m)^FAIL\t(\S+)\t[0-9.]+s$`)
+
+// test is step 7. A few packages that fail during the parallel run are
+// re-run once, alone: slow terminal tests can time out under the load of
+// the whole suite. A real failure fails twice; a rescue is noted.
 func (sc *stepCtx) test(ctx context.Context) error {
-	if err := sc.goCmd(ctx, sc.safetyEnv(), "test", "./..."); err != nil {
-		return err
+	env := sc.env(sc.safetyEnv())
+	out, err := sc.exec(ctx, sc.r.Dir, env, sc.p.cfg.Go, "test", "./...")
+	if err != nil {
+		var pkgs []string
+		for _, m := range failedTestRe.FindAllStringSubmatch(out, -1) {
+			pkgs = append(pkgs, m[1])
+		}
+		if len(pkgs) == 0 || len(pkgs) > MaxRetriedPackages || ctx.Err() != nil ||
+			strings.Contains(out, "[build failed]") || strings.Contains(out, "[setup failed]") {
+			return &stepFailure{summary: "go test: " + err.Error(), lines: extractErrors(out)}
+		}
+		fmt.Fprintf(sc.log, "\n[pipeline] re-running %s once, alone\n", strings.Join(pkgs, " "))
+		out2, err2 := sc.exec(ctx, sc.r.Dir, env, sc.p.cfg.Go, append([]string{"test", "-count=1", "-p=1"}, pkgs...)...)
+		if err2 != nil {
+			return &stepFailure{summary: "go test: failed again when re-run alone", lines: extractErrors(out2)}
+		}
+		sc.notes = append(sc.notes, "passed when re-run alone: "+strings.Join(pkgs, " "))
 	}
 	for _, pkg := range sc.p.cfg.RacePackages {
 		dir := filepath.Join(sc.r.Dir, strings.TrimSuffix(strings.TrimPrefix(pkg, "./"), "/..."))

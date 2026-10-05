@@ -276,6 +276,7 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 	r.tr = NewTransport(proc.Stdout(), proc.Stdin())
 	r.tr.Tap = m.Tap
 	r.corr = newCorrelator(r.tr.Send)
+	r.corr.sendNow = r.tr.SendNow
 	r.coal = newCoalescer(e.id, m.CoalesceInterval, e.pump.Enqueue)
 
 	e.mu.Lock()
@@ -293,6 +294,7 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 		_, _ = io.Copy(r.stderr, proc.Stderr())
 		close(r.stderrDone)
 	}()
+	r.tr.Hold() // until the initialize handshake is over
 	r.tr.Start(r.onEvent, func(err error) { m.logf("engine %s: %v", e.id, err) })
 	go r.wait(r.stderrDone)
 	go r.initialize(m.DialogKinds)
@@ -338,38 +340,58 @@ type run struct {
 var VersionTimeout = 5 * time.Second
 
 func (r *run) initialize(dialogKinds []string) {
+	// Nothing else may reach the engine before the initialize reply (the SDK waits
+	// too): the transport holds every other line until the handshake is over.
+	req := proto.InitializeRequest{PromptSuggestions: true, SupportedDialogKinds: dialogKinds}
+	id, body, err := r.corr.RequestBodyNow(context.Background(), req, InitializeTimeout)
+	resp := body.Response
+	if err != nil {
+		r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Err: err})
+		r.failHeld(r.tr.DropHeld(), err)
+		return
+	}
+	r.saveInit(resp)
 	// The version gates unstable subtypes; system/init only reports it on the first
-	// turn, so ask now (zero tokens) alongside initialize.
-	verDone := make(chan struct{})
-	go func() {
-		defer close(verDone)
-		_, resp, err := r.corr.Request(context.Background(), proto.GetBinaryVersionRequest{}, VersionTimeout)
+	// turn, so ask now (zero tokens), still ahead of held lines.
+	if _, vb, verr := r.corr.RequestBodyNow(context.Background(), proto.GetBinaryVersionRequest{}, VersionTimeout); verr == nil {
 		var v proto.BinaryVersion
-		if err == nil && json.Unmarshal(resp, &v) == nil {
+		if json.Unmarshal(vb.Response, &v) == nil {
 			r.caps.SetVersion(v.Version)
 		}
-	}()
-	req := proto.InitializeRequest{PromptSuggestions: true, SupportedDialogKinds: dialogKinds}
-	id, body, err := r.corr.RequestBody(context.Background(), req, InitializeTimeout)
-	resp := body.Response
-	if err == nil {
-		r.saveInit(resp)
 	}
-	<-verDone
-	if err == nil {
-		var ir proto.InitializeResponse
-		if derr := json.Unmarshal(resp, &ir); derr == nil {
-			r.caps.AddCapabilities(ir.Capabilities)
-			if r.track.ObserveInitialize(&ir) {
-				r.coal.PushMsg(ext.SessionChangedMsg{EngineID: r.e.id, Info: r.track.Info()})
-			}
-			r.coal.PushMsg(r.commandsMsg(ir.Commands))
+	var ir proto.InitializeResponse
+	if derr := json.Unmarshal(resp, &ir); derr == nil {
+		r.caps.AddCapabilities(ir.Capabilities)
+		if r.track.ObserveInitialize(&ir) {
+			r.coal.PushMsg(ext.SessionChangedMsg{EngineID: r.e.id, Info: r.track.Info()})
 		}
+		r.coal.PushMsg(r.commandsMsg(ir.Commands))
 	}
-	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp, Err: err})
-	if err == nil {
-		r.replayPending(body.PendingPermissionRequests)
-		r.replayPending(body.PendingUserDialogRequests)
+	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp})
+	r.replayPending(body.PendingPermissionRequests)
+	r.replayPending(body.PendingUserDialogRequests)
+	r.tr.Release()
+}
+
+// failHeld reports lines that were held for the handshake and never sent: prompts as
+// ControlResultMsg{Subtype: "user"} errors, control requests through their callers.
+func (r *run) failHeld(lines [][]byte, cause error) {
+	err := fmt.Errorf("engine: not sent, initialize failed: %w", cause)
+	for _, l := range lines {
+		var h struct {
+			Type      string `json:"type"`
+			UUID      string `json:"uuid"`
+			RequestID string `json:"request_id"`
+		}
+		if json.Unmarshal(l, &h) != nil {
+			continue
+		}
+		switch h.Type {
+		case proto.TypeUser:
+			r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.TypeUser, RequestID: h.UUID, Err: err})
+		case proto.TypeControlRequest:
+			r.corr.Fail(h.RequestID, err)
+		}
 	}
 }
 

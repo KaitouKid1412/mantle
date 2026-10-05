@@ -223,18 +223,12 @@ func TestHandoffAndRestart(t *testing.T) {
 	eng := ecotest.NewEngine()
 	ctx := ecotest.NewCtx(eng, "/work")
 
-	eco.Handoff(ctx, "/teleport")
-	if len(ctx.Notices) != 1 || !strings.Contains(ctx.Notices[0].Text, "claude --resume 11111111") ||
-		!strings.Contains(ctx.Notices[0].Text, "/teleport") {
-		t.Errorf("fallback notice = %+v", ctx.Notices)
+	eco.Handoff(ctx, " /teleport ")
+	eco.Handoff(ctx, "")
+	if len(ctx.Opened) != 2 || ctx.Opened[0] != eco.HandoffDialogID {
+		t.Errorf("handoff opens plan 06's dialog: %v", ctx.Opened)
 	}
-	var ran string
-	ctx.CommandList = append(ctx.CommandList, ext.Command{Name: eco.HandoffCommand, Hidden: true,
-		Run: func(c ext.Ctx, args string) tea.Cmd { ran = args; return nil }})
-	eco.Handoff(ctx, "/teleport")
-	if ran != "/teleport" {
-		t.Errorf("handoff command got %q", ran)
-	}
+	ctx.Opened = nil
 
 	exttest.Exec(eco.RestartEngine(ctx, "to load the new login"))
 	if len(eng.Restarts) != 1 || eng.Restarts[0].Resume != ctx.SessionValue.SessionID || eng.Restarts[0].Cwd != "/work" {
@@ -258,5 +252,25 @@ func TestHandoffAndRestart(t *testing.T) {
 	exttest.Exec(eco.RestartEngine(ctx, ""))
 	if last := ctx.Notices[len(ctx.Notices)-1]; !strings.Contains(last.Text, "isn't running") {
 		t.Errorf("no engine notice = %+v", last)
+	}
+}
+
+// TestDialogInvalidatesOnResults guards the host's render cache: a view that
+// changes state on an async result must be redrawn.
+func TestDialogInvalidatesOnResults(t *testing.T) {
+	ctx := exttest.NewCtx()
+	d := eco.NewDialog("dialog.test", "Test", &recView{})
+	for _, m := range []tea.Msg{eco.ResultMsg{Key: "x"}, eco.ExecDoneMsg{Key: "x"}, ext.ControlResultMsg{Subtype: "x"},
+		ext.SettingsMsg{}, ext.AddressedMsg{To: "dialog.test", Msg: "hi"}} {
+		ctx.Invalidated = nil
+		d.Update(ctx, m)
+		if len(ctx.Invalidated) != 1 || ctx.Invalidated[0] != "dialog.test" {
+			t.Errorf("%T: invalidated %v", m, ctx.Invalidated)
+		}
+	}
+	ctx.Invalidated = nil
+	d.Update(ctx, "unrelated broadcast")
+	if len(ctx.Invalidated) != 0 {
+		t.Errorf("unrelated messages must not invalidate: %v", ctx.Invalidated)
 	}
 }

@@ -14,10 +14,14 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/KaitouKid1412/mantle/internal/cli"
@@ -43,9 +47,22 @@ func run(args []string) int {
 		outMD     = fs.String("out", "docs/parity-drift.md", "markdown report ('' to skip)")
 		outJSON   = fs.String("json", "docs/parity-drift.json", "JSON report ('' to skip)")
 		accept    = fs.Bool("accept", false, "write the collected snapshot to the baseline")
+		knownOut  = fs.String("known", "internal/cli/known_engine.json", "with -accept, also write the engine tables mantle embeds here")
+		catalog   = fs.String("catalog", "auto", "mantle-ui catalog JSON file; 'auto' runs go run ./cmd/mantle-ui catalog --json; 'none' skips")
+		noEngine  = fs.Bool("no-engine", false, "skip the zero-token engine session (commands, tools, output styles, models)")
+		runtime   = fs.String("runtime", "", "run mantle's startup drift check with this state file and print its notice")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	if *runtime != "" {
+		s, ran, err := cli.RuntimeDrift(context.Background(), *runtime)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "drift:", err)
+			return 2
+		}
+		fmt.Printf("ran=%v engine=%s known=%s notice=%q errors=%q\n", ran, s.EngineVersion, s.KnownVersion, s.Notice(), s.Errors)
+		return 0
 	}
 
 	var snap Snapshot
@@ -56,7 +73,8 @@ func run(args []string) int {
 			return 2
 		}
 	} else {
-		c := &Collector{Claude: *claudeBin, Binary: *binary, Cache: *cache, Offline: *offline, Log: os.Stderr}
+		c := &Collector{Claude: *claudeBin, Binary: *binary, Cache: *cache, Offline: *offline, Log: os.Stderr,
+			NoEngine: *noEngine, SDKDiff: sdkDiffRunner()}
 		snap = c.Collect(context.Background())
 		if err := os.MkdirAll(*cache, 0o755); err == nil {
 			_ = saveJSON(filepath.Join(*cache, "snapshot.json"), snap)
@@ -74,12 +92,21 @@ func run(args []string) int {
 			return 2
 		}
 		fmt.Fprintf(os.Stderr, "drift: baseline %s now holds claude %s\n", *baseline, snap.ClaudeVersion)
+		if *knownOut != "" {
+			if err := saveJSON(*knownOut, knownEngine(snap)); err != nil {
+				fmt.Fprintln(os.Stderr, "drift:", err)
+				return 2
+			}
+		}
 	}
 
 	known, err := loadKnown(*baseline, *parity)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "drift:", err)
 		return 2
+	}
+	if known.Catalog, err = loadCatalog(context.Background(), *catalog); err != nil {
+		fmt.Fprintf(os.Stderr, "drift: catalog unavailable, using PARITY.md and the baseline only: %v\n", err)
 	}
 	r := Compare(snap, known)
 	r.Generated = time.Now().UTC().Format("2006-01-02")
@@ -121,6 +148,71 @@ func loadKnown(baselinePath, parityPath string) (Known, error) {
 	defer f.Close()
 	k.Parity, err = parseParity(f)
 	return k, err
+}
+
+// knownEngine extracts the engine tables mantle embeds for its runtime drift check:
+// command names with aliases, and tool names.
+func knownEngine(s Snapshot) cli.KnownEngine {
+	k := cli.KnownEngine{ClaudeVersion: s.ClaudeVersion, Commands: []string{}, Tools: []string{}}
+	if l := s.List(KindSlash); l.Available() {
+		for _, it := range l.Items {
+			k.Commands = append(k.Commands, it.Name)
+			if a := it.Attrs["aliases"]; a != "" {
+				k.Commands = append(k.Commands, strings.Split(a, ",")...)
+			}
+		}
+	}
+	if l := s.List(KindTool); l.Available() {
+		for _, it := range l.Items {
+			k.Tools = append(k.Tools, it.Name)
+		}
+	}
+	slices.Sort(k.Commands)
+	k.Commands = slices.Compact(k.Commands)
+	slices.Sort(k.Tools)
+	return k
+}
+
+// sdkDiffRunner runs plan 02's scripts/sdk-diff when the tree has it. Its JSON output is
+// read tolerantly: an array of names, or of objects with "name" and optional "kind".
+func sdkDiffRunner() func(ctx context.Context) ([]Item, error) {
+	if st, err := os.Stat("scripts/sdk-diff"); err != nil || !st.IsDir() {
+		return nil
+	}
+	return func(ctx context.Context) ([]Item, error) {
+		ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		defer cancel()
+		out, err := exec.CommandContext(ctx, "go", "run", "./scripts/sdk-diff", "-json").Output()
+		if err != nil {
+			return nil, fmt.Errorf("scripts/sdk-diff -json: %w", err)
+		}
+		return parseSDKDiff(out)
+	}
+}
+
+func parseSDKDiff(out []byte) ([]Item, error) {
+	var names []string
+	if json.Unmarshal(out, &names) == nil {
+		items := make([]Item, 0, len(names))
+		for _, n := range names {
+			items = append(items, Item{Name: n})
+		}
+		return items, nil
+	}
+	var objs []struct {
+		Name string `json:"name"`
+		Kind string `json:"kind"`
+	}
+	if err := json.Unmarshal(out, &objs); err != nil {
+		return nil, fmt.Errorf("scripts/sdk-diff output: %w", err)
+	}
+	var items []Item
+	for _, o := range objs {
+		if o.Name != "" {
+			items = append(items, Item{Name: o.Name, Scope: o.Kind})
+		}
+	}
+	return items, nil
 }
 
 func writeReports(r Report, md, js string) error {

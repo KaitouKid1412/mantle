@@ -1,3 +1,6 @@
+// Package settingsfile reads Claude Code's settings files for the panels that need each
+// scope on its own, fresh from disk (/permissions right after a write, /status when
+// the host has no source list). It never writes; writes go through internal/config.
 package settingsfile
 
 import (
@@ -8,6 +11,7 @@ import (
 	"runtime"
 
 	"github.com/KaitouKid1412/mantle/features/settings/patch"
+	"github.com/KaitouKid1412/mantle/internal/config"
 )
 
 // ManagedPath is the managed (policy) settings file for an OS.
@@ -67,7 +71,7 @@ func readSource(scope patch.Scope, path string) Source {
 		s.Err = err
 		return s
 	}
-	s.Doc, _, s.Err = Decode(b)
+	s.Doc, _, s.Err = config.Decode(b)
 	return s
 }
 

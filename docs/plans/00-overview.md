@@ -367,6 +367,10 @@ your branch with `git merge <tag>`):
 - `contracts-v1` (2026-10-03, plan 01): `pkg/ext` (+ `pkg/ext/exttest`), `pkg/theme`,
   keymap ID table and defaults (`pkg/ext/keys.go`, `actions.go`), `internal/testkit`,
   `internal/archtest`. Includes `proto-v1`.
+- `contracts-v1.1` … `contracts-v1.7` (2026-10-03/04, plan 01): additive `pkg/ext`
+  releases answering requests from plans 02–12, one file per release
+  (`pkg/ext/v1_2.go` … `v1_7.go`; v1.1 is in `ctx.go`/`component.go`). Prefer the
+  coordinator's `integration-N` tags over merging these one by one.
 
 ## Rules for parallel sessions (also in CLAUDE.md)
 

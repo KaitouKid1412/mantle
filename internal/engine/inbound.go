@@ -157,7 +157,7 @@ func (r *run) answer(id string, resp any, err error) {
 	if merr != nil {
 		line, _ = proto.MarshalControlError(id, "mantle: "+merr.Error())
 	}
-	if serr := r.tr.Send(line); serr != nil {
+	if serr := r.tr.SendNow(line); serr != nil { // answers to the engine never wait behind the handshake hold
 		r.e.mgr.logf("engine %s: reply %s: %v", r.e.id, id, serr)
 	}
 }

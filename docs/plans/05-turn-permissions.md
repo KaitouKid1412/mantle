@@ -177,50 +177,97 @@ Everything that decides *whether* and *how* Claude proceeds:
 
 ## Part B: after `contracts-v1` and `proto-v1`
 
-- [ ] **B1 [M1] Permission flow.** Subscribe to `ext.PermissionMsg`; open
+- [x] **B1 [M1] Permission flow.** Subscribe to `ext.PermissionMsg`; open
   `dialog.permission` (PlaceInline, replacing the input like Claude Code); reply via
   `Reply`.
   - Label with the engine (main / "Builder <id>" / subagent name from `agent_id`).
   - Queue several pending requests in order.
   - Close on `control_cancel_request`.
-  - On (re)initialize, recover `pending_permission_requests`.
-- [ ] **B2 [M1] AskUserQuestion and plan approval dialogs** wired the same way (dialog IDs
+  - On (re)initialize, recover `pending_permission_requests`. *(Plan 02's bridge re-raises
+    them as ordinary `PermissionMsg` / `ControlRequestMsg`, once per `request_id`; the
+    queue handles them unchanged. See `docs/plans/requests/05-02-pending-permission-requests.md`.)*
+- [x] **B2 [M1] AskUserQuestion and plan approval dialogs** wired the same way (dialog IDs
   `dialog.askUserQuestion`, `dialog.planApproval`).
-- [ ] **B3 [M1] Mode cycling.** `chat:cycleMode` (shift+tab) and `confirm:cycleMode` in
+- [x] **B3 [M1] Mode cycling.** `chat:cycleMode` (shift+tab) and `confirm:cycleMode` in
   dialogs → `set_permission_mode`; update the footer indicator (plan 07 renders it from
   `SessionInfo.PermissionMode`); the startup mode follows the interactive defaults.
-- [ ] **B4 [M1] Interrupt and exit.** `chat:cancel` (esc) → `Interrupt(false)` while
+- [x] **B4 [M1] Interrupt and exit.** `chat:cancel` (esc) → `Interrupt(false)` while
   running; `app:interrupt` (ctrl+c) with the clear-input / double-press-exit ladder;
   ctrl+d double press (800 ms) exits; graceful engine shutdown (`end_session`).
-- [ ] **B5 [M1] Queue.**
+- [x] **B5 [M1] Queue.**
   - Show queued prompts (gray, `SlotAboveInput`) from plan 04's `QueuedPromptsMsg` and
     engine acks (`--replay-user-messages` / `command_lifecycle`, per S2).
   - Up arrow on an empty prompt pulls queued messages back into the editor
-    (`cancel_async_message`).
-  - `chat:sendNow` → priority `now`; `chat:queueSubmit` → `later`.
-- [ ] **B6 [M1] Startup gates wired before spawn.**
+    (`cancel_async_message`). *(Agreed with plan 04: the input feature owns the queue state,
+    the take-back and the priorities; plan 05 renders the queue.)*
+  - `chat:sendNow` → priority `now`; `chat:queueSubmit` → `later`. *(Plan 04's
+    `input.priority` stage.)*
+- [x] **B6 [M1] Startup gates wired before spawn.**
   - The host calls gates before creating the main engine. The trust dialog (centered or
     full-screen); accept records trust; decline exits.
   - `.mcp.json` approvals produce the `disabledMcpjsonServers` passed in `SpawnOpts`.
   - The bypass warning shows when starting in bypass mode.
   - **A test asserts no engine process is started until the gates pass.**
-- [ ] **B7 [M2] Elicitation dialog** and `request_user_dialog` for the implemented kinds
+- [x] **B7 [M2] Elicitation dialog** and `request_user_dialog` for the implemented kinds
   only; `control_cancel_request` handling for all dialogs.
-- [ ] **B8 [M2] Background control.** ctrl+b / ctrl+x ctrl+b (`task:background`) →
+- [x] **B8 [M2] Background control.** ctrl+b / ctrl+x ctrl+b (`task:background`) →
   `background_tasks`; ctrl+x ctrl+k (`chat:killAgents`) → `stop_task` for every running
   task (from `background_tasks_changed`), with a confirmation notice.
-- [ ] **B9 [M2] Usage-limit handling.**
+- [x] **B9 [M2] Usage-limit handling.**
   - On `rate_limit_event` with a reset time, show the limit notice with options (wait and
     auto-continue at `resetsAt`, `autoContinueAtUsageLimit`; switch model; stop).
   - mantle implements the wait itself, because headless has no menu.
   - Show `permission_denied` events as notices.
-- [ ] **B10 [M2] API-key approval prompt.** When `ANTHROPIC_API_KEY` is present and not yet
+- [x] **B10 [M2] API-key approval prompt.** When `ANTHROPIC_API_KEY` is present and not yet
   approved (`~/.claude.json` customApiKeyResponses; read-only), show the one-time prompt.
   mantle remembers the choice in its own store and passes it via the environment
   accordingly.
-- [ ] **B11 [M2] Invalid-settings notice.** `-p` silently ignores invalid settings files, so
+- [x] **B11 [M2] Invalid-settings notice.** `-p` silently ignores invalid settings files, so
   validate JSON syntax of each scope at startup (plan 01's config reader reports errors)
   and show a notice.
+
+### Part B notes (done)
+
+- One feature, `turn` (`features/turn`), Order 100. Dialog IDs as listed under
+  "Interfaces"; plus `dialog.apiKey`, `dialog.autoMode` and `dialog.usageLimit`.
+- Prompts: `PermissionMsg` (permission / AskUserQuestion / ExitPlanMode) and
+  `ControlRequestMsg{elicitation}` share one queue across engines and show one inline
+  dialog at a time with a "(1 of N)" counter. `ControlCancelMsg` and engine exit close
+  them without replying. ctrl+c inside a prompt denies with `interrupt:true`.
+  `request_user_dialog` is refused because mantle declares no `supportedDialogKinds`.
+- Edit/Write previews use plan 03's `pkg/ui/diffview`; plan text and option previews use
+  `pkg/render.Markdown` (theme palette, `syntaxHighlightingDisabled`).
+- Modes: shift+tab in the prompt or a dialog sends `set_permission_mode` and publishes
+  `SessionChangedMsg`. Auto availability comes from `list_models` / the initialize
+  response, and entering auto asks once (`skipAutoPermissionPrompt` from user, flag or
+  policy scope skips it). The startup mode follows `--permission-mode`, then
+  `--dangerously-skip-permissions`, then `permissions.defaultMode`, then auto once the
+  user has opted in. After an engine restart the user's last mode is restored.
+- Turn control: esc interrupts and keeps queued messages; ctrl+c interrupts with
+  `cancel_queued`. `app:interrupt` / `app:exit` wrap the host's core actions. A second
+  press within 800 ms exits and prints `mantle --resume <id>`; the engine manager sends
+  `end_session`. `/exit`, `/quit`, `:q`, `:q!`, `:wq` and `:wq!` also exit. The `Task`
+  context is active while a turn runs.
+- Gates: subscriber of `ext.SpawnGateMsg`; inputs from plan 11's `cli.GateInputsOf`. The
+  user's `--settings` is folded with `disabledMcpjsonServers` into one inline value, any
+  `--settings` in `ExtraArgs` is stripped, and a rejected API key goes to `UnsetEnv`.
+  Builder engines (`builder-<id>`) are auto-trusted. Gate passes run one at a time.
+- Engine version gate (overview gate 4): before the other gates the main engine's
+  version is checked through an `engineChecker` (plan 02's `engine.CheckEngine` /
+  `engine.Pin`). A failing version opens `dialog.engineCheck`: use the last good version
+  (pinned before the spawn), continue anyway, or exit. A check that can't run aborts the
+  launch. The adapter to plan 02's API is wired once `integration-2` brings it onto this
+  branch; until then `state.checker` is nil and the gate is skipped.
+- Tests: `exttest`-based flow tests for every item, plus pty tests on the real host
+  (`internal/app`): no spawn before trust is accepted, declining exits, a permission
+  prompt through the real keymap. `e2e_test.go` runs host + turn + `internal/engine`
+  against a scripted claude (enginefake), which checks the exact `control_response`
+  for a permission with an always-allow suggestion, an AskUserQuestion and an
+  elicitation.
+- Not done: PD-23 (clear context on plan accept: no verified wire), PD-26
+  (`askUserQuestionTimeout`), PD-36 (external CLAUDE.md import approval), PD-39/40
+  (sandbox prompts; headless routing unknown), PD-42 (`dialogExpiry`, M3), TC-21
+  (`command_lifecycle` states, M3).
 
 ## Design notes
 

@@ -1,0 +1,10 @@
+[1;38;2;224;149;110mHooks[m[38;2;139;139;147m · PreToolUse[m
+
+  [1;38;2;230;227;222mMatcher: Bash[m
+  [38;2;147;180;251m❯ [m[38;2;147;180;251mUser settings[m  [38;2;139;139;147mcommand · ~/.claude/hooks/check-bash.sh[m
+
+  [1;38;2;230;227;222mMatcher: Edit|Write[m
+    [38;2;230;227;222mProject settings[m  [38;2;139;139;147mcommand · ./scripts/fmt.sh --fix[m
+    [38;2;230;227;222mPlugin hooks (demo@example-market)[m  [38;2;139;139;147mcommand · ${CLAUDE_…[m
+
+  [38;2;139;139;147menter details · e edit file · esc back[m

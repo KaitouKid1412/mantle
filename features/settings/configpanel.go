@@ -157,6 +157,8 @@ func visible(c ext.Ctx, o options.Option) bool {
 		return false // the IDE bridge is not part of mantle yet
 	case options.NotInIDE:
 		return os.Getenv("TERM_PROGRAM") != "vscode"
+	case options.InIDETerminal:
+		return os.Getenv("TERM_PROGRAM") == "vscode"
 	}
 	return true
 }
@@ -313,6 +315,8 @@ func (p *configPanel) activate(c ext.Ctx) tea.Cmd {
 			return c.OpenDialog(dialogTheme, nil)
 		case "outputStyle":
 			return c.OpenDialog(dialogOutputStyle, nil)
+		case "tui":
+			return c.OpenDialog(dialogTUI, nil)
 		case "fast":
 			on := !p.a.fastOn(c)
 			p.override[o.Key] = on

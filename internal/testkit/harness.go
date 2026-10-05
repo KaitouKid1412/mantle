@@ -98,12 +98,21 @@ func New(tb testing.TB, m tea.Model, opts ...Option) *Harness {
 		close(h.done)
 	}()
 	tb.Cleanup(func() {
-		cancel()
-		h.prog.Kill()
+		// Quit (not Kill): Bubble Tea then waits for its input reader to stop before
+		// closing it, so nothing still reads the pty when it is closed below. Kill only
+		// if the program does not exit.
+		h.prog.Quit()
 		select {
 		case <-h.done:
-		case <-time.After(2 * time.Second):
+		case <-time.After(3 * time.Second):
+			cancel()
+			h.prog.Kill()
+			select {
+			case <-h.done:
+			case <-time.After(2 * time.Second):
+			}
 		}
+		cancel()
 		term.close()
 	})
 	return h
@@ -113,7 +122,12 @@ func New(tb testing.TB, m tea.Model, opts ...Option) *Harness {
 func (h *Harness) Program() *tea.Program { return h.prog }
 
 // SendMsg delivers a message to the program.
-func (h *Harness) SendMsg(m tea.Msg) { h.prog.Send(m) }
+func (h *Harness) SendMsg(m tea.Msg) {
+	if h.prog == nil {
+		h.tb.Fatal("testkit: SendMsg needs an in-process program (New), not a Process")
+	}
+	h.prog.Send(m)
+}
 
 // Send types keys, each written as the bytes a terminal would send. Keys use the
 // keybindings.json syntax: "a", "enter", "ctrl+c", "shift+tab", "alt+p", "ctrl+x ctrl+k"
@@ -148,7 +162,9 @@ func (h *Harness) Paste(s string) {
 // Resize resizes the terminal and tells the program.
 func (h *Harness) Resize(w, hgt int) {
 	h.term.resize(w, hgt)
-	h.prog.Send(tea.WindowSizeMsg{Width: w, Height: hgt})
+	if h.prog != nil {
+		h.prog.Send(tea.WindowSizeMsg{Width: w, Height: hgt})
+	}
 }
 
 // Size returns the terminal size.
@@ -239,6 +255,9 @@ func (h *Harness) Settle(quiet, timeout time.Duration) {
 // Quit asks the program to quit and waits for it.
 func (h *Harness) Quit() (tea.Model, error) {
 	h.tb.Helper()
+	if h.prog == nil {
+		h.tb.Fatal("testkit: Quit needs an in-process program; signal a Process instead")
+	}
 	h.prog.Quit()
 	return h.Wait(5 * time.Second)
 }
@@ -356,7 +375,10 @@ func (t *lockedTerm) close() {
 	t.mu.Unlock()
 	select {
 	case <-t.replyDone:
+		// The output pump may still be writing: close under the lock.
+		t.mu.Lock()
 		_ = t.emu.Close()
+		t.mu.Unlock()
 	case <-time.After(time.Second):
 		// Leave the emulator open rather than race; the goroutine leaks.
 	}

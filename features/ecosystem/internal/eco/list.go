@@ -257,7 +257,11 @@ func (l *List) Render(th *theme.Theme, width, height int) []string {
 
 func (l *List) renderRow(th *theme.Theme, r Row, selected bool, marker string, labelW, width int) string {
 	if r.Info {
-		return Truncate(th.Paint(theme.Inactive, "  "+r.Label), width)
+		line := "  " + r.Label
+		if r.Detail != "" {
+			line += " · " + r.Detail
+		}
+		return Truncate(th.Paint(theme.Inactive, line), width)
 	}
 	prefix := "  "
 	if selected {
