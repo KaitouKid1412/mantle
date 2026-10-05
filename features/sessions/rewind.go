@@ -12,6 +12,7 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
+	"github.com/KaitouKid1412/mantle/pkg/ui/diffview"
 )
 
 // Rewind: pick an earlier prompt, then restore the conversation to just before it,
@@ -53,7 +54,9 @@ func (f *feature) registerRewind(r ext.Registrar) {
 // session /clear left behind.
 type rewindEntry struct {
 	uuid, text string
+	note       string // code changed from this prompt on ("No code changes", "2 files changed (+3 −1)")
 	cleared    string // session id: restore the pre-/clear conversation
+	current    bool   // the "(current)" row: leave everything as it is
 }
 
 // rewindSelector lists the prompts, newest last (MessageSelector, then Select keys).
@@ -73,7 +76,8 @@ func (f *feature) newRewindSelector(ctx ext.Ctx) *rewindSelector {
 		s.entries = append(s.entries, rewindEntry{cleared: old, text: "Conversation before /clear: " + label})
 	}
 	if t := ctx.Transcript(); t != nil {
-		for _, it := range t.Items() {
+		items := t.Items()
+		for i, it := range items {
 			if it.Key != ext.KeyUserPrompt || it.ParentID != "" {
 				continue
 			}
@@ -81,11 +85,50 @@ func (f *feature) newRewindSelector(ctx ext.Ctx) *rewindSelector {
 			if !ok || u.UUID == "" {
 				continue
 			}
-			s.entries = append(s.entries, rewindEntry{uuid: u.UUID, text: oneLine(u.Message.Content.PlainText())})
+			s.entries = append(s.entries, rewindEntry{
+				uuid: u.UUID, text: oneLine(u.Message.Content.PlainText()), note: codeChangesNote(items[i:]),
+			})
 		}
 	}
+	s.entries = append(s.entries, rewindEntry{text: "(current)", current: true})
 	s.sel = len(s.entries) - 1
 	return s
+}
+
+// codeChangesNote sums the file edits (Edit, MultiEdit, Write, NotebookEdit results) in
+// items: what restoring the code to before them would undo.
+func codeChangesNote(items []*ext.Item) string {
+	files := map[string]bool{}
+	added, removed := 0, 0
+	for _, it := range items {
+		tu, ok := it.Data.(*proto.ToolUse)
+		if !ok || it.Result == nil || it.Result.IsError || len(it.Result.Structured) == 0 {
+			continue
+		}
+		switch tu.Name {
+		case "Edit", "MultiEdit", "Write", "NotebookEdit":
+		default:
+			continue
+		}
+		var r editResult
+		if json.Unmarshal(it.Result.Structured, &r) != nil || r.FilePath == "" {
+			continue
+		}
+		hunks := r.StructuredPatch
+		if len(hunks) == 0 && r.Type == "create" {
+			hunks = diffview.FromStrings("", r.Content, 0)
+		}
+		a, d := diffview.Counts(hunks)
+		if a+d == 0 {
+			continue
+		}
+		files[r.FilePath] = true
+		added, removed = added+a, removed+d
+	}
+	if len(files) == 0 {
+		return "No code changes"
+	}
+	return fmt.Sprintf("%s changed (+%d −%d)", plural(len(files), "file", "files"), added, removed)
 }
 
 func (s *rewindSelector) ID() string                      { return DialogRewind }
@@ -139,6 +182,9 @@ func (s *rewindSelector) accept(ctx ext.Ctx) tea.Cmd {
 		return ctx.CloseDialog(DialogRewind)
 	}
 	e := s.entries[s.sel]
+	if e.current {
+		return ctx.CloseDialog(DialogRewind)
+	}
 	if e.cleared != "" {
 		meta := sessions.SessionMeta{ID: e.cleared}
 		return tea.Sequence(ctx.CloseDialog(DialogRewind),
@@ -151,16 +197,15 @@ func (s *rewindSelector) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 	th := ctx.Theme()
 	w := max(a.Width, 20)
 	lines := []string{
-		th.Fg(theme.Accent).Bold(true).Render("Rewind"),
-		th.Paint(theme.Inactive, "Restore the conversation to just before a prompt, the code to how it was then, or both."),
+		"  " + th.Fg(theme.Accent).Bold(true).Render("Rewind"),
+		"",
+		"  " + th.Paint(theme.Inactive, "Restore the conversation, the code or both to how they were before…"),
 		"",
 	}
-	if len(s.entries) == 0 {
-		lines = append(lines, th.Paint(theme.Inactive, "Nothing to rewind to yet."))
-	}
-	rows := a.MaxHeight - 6
+	// Each prompt takes three rows (text, code note, gap); the current row one.
+	rows := (a.MaxHeight - 7) / 3
 	if rows <= 0 {
-		rows = 12
+		rows = 6
 	}
 	start := max(0, min(s.sel-rows/2, len(s.entries)-rows))
 	for i := start; i < len(s.entries) && i < start+rows; i++ {
@@ -170,12 +215,18 @@ func (s *rewindSelector) View(ctx ext.Ctx, a ext.Area) ext.Rendered {
 			text = "(empty prompt)"
 		}
 		if i == s.sel {
-			lines = append(lines, fit(th.Paint(theme.Suggestion, "› ")+th.Fg(theme.Suggestion).Bold(true).Render(text), w))
+			lines = append(lines, "  "+th.Paint(theme.Suggestion, "❯ ")+th.Fg(theme.Suggestion).Bold(true).Render(text))
 		} else {
-			lines = append(lines, fit("  "+text, w))
+			lines = append(lines, "    "+text)
+		}
+		if e.note != "" {
+			lines = append(lines, "    "+th.Paint(theme.Inactive, e.note))
+		}
+		if !e.current {
+			lines = append(lines, "")
 		}
 	}
-	lines = append(lines, "", th.Paint(theme.Inactive, "↑↓ select · enter choose · esc cancel"))
+	lines = append(lines, "", "  "+th.Paint(theme.Inactive, "enter continue · esc cancel"))
 	for i := range lines {
 		lines[i] = fit(lines[i], w)
 	}
