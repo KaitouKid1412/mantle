@@ -127,8 +127,7 @@ func TestNormalizeToolsAndSubagent(t *testing.T) {
 
 func TestNormalizeCompaction(t *testing.T) {
 	items := normalizeFixture(t, sidCompact, NormalizeOptions{})
-	// Each answered turn ends with a result derived from its timestamps.
-	want := []string{"sys:" + u("3c", 1), "user:" + u("3u", 4), "txt:" + u("3b", 3) + ":0", "result:user:" + u("3u", 4)}
+	want := []string{"sys:" + u("3c", 1), "user:" + u("3u", 4), "txt:" + u("3b", 3) + ":0"}
 	if got := ids(items); !slices.Equal(got, want) {
 		t.Fatalf("items = %v", got)
 	}
@@ -137,7 +136,7 @@ func TestNormalizeCompaction(t *testing.T) {
 		t.Fatalf("boundary = %+v", cb)
 	}
 	full := normalizeFixture(t, sidCompact, NormalizeOptions{AcrossCompaction: true})
-	want = append([]string{"user:" + u("3u", 1), "txt:" + u("3b", 1) + ":0", "result:user:" + u("3u", 1), "user:" + u("3u", 2), "txt:" + u("3b", 2) + ":0", "result:user:" + u("3u", 2)}, want...)
+	want = append([]string{"user:" + u("3u", 1), "txt:" + u("3b", 1) + ":0", "user:" + u("3u", 2), "txt:" + u("3b", 2) + ":0"}, want...)
 	if got := ids(full); !slices.Equal(got, want) {
 		t.Fatalf("full = %v", got)
 	}
@@ -145,7 +144,7 @@ func TestNormalizeCompaction(t *testing.T) {
 
 func TestNormalizeBranchAndMessy(t *testing.T) {
 	items := normalizeFixture(t, sidBranch, NormalizeOptions{})
-	want := []string{"user:" + u("4u", 1), "txt:" + u("4b", 1) + ":0", "result:user:" + u("4u", 1), "user:" + u("4u", 22), "txt:" + u("4b", 22) + ":0", "result:user:" + u("4u", 22)}
+	want := []string{"user:" + u("4u", 1), "txt:" + u("4b", 1) + ":0", "user:" + u("4u", 22), "txt:" + u("4b", 22) + ":0"}
 	if got := ids(items); !slices.Equal(got, want) {
 		t.Fatalf("branch items = %v", got)
 	}
