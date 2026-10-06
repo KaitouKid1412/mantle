@@ -50,6 +50,9 @@ type Turn struct {
 	Headers map[string]string `json:"headers,omitempty"`
 	// ChunkDelayMS sleeps between streamed events of this turn (for interrupt tests).
 	ChunkDelayMS int `json:"chunk_delay_ms,omitempty"`
+	// DelayMS waits before answering at all, like a slow API (so a test can see the
+	// screen between the prompt and the reply).
+	DelayMS int `json:"delay_ms,omitempty"`
 }
 
 // Match tests the latest user message of a request. All set fields must hold.

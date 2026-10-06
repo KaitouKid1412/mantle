@@ -8,6 +8,9 @@ ready
 checkpoint start
 type Explain the plan in markdown
 keys enter
+# Right after Enter: the prompt is in the transcript before any answer.
+wait_for 10s esc to interrupt
+checkpoint sent
 wait_for 30s Done.
 wait_gone 30s esc to interrupt
 checkpoint answered

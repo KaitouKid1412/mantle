@@ -9,6 +9,9 @@ settings: {"tui": "fullscreen"}
 parity: VW-15, TR-01, TR-02
 ---
 ready
+# Right after the prompt is sent: in the transcript before any answer.
+wait_for 10s esc to interrupt
+checkpoint sent
 wait_for 30s Done.
 wait_gone 30s esc to interrupt
 settle
