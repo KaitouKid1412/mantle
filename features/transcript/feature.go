@@ -148,6 +148,26 @@ func (f *Feature) Setup(r ext.Registrar) error {
 		}
 		return nil
 	})
+	// Prompt echoes (prompt_echo.go): a prompt that never reached the engine
+	// loses its echo (the input feature puts it back in the box).
+	ext.Subscribe(r, "transcript.sendFailed", func(c ext.Ctx, m ext.ControlResultMsg) tea.Cmd {
+		if f.forEngine(m.EngineID) && m.Subtype == proto.TypeUser && m.Err != nil && f.store.DropEcho(m.RequestID) {
+			c.Invalidate(LiveID)
+		}
+		return nil
+	})
+	ext.Subscribe(r, "transcript.engineExited", func(c ext.Ctx, m ext.EngineExitedMsg) tea.Cmd {
+		if !f.forEngine(m.EngineID) {
+			return nil
+		}
+		if m.Err != nil {
+			f.store.dropEchoes()
+		} else {
+			f.store.finishEchoes()
+		}
+		c.Invalidate(LiveID)
+		return f.commitReady(c)
+	})
 	f.registerViewer(r)
 	f.spinner.setup(r)
 	f.registerStories(r)

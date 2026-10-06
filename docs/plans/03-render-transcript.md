@@ -220,6 +220,11 @@ or redraw cost.
   replay ≈ 29 ms; steady-state live `View()` ≈ 0.5 µs with 10k items.
 - Committed lines render at the print width (terminal − 1), like the host's
   `app.PrintWidth`; the live area uses the same width so committing never reflows.
+- Prompt echo (`prompt_echo.go`, TR-06/AC-17): a prompt (or `!` command) that runs next
+  shows on Enter as a running `user:<uuid>` item sent by plan 04's input; the engine's
+  replay of that uuid settles it in place; a prompt the engine never takes up is dropped
+  and goes back into the box. `cmd/mantle-ui` `TestPromptShowsOnEnter` covers both
+  layouts with a replay held for 3 s.
 
 ## Design notes
 

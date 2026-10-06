@@ -104,7 +104,7 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 			return s.comp.fileResults(c, s, m)
 		case proto.TypeUser:
 			if m.Err != nil {
-				return c.Notify(ext.Notice{Key: "input.send", Text: "Could not send the prompt: " + m.Err.Error(), Level: ext.NoticeError, Source: FeatureID})
+				return s.sendFailed(c, m)
 			}
 		}
 	case ext.EngineEventMsg:
@@ -122,9 +122,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 			s.busy = false
 			if m.Err != nil {
 				// Startup failed or the engine died: until another
-				// attach, prompts stay in the box.
+				// attach, prompts stay in the box. So does a prompt
+				// the engine had not taken up (its echo goes).
 				s.startErr = m.Err
-				return s.failStarting(c, m.Err)
+				return tea.Batch(s.failStarting(c, m.Err), s.restoreUnsent(c))
 			}
 			if len(s.starting) == 0 {
 				return s.clearQueue()
@@ -141,8 +142,13 @@ func (s *state) engineEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 		if !s.busy {
 			return tea.Batch(s.clearQueue(), s.invalidated(c))
 		}
+	case *proto.Assistant:
+		if e.ParentToolUseID == "" {
+			s.promptTaken()
+		}
 	case *proto.Result:
 		s.busy = false
+		s.promptTaken()
 		uuids := append([]string{e.UserMessageUUID}, e.UserMessageUUIDs...)
 		return tea.Batch(s.dequeue(uuids...), s.invalidated(c))
 	case *proto.CommandLifecycle:
@@ -184,6 +190,9 @@ func (s *state) engineEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 		}
 		return tea.Batch(s.clearQueue(), echo)
 	case *proto.User:
+		if e.IsReplay && e.UUID == s.sentUUID {
+			s.promptTaken()
+		}
 		// A forwarded native command came back as a replay: the engine
 		// echoes it, so ours is not needed.
 		if e.IsReplay && s.echo != "" && !s.echoClear && strings.TrimSpace(e.Message.Content.PlainText()) == s.echo {

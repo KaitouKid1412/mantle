@@ -60,6 +60,7 @@ type Store struct {
 	bgQueue      []*ext.Item                                // their "finished" rows, shown when the next turn starts
 	turnEnded    bool                                       // a result arrived and no new turn has started
 	waitBG       map[string]int                             // result uuid → background agents still running then
+	echoes       map[string]bool                            // prompt echoes ("user:<uuid>") whose replay has not arrived
 	view         func(ext.Ctx, int) ([]string, []ext.Block) // set by the feature (Lines)
 	_            struct{}
 }
@@ -116,6 +117,7 @@ func (s *Store) reset() {
 	s.bgQueue = nil
 	s.turnEnded = false
 	s.waitBG = map[string]int{}
+	s.echoes = map[string]bool{}
 	s.retry = nil
 	s.rev++
 }
@@ -233,13 +235,23 @@ const NoteReplaced = "replaced"
 func (s *Store) Reset() { s.reset() }
 
 // AppendHistory adds finished items from an earlier session (plan 06's JSONL
-// normalizer) at the end of the store. Items with a ParentID are nested.
+// normalizer) at the end of the store. Items with a ParentID are nested. A
+// running user prompt is a prompt echo instead (see prompt_echo.go); sending
+// the echo again updates it in place.
 func (s *Store) AppendHistory(items []*ext.Item) {
 	for _, it := range items {
-		if it == nil || it.ID == "" || s.byID[it.ID] != nil {
+		if it == nil || it.ID == "" {
 			continue
 		}
-		if !it.State.Finished() {
+		if old := s.byID[it.ID]; old != nil {
+			if s.echoes[it.ID] {
+				s.updateEcho(old, it)
+			}
+			continue
+		}
+		if isEcho(it) {
+			s.echoes[it.ID] = true
+		} else if !it.State.Finished() {
 			it.State = ext.Done
 		}
 		s.add(it)
@@ -360,13 +372,20 @@ func (s *Store) Apply(ev proto.Event) bool {
 	}
 	switch e := ev.(type) {
 	case *proto.StreamEvent:
+		if e.ParentToolUseID == "" {
+			s.finishEchoes()
+		}
 		s.applyStream(e)
 	case *proto.Assistant:
+		if e.ParentToolUseID == "" {
+			s.finishEchoes()
+		}
 		s.clearRetry()
 		s.applyAssistant(e)
 	case *proto.User:
 		s.applyUser(e)
 	case *proto.Result:
+		s.finishEchoes()
 		s.clearRetry()
 		s.applyResult(e)
 	case *proto.ToolProgress:
@@ -797,6 +816,10 @@ func (s *Store) applyUser(e *proto.User) {
 	id := "user:" + e.UUID
 	if e.UUID == "" {
 		id = "user:" + itoa(s.rev)
+	}
+	if s.echoes[id] {
+		s.settleEcho(id, key, e)
+		return
 	}
 	it := &ext.Item{ID: id, Key: key, Data: e, State: ext.Done, End: s.now()}
 	// The engine echoes a slash command after its output: put the prompt back
