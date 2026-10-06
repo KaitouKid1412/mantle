@@ -28,6 +28,7 @@ const instantRestartScript = `
 {"on": {"type": "control_request", "request": {"subtype": "get_context_usage"}}, "respond": {"categories": [], "totalTokens": 0, "maxTokens": 200000, "percentage": 0}}
 {"on": {"type": "control_request", "request": {"subtype": "mcp_status"}}, "respond": {"mcpServers": []}}
 {"on": {"type": "control_request", "request": {"subtype": "list_models"}}, "respond": {"models": []}}
+{"on": {"type": "control_request", "request": {"subtype": "generate_session_title"}}, "respond": {"title": "ping"}}
 {"on": {"type": "control_request", "request": {"subtype": "get_settings"}}, "respond": {}}
 {"on": {"type": "control_request", "request": {"subtype": "get_usage"}}, "respond": {}}
 {"on": {"type": "control_request", "request": {"subtype": "get_hooks_listing"}}, "respond": {}}
