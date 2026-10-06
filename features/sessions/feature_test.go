@@ -3,7 +3,9 @@ package sessions
 import (
 	"bytes"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -200,7 +202,8 @@ func TestClearAndCompact(t *testing.T) {
 
 func TestHandoff(t *testing.T) {
 	h := newHarness(t)
-	sid := h.ctx.SessionValue.SessionID
+	sid := sidCompact // has a transcript in /work/demo's project
+	h.ctx.SessionValue.SessionID = sid
 	h.command("handoff", "/feedback it works")
 	if !slices.Equal(h.ctx.Opened, []string{DialogHandoff}) {
 		t.Fatalf("opened = %v", h.ctx.Opened)
@@ -234,6 +237,75 @@ func TestHandoff(t *testing.T) {
 	start := find[ext.EngineStartMsg](h)
 	if len(start) != 1 || start[0].Opts.Resume != sid || start[0].Opts.Model != "opus" || h.f.ho != nil {
 		t.Fatalf("after: %v", h.out)
+	}
+}
+
+// A session with no prompt yet has no transcript: `claude --resume` would fail with
+// "No conversation found" and the engine would not come back.
+func TestHandoffFreshSession(t *testing.T) {
+	handOff := func(t *testing.T, h *harness) {
+		t.Helper()
+		h.openDialog(DialogHandoff, []string{"/login"})
+		h.key(tea.KeyPressMsg{Code: tea.KeyEnter})
+	}
+	back := func(t *testing.T, h *harness) ext.SpawnOpts {
+		t.Helper()
+		h.reset()
+		h.run(ext.Msg(handoffDoneMsg{}))
+		start := find[ext.EngineStartMsg](h)
+		if len(start) != 1 {
+			t.Fatalf("after: %v", h.out)
+		}
+		return start[0].Opts
+	}
+
+	// Nothing sent in either program: Claude Code and the engine start new sessions
+	// under the same id, and nothing is loaded.
+	h := newHarness(t)
+	sid := h.ctx.SessionValue.SessionID
+	handOff(t, h)
+	if h.f.ho == nil || !slices.Equal(h.f.ho.args, []string{"--session-id", sid, "/login"}) {
+		t.Fatalf("handoff = %+v", h.f.ho)
+	}
+	reprints := h.ctx.Reprints
+	if o := back(t, h); o.Resume != "" || o.SessionID != sid || o.Model != "opus" {
+		t.Fatalf("restart opts = %+v", o)
+	}
+	if h.f.engine(ext.MainEngine).loading || h.ctx.Reprints != reprints+1 {
+		t.Fatalf("loading=%v reprints=%d", h.f.engine(ext.MainEngine).loading, h.ctx.Reprints-reprints)
+	}
+
+	// A prompt sent in Claude Code wrote the transcript: the engine resumes it.
+	h = newHarness(t)
+	handOff(t, h)
+	dir := h.f.layout.ProjectDir("/work/demo")
+	writeTranscript(t, dir, sid, `{"type":"user","sessionId":"`+sid+`","message":{"role":"user","content":"hi"}}`)
+	if o := back(t, h); o.Resume != sid || o.SessionID != "" {
+		t.Fatalf("after a prompt in Claude Code: opts = %+v", o)
+	}
+	if hist := find[ext.TranscriptHistoryMsg](h); len(hist) == 0 || !hist[0].Reset {
+		t.Fatalf("history not reloaded: %v", h.out)
+	}
+
+	// A file holding only metadata can be neither resumed nor reused as an id.
+	h = newHarness(t)
+	writeTranscript(t, h.f.layout.ProjectDir("/work/demo"), sid, `{"type":"custom-title","customTitle":"x","sessionId":"`+sid+`"}`)
+	handOff(t, h)
+	if !slices.Equal(h.f.ho.args, []string{"/login"}) {
+		t.Fatalf("metadata only: args = %q", h.f.ho.args)
+	}
+	if o := back(t, h); o.Resume != "" || o.SessionID != "" {
+		t.Fatalf("metadata only: opts = %+v", o)
+	}
+}
+
+func writeTranscript(t *testing.T, dir, sid, body string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, sid+".jsonl"), []byte(body+"\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
 }
 
