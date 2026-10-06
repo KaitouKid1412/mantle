@@ -243,7 +243,7 @@ func TestSlashMenuTiersAndLayout(t *testing.T) {
 	}
 	lines := r.s.comp.view(r.c.Theme(), 100, 20)
 	plain := ansiStrip(strings.Join(lines, "\n"))
-	if !strings.Contains(plain, "  /model                        Switch model") {
+	if !strings.Contains(plain, "  ❯ /model                      Switch model") {
 		t.Fatalf("30-column name field without arg hints:\n%s", plain)
 	}
 	if !strings.Contains(plain, "\n                                ") || !strings.Contains(plain, "…") {
@@ -493,10 +493,16 @@ func TestFileMentions(t *testing.T) {
 	r := newRig(t, nil)
 	r.eng.reply = func(sub string, req any) (json.RawMessage, error) {
 		q := req.(proto.FileSuggestionsRequest).Query
-		return json.Marshal(proto.FileSuggestionsResponse{Suggestions: []proto.FileSuggestion{{Path: q + "in.go"}, {Path: "pkg/"}}})
+		var out []proto.FileSuggestion
+		for _, p := range []string{"main.go", "manual.md", "pkg/"} {
+			if strings.HasPrefix(p, q) || q == "" {
+				out = append(out, proto.FileSuggestion{Path: p})
+			}
+		}
+		return json.Marshal(proto.FileSuggestionsResponse{Suggestions: out})
 	}
 	r.keys("'look at @ma'")
-	if lines := r.s.comp.view(r.c.Theme(), 80, 10); len(lines) == 0 || !strings.HasPrefix(xansi.Strip(lines[0]), "  + main.go") {
+	if lines := r.s.comp.view(r.c.Theme(), 80, 10); len(lines) == 0 || xansi.Strip(lines[0]) != "    + main.go" {
 		t.Fatalf("files are marked with +: %q", lines)
 	}
 	cs := r.eng.controlsOf(proto.SubFileSuggestions)
@@ -507,13 +513,23 @@ func TestFileMentions(t *testing.T) {
 		t.Fatalf("items %+v", r.s.comp.items)
 	}
 	r.keys("tab")
-	if r.text() != "look at @main.go " {
+	if r.text() != "look at @main.go" {
 		t.Fatalf("%q", r.text())
 	}
+	// The menu stays on the exact match, as in claude.
+	if !r.s.comp.open() || r.s.comp.items[0].value != "main.go" || !r.s.comp.selectedIsTyped() {
+		t.Fatalf("menu after accept: %+v", r.s.comp.items)
+	}
 	// Directories keep completing.
-	r.keys("'@'", "down", "tab")
+	r.keys("' @'", "down", "down", "tab")
 	if r.text() != "look at @main.go @pkg/" {
 		t.Fatalf("dir: %q", r.text())
+	}
+	// Enter on the exact match sends the prompt.
+	r.s.ed.Clear()
+	r.keys("'read @mai'", "tab", "enter")
+	if ps := r.eng.prompts(); len(ps) != 1 || ps[0].Blocks[0].Text != "read @main.go" {
+		t.Fatalf("enter after accepting a file: %+v", ps)
 	}
 }
 

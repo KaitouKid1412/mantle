@@ -275,10 +275,13 @@ func (s *state) addSkills(names []string) {
 }
 
 // headlessOnly are engine commands the interactive claude keeps out of its
-// / menu (2.1.289): the headless variant of auto-mode-setup is for SDK hosts,
-// /agents is hidden ("removed"), heapdump is a debugging aid. They still run
+// / menu (2.1.289/2.1.290): the headless variant of auto-mode-setup is for SDK
+// hosts, /agents is hidden ("removed"), heapdump is a debugging aid and
+// workflow-launch-exec serves server-launched workflow sessions. They still run
 // when typed.
-var headlessOnly = map[string]bool{"auto-mode-setup": true, "agents": true, "heapdump": true}
+var headlessOnly = map[string]bool{
+	"auto-mode-setup": true, "agents": true, "heapdump": true, "workflow-launch-exec": true,
+}
 
 func (s *state) vimEvent(c ext.Ctx, ev vim.Event) tea.Cmd {
 	switch ev {

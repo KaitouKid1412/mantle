@@ -132,7 +132,7 @@ func (s *state) cancel(c ext.Ctx) (bool, tea.Cmd) {
 		s.help = false
 		s.invalidate(c)
 		return true, nil
-	case s.comp.open():
+	case s.comp.open() || s.comp.noMatch != "":
 		s.comp.dismiss(s)
 		s.invalidate(c)
 		return true, nil

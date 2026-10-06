@@ -52,21 +52,25 @@ func (p *promptComp) OnBlur(c ext.Ctx) tea.Cmd  { p.s.ed.Blur(); p.s.invalidate(
 // only when mode, vim mode, emptiness, panel or frame title changed.
 
 func (p *promptComp) HandleAction(c ext.Ctx, a ext.ActionID) (bool, tea.Cmd) {
+	p.s.fullscreen = c.Layout() == ext.Fullscreen
 	ok, cmd := p.s.action(c, a)
 	return ok, tea.Batch(cmd, p.s.stateCmd(false))
 }
 
 func (p *promptComp) HandleKey(c ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cmd) {
+	p.s.fullscreen = c.Layout() == ext.Fullscreen
 	ok, cmd := p.s.key(c, k)
 	return ok, tea.Batch(cmd, p.s.stateCmd(false))
 }
 
 func (p *promptComp) HandlePaste(c ext.Ctx, m tea.PasteMsg) (bool, tea.Cmd) {
+	p.s.fullscreen = c.Layout() == ext.Fullscreen
 	ok, cmd := p.s.paste(c, m.Content)
 	return ok, tea.Batch(cmd, p.s.stateCmd(false))
 }
 
 func (p *promptComp) Update(c ext.Ctx, msg tea.Msg) tea.Cmd {
+	p.s.fullscreen = c.Layout() == ext.Fullscreen
 	return tea.Batch(p.s.update(c, msg), p.s.stateCmd(false))
 }
 
@@ -80,6 +84,32 @@ func (m *menuComp) ID() string                              { return MenuID }
 func (m *menuComp) Init(ext.Ctx) tea.Cmd                    { return nil }
 func (m *menuComp) Update(ext.Ctx, tea.Msg) tea.Cmd         { return nil }
 func (m *menuComp) View(c ext.Ctx, a ext.Area) ext.Rendered { return m.s.viewMenu(c, a) }
+
+// overlayComp is the / and @ menu in the fullscreen layout. The host draws it over
+// the rows directly above the prompt (OverlayAboveInput), so the prompt never moves
+// while it opens, scrolls and closes, as in Claude Code's fullscreen renderer.
+type overlayComp struct{ s *state }
+
+func (o *overlayComp) ID() string                      { return OverlayID }
+func (o *overlayComp) Init(ext.Ctx) tea.Cmd            { return nil }
+func (o *overlayComp) Update(ext.Ctx, tea.Msg) tea.Cmd { return nil }
+func (o *overlayComp) OverlayAboveInput() bool         { return true }
+
+func (o *overlayComp) View(c ext.Ctx, a ext.Area) ext.Rendered {
+	if c.Layout() != ext.Fullscreen || o.s.search != nil {
+		return ext.Rendered{}
+	}
+	lines := o.s.comp.viewOverlay(c.Theme(), a.Width)
+	if a.MaxHeight > 0 && len(lines) > a.MaxHeight {
+		lines = lines[:a.MaxHeight]
+	}
+	for i, l := range lines {
+		if ansi.StringWidth(l) > a.Width {
+			lines[i] = ansi.Truncate(l, a.Width, "…")
+		}
+	}
+	return ext.Rendered{Text: strings.Join(lines, "\n")}
+}
 
 // ---- keys and pastes ----
 
@@ -212,15 +242,15 @@ func (s *state) placeholder() string {
 	return ""
 }
 
-// menuLines is the row budget for the menu: what the screen has left below
-// the prompt and its frame.
+// menuLines is the inline menu's row budget: half the terminal height, as Claude
+// Code sizes it.
 func (s *state) menuLines(c ext.Ctx, a ext.Area) int {
-	if a.MaxHeight > 0 {
-		return a.MaxHeight
-	}
 	_, h := c.Size()
-	n := h - s.ed.Height() - 3 // prompt rows, the frame's two rules, one spare
-	return max(n, 5)
+	n := max(h/2, 3)
+	if a.MaxHeight > 0 {
+		n = min(n, a.MaxHeight)
+	}
+	return n
 }
 
 func (s *state) viewMenu(c ext.Ctx, a ext.Area) ext.Rendered {
@@ -231,6 +261,10 @@ func (s *state) viewMenu(c ext.Ctx, a ext.Area) ext.Rendered {
 		// the dialog shows the search
 	case s.search != nil:
 		lines = s.search.view(t, a.Width)
+	case (s.comp.open() || s.comp.noMatch != "") && c.Layout() == ext.Fullscreen:
+		// drawn above the prompt by input.suggestions
+	case s.comp.noMatch != "":
+		lines = []string{s.comp.noMatchLine(t)}
 	case s.comp.open():
 		lines = s.comp.view(t, a.Width, s.menuLines(c, a))
 	case s.help:

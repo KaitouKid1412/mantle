@@ -198,7 +198,7 @@ func TestRealEngineFileMentions(t *testing.T) {
 		t.Fatalf("suggestions %v", got)
 	}
 	r.keys("tab")
-	if !strings.HasPrefix(r.text(), "read @ma") || !strings.HasSuffix(r.text(), " ") {
+	if r.text() != "read @main.go" && r.text() != "read @manual.md" {
 		t.Fatalf("accept: %q", r.text())
 	}
 }

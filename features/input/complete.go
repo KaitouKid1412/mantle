@@ -30,7 +30,6 @@ const (
 
 // Menu limits.
 const (
-	menuRows     = 8
 	maxItems     = 100
 	fileDebounce = 120 * time.Millisecond
 	fileRetry    = 300 * time.Millisecond // the engine's file index may still be building
@@ -56,6 +55,8 @@ type completion struct {
 	dismissed string // token hidden by esc until it changes
 	token     string
 
+	noMatch string // the leading /command typed when nothing matches it
+
 	fileAsked string // newest @ query sent to the engine
 	fileTries int    // empty answers for fileAsked so far
 }
@@ -70,7 +71,12 @@ type fileTickMsg struct {
 func (m *completion) open() bool { return m.kind != compNone && len(m.items) > 0 }
 
 func (m *completion) close() {
-	m.kind, m.items, m.sel = compNone, nil, 0
+	m.kind, m.items, m.sel, m.noMatch = compNone, nil, 0, ""
+}
+
+// noMatchLine is shown in place of the menu when no command matches.
+func (m *completion) noMatchLine(t *theme.Theme) string {
+	return "  " + t.Paint(theme.Inactive, `No commands match "`+m.noMatch+`"`)
 }
 
 func (m *completion) dismiss(s *state) {
@@ -95,6 +101,7 @@ func (m *completion) update(c ext.Ctx, s *state) tea.Cmd {
 		return nil
 	}
 	m.dismissed = ""
+	m.noMatch = ""
 	if s.ed.InAttachments() {
 		m.close()
 		return nil
@@ -130,6 +137,10 @@ func (m *completion) slash(c ext.Ctx, s *state, query string, leading bool) tea.
 	m.kind = compSlash
 	m.items = slashItems(c, query, leading, s.skills)
 	m.sel = 0
+	m.noMatch = ""
+	if len(m.items) == 0 && leading && query != "" {
+		m.noMatch = "/" + query
+	}
 	return s.askSkills(c)
 }
 
@@ -464,10 +475,9 @@ func (m *completion) accept(c ext.Ctx, s *state, submitting bool) tea.Cmd {
 			text += " "
 		}
 	case compFile:
+		// No trailing space: as in Claude Code the menu stays on the exact
+		// match, and Enter then sends the prompt.
 		text = "@" + quotePath(it.value)
-		if !it.dir {
-			text += " "
-		}
 	case compEmoji:
 		text = it.value
 	case compPath:
@@ -491,68 +501,138 @@ func quotePath(p string) string {
 
 // ---- view ----
 
-// nameCol is the width of the menu's name column.
+// nameCol is the width of the menu's name column, including the two-column
+// selection marker; descriptions start two columns after it.
 const nameCol = 30
 
-// view draws the menu: a name column, then the description wrapped to at
-// most two lines (the second cut with "…"), within maxLines rows.
-func (m *completion) view(t *theme.Theme, width, maxLines int) []string {
+// view draws the menu below the prompt (inline layout). Claude Code gives it half
+// the terminal height in rows: it fills down from the first item, and once the
+// selection moves on, the rows above the selection fill up to half the budget and
+// the rest follow below it (checked side by side at 100x20 to 160x40).
+func (m *completion) view(t *theme.Theme, width, budget int) []string {
+	if m.noMatch != "" {
+		return []string{m.noMatchLine(t)}
+	}
 	if !m.open() {
 		return nil
 	}
-	if maxLines < 1 {
-		maxLines = menuRows
+	budget = max(budget, 1)
+	rows := map[int][]string{}
+	render := func(i int) []string {
+		if r, ok := rows[i]; ok {
+			return r
+		}
+		rows[i] = m.menuItem(t, i, width)
+		return rows[i]
 	}
-	type row struct{ lines []string }
-	render := func(i int) row {
-		it := m.items[i]
-		name := itemName(it, m.kind)
-		col := min(nameCol, max(width/3, 12))
-		if ansi.StringWidth(name) > col-2 {
-			name = ansi.Truncate(name, col-2, "…")
-		}
-		pad := strings.Repeat(" ", col-ansi.StringWidth(name))
-		nameText := name
-		if i == m.sel {
-			nameText = t.Paint(theme.Suggestion, name)
-		}
-		first := "  " + nameText + pad
-		room := width - 4 - col // two-column margin on the right
-		if it.desc == "" || room < 8 {
-			return row{[]string{first}}
-		}
-		desc := wrapDesc(it.desc, room)
-		lines := []string{first + t.Paint(theme.Inactive, desc[0])}
-		if len(desc) > 1 {
-			lines = append(lines, strings.Repeat(" ", 2+col)+t.Paint(theme.Inactive, desc[1]))
-		}
-		return row{lines}
+	n := len(m.items)
+	start, above := m.sel, 0
+	for start > 0 && above+len(render(start-1)) <= budget/2 {
+		start--
+		above += len(render(start))
 	}
-	// Show a window of items around the selection that fits maxLines.
-	first := 0
-	for {
-		used := 0
-		last := first
-		for last < len(m.items) {
-			n := len(render(last).lines)
-			if used+n > maxLines {
-				break
-			}
-			used += n
-			last++
-		}
-		if m.sel < last || first >= m.sel {
-			var out []string
-			for i := first; i < last; i++ {
-				out = append(out, render(i).lines...)
-			}
-			if len(out) == 0 && len(m.items) > 0 {
-				out = append(out, render(m.sel).lines[0])
-			}
-			return out
-		}
-		first++
+	total, end := above+len(render(m.sel)), m.sel+1
+	for end < n && total+len(render(end)) <= budget {
+		total += len(render(end))
+		end++
 	}
+	for start > 0 && total+len(render(start-1)) <= budget { // the list's end: use the rest above
+		start--
+		total += len(render(start))
+	}
+	var out []string
+	for i := start; i < end; i++ {
+		out = append(out, render(i)...)
+	}
+	if len(out) > budget {
+		out = out[:budget]
+	}
+	return out
+}
+
+// Fullscreen overlay limits. Claude Code (2.1.289/2.1.290) shows at most five items in
+// at most five rows above the prompt at every terminal size (checked side by side at
+// 100x20 to 200x100).
+const (
+	fsMenuItems = 5
+	fsMenuRows  = 5
+)
+
+// viewOverlay draws the menu as Claude Code's fullscreen overlay: the selection marked
+// ❯, files marked "+", the window centred on the selection (two items above it) and
+// clamped to the list's ends, then cut to fsMenuRows rows by dropping items below the
+// selection first and above it second (descriptions can take two rows).
+func (m *completion) viewOverlay(t *theme.Theme, width int) []string {
+	if m.noMatch != "" {
+		return []string{m.noMatchLine(t)}
+	}
+	if !m.open() {
+		return nil
+	}
+	n := len(m.items)
+	start := max(0, min(m.sel-fsMenuItems/2, n-fsMenuItems))
+	end := min(n, start+fsMenuItems)
+	rows := map[int][]string{}
+	render := func(i int) []string {
+		if r, ok := rows[i]; ok {
+			return r
+		}
+		rows[i] = m.menuItem(t, i, width)
+		return rows[i]
+	}
+	height := func() int {
+		h := 0
+		for i := start; i < end; i++ {
+			h += len(render(i))
+		}
+		return h
+	}
+	for height() > fsMenuRows {
+		switch {
+		case end-1 > m.sel:
+			end--
+		case start < m.sel:
+			start++
+		default:
+			return render(m.sel)[:1]
+		}
+	}
+	var out []string
+	for i := start; i < end; i++ {
+		out = append(out, render(i)...)
+	}
+	return out
+}
+
+// menuItem renders one menu entry as Claude Code does in both layouts:
+// "  ❯ /name   description" (the marker column blank for other items, files shown
+// as "+ path"), the description wrapped to at most two rows.
+func (m *completion) menuItem(t *theme.Theme, i, width int) []string {
+	it := m.items[i]
+	col := min(nameCol, max(width/3, 12))
+	marker := "  "
+	if i == m.sel && m.kind != compFile {
+		marker = t.Paint(theme.Suggestion, "❯ ")
+	}
+	name := itemName(it, m.kind)
+	if ansi.StringWidth(name) > col-4 {
+		name = ansi.Truncate(name, col-4, "…")
+	}
+	pad := strings.Repeat(" ", max(col-2-ansi.StringWidth(name), 1))
+	if i == m.sel {
+		name = t.Paint(theme.Suggestion, name)
+	}
+	room := width - 4 - col
+	if it.desc == "" || room < 8 {
+		return []string{"  " + marker + name}
+	}
+	first := "  " + marker + name + pad
+	desc := wrapDesc(it.desc, room)
+	lines := []string{first + t.Paint(theme.Inactive, desc[0])}
+	if len(desc) > 1 {
+		lines = append(lines, strings.Repeat(" ", 2+col)+t.Paint(theme.Inactive, desc[1]))
+	}
+	return lines
 }
 
 // wrapDesc wraps a description to at most two lines of width w.
