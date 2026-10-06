@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -45,6 +46,11 @@ type Engine struct {
 	last *run // most recent run, kept after exit for Snapshot/StderrTail
 
 	pump *pump
+
+	// recovering counts starts, restarts and fallbacks in progress (recover.go);
+	// messages sent meanwhile wait in queued for the session that comes up.
+	recovering int
+	queued     []*outgoing
 }
 
 var _ ext.Engine = (*Engine)(nil)
@@ -106,12 +112,9 @@ func (e *Engine) Send(p ext.Prompt) tea.Cmd {
 	}
 }
 
-// SendPrompt writes a user message now (never blocks on the pipe).
+// SendPrompt writes a user message now (never blocks on the pipe). While the engine
+// starts or restarts, the prompt waits for the new session (recover.go).
 func (e *Engine) SendPrompt(p ext.Prompt) error {
-	r := e.current()
-	if r == nil {
-		return ErrNotRunning
-	}
 	if p.UUID == "" {
 		p.UUID = uuid.NewString()
 	}
@@ -126,21 +129,28 @@ func (e *Engine) SendPrompt(p ext.Prompt) error {
 	if err != nil {
 		return err
 	}
-	return r.tr.Send(line)
+	return e.sendLine(&outgoing{line: line, uuid: p.UUID})
 }
 
 // UpdateEnv changes environment variables of the running engine
 // (update_environment_variables; there is no reply).
 func (e *Engine) UpdateEnv(vars map[string]string) error {
-	r := e.current()
-	if r == nil {
-		return ErrNotRunning
-	}
 	line, err := proto.UpdateEnvironmentVariables{Variables: vars}.MarshalLine()
 	if err != nil {
 		return err
 	}
-	return r.tr.Send(line)
+	return e.sendLine(&outgoing{line: line})
+}
+
+func (e *Engine) sendLine(o *outgoing) error {
+	r, held := e.hold(o)
+	if held {
+		return nil
+	}
+	if r == nil {
+		return ErrNotRunning
+	}
+	return r.tr.Send(o.line)
 }
 
 // Interrupt stops the running turn (interrupt control request).
@@ -164,15 +174,30 @@ func (e *Engine) Request(ctx context.Context, req proto.Request) (json.RawMessag
 }
 
 func (e *Engine) request(ctx context.Context, subtype string, req any) (string, json.RawMessage, error) {
-	r := e.current()
-	if r == nil {
-		return "", nil, ErrNotRunning
-	}
 	pr, err := asRequest(subtype, req)
 	if err != nil {
 		return "", nil, err
 	}
-	id, resp, err := r.corr.Request(ctx, pr, TimeoutFor(subtype))
+	// While the engine (re)starts, the request waits for its turn in the queue.
+	o := &outgoing{req: pr, ready: make(chan sentRequest, 1)}
+	r, held := e.hold(o)
+	var (
+		id   string
+		resp json.RawMessage
+	)
+	switch {
+	case held:
+		s := e.awaitTurn(ctx, o)
+		if r, id, err = s.r, s.id, s.err; err == nil {
+			var body proto.ControlResponseBody
+			body, err = s.wait(ctx)
+			resp = body.Response
+		}
+	case r == nil:
+		return "", nil, ErrNotRunning
+	default:
+		id, resp, err = r.corr.Request(ctx, pr, TimeoutFor(subtype))
+	}
 	if err != nil {
 		if proto.IsUnsupported(err) {
 			r.caps.Disable(subtype)
@@ -223,15 +248,39 @@ func (e *Engine) Restart(o ext.SpawnOpts) tea.Cmd {
 	}
 }
 
-// RestartNow is Restart without the Cmd wrapper.
+// RestartNow is Restart without the Cmd wrapper. Prompts and control requests sent
+// from the moment it begins wait for the new session's initialize, then go to it in
+// order. If the new process can't start, it falls back to a fresh session
+// (recover.go) rather than leaving the engine dead.
 func (e *Engine) RestartNow(ctx context.Context, o ext.SpawnOpts) error {
 	e.life.Lock()
 	defer e.life.Unlock()
+	e.mu.Lock()
+	e.recovering++
+	e.mu.Unlock()
 	e.stopLocked(ctx)
 	if o.Stop {
+		e.endRecovery(ErrNotRunning)
 		return nil
 	}
-	return e.startLocked(o)
+	step, why := stepOriginal, recovery{}
+	for {
+		err := e.spawnRun(o, step, true, why)
+		if err == nil {
+			e.endRecovery(nil)
+			return nil
+		}
+		next, nextStep, ok := nextAttempt(o, step, err.Error())
+		if !ok {
+			e.pump.Enqueue([]tea.Msg{ext.NoticeMsg{Notice: recovery{reason: err.Error()}.giveUpNotice(e.id, err)}})
+			e.endRecovery(err)
+			return err
+		}
+		if step == stepOriginal {
+			why = recovery{noConversation: isNoConversation(err.Error()), reason: firstLine(err.Error())}
+		}
+		o, step = next, nextStep
+	}
 }
 
 // Stop ends the process gracefully: end_session, stdin EOF, SIGTERM, SIGKILL.
@@ -248,6 +297,12 @@ func (e *Engine) start(o ext.SpawnOpts) error {
 }
 
 func (e *Engine) startLocked(o ext.SpawnOpts) error {
+	return e.spawnRun(o, stepOriginal, false, recovery{})
+}
+
+// spawnRun starts one process for o. step, restart and why feed the restart safety
+// net (recover.go).
+func (e *Engine) spawnRun(o ext.SpawnOpts, step int, restart bool, why recovery) error {
 	if e.current() != nil {
 		return fmt.Errorf("engine %s: already running", e.id)
 	}
@@ -272,6 +327,10 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 		track:   newTracker(e.id, o),
 		inbound: newInboundSet(),
 		exited:  make(chan struct{}),
+		opts:    o,
+		step:    step,
+		restart: restart,
+		why:     why,
 	}
 	r.tr = NewTransport(proc.Stdout(), proc.Stdin())
 	r.tr.Tap = m.Tap
@@ -282,6 +341,8 @@ func (e *Engine) startLocked(o ext.SpawnOpts) error {
 	e.mu.Lock()
 	e.opts = o
 	e.cur, e.last = r, r
+	e.recovering++ // released by initialize (or wait): messages wait for the handshake
+	r.holdsQueue = true
 	e.mu.Unlock()
 
 	e.pump.Enqueue([]tea.Msg{
@@ -334,6 +395,16 @@ type run struct {
 	initRsp json.RawMessage // the initialize response (for hand-off)
 	handed  bool            // handed to another process: exit silently
 	exitErr error
+
+	// Restart safety net (recover.go).
+	opts    ext.SpawnOpts // what this process was started with
+	step    int           // stepOriginal, or the fallback step it is
+	restart bool          // started by Restart
+	why     recovery      // why an earlier attempt failed (fallback runs)
+	initOK  atomic.Bool   // the initialize handshake succeeded
+	// holdsQueue: this run holds a count of e.recovering until its initialize
+	// settles (guarded by e.mu).
+	holdsQueue bool
 }
 
 // VersionTimeout bounds the get_binary_version request sent with initialize.
@@ -346,9 +417,18 @@ func (r *run) initialize(dialogKinds []string) {
 	id, body, err := r.corr.RequestBodyNow(context.Background(), req, InitializeTimeout)
 	resp := body.Response
 	if err != nil {
+		if r.ending(err) {
+			return // wait() reports the exit and falls back or fails the queue
+		}
 		r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Err: err})
 		r.failHeld(r.tr.DropHeld(), err)
+		r.releaseQueue(fmt.Errorf("initialize failed: %w", err))
 		return
+	}
+	r.initOK.Store(true)
+	if r.step > stepOriginal {
+		// A fallback session is up: tell the user why they got a new session.
+		r.coal.PushMsg(ext.NoticeMsg{Notice: r.why.notice(r.e.id, r.step)})
 	}
 	r.saveInit(resp)
 	// The version gates unstable subtypes; system/init only reports it on the first
@@ -356,6 +436,7 @@ func (r *run) initialize(dialogKinds []string) {
 	// matters, so the held lines go out right away; the UI hears about initialize once
 	// the version is known, so Supports is right when features first look.
 	waitVersion, verr := r.corr.BeginNow(proto.GetBinaryVersionRequest{}, VersionTimeout)
+	r.releaseQueue(nil) // messages held during the (re)start join the held lines, in order
 	r.tr.Release()
 	if verr == nil {
 		if vb, err := waitVersion(context.Background()); err == nil {
@@ -376,6 +457,20 @@ func (r *run) initialize(dialogKinds []string) {
 	r.coal.PushMsg(ext.ControlResultMsg{EngineID: r.e.id, Subtype: proto.SubInitialize, RequestID: id, Resp: resp})
 	r.replayPending(body.PendingPermissionRequests)
 	r.replayPending(body.PendingUserDialogRequests)
+}
+
+// ending reports whether an initialize failure is the process going away (it exited,
+// its input is closed, or its output ended); wait() then owns the held lines.
+func (r *run) ending(err error) bool {
+	if errors.Is(err, ErrExited) || errors.Is(err, ErrClosed) {
+		return true
+	}
+	select {
+	case <-r.tr.ReadDone():
+		return true
+	default:
+		return false
+	}
 }
 
 // failHeld reports lines that were held for the handshake and never sent: prompts as
@@ -523,14 +618,56 @@ func (r *run) wait(stderrDone <-chan struct{}) {
 	}
 	r.exitErr = err
 	e := r.e
+	held := r.tr.DropHeld()
+	output := r.stderr.String()
+
+	// Restart safety net: a resumed or restarted engine that died before it was up
+	// falls back to a fresh session instead of staying dead.
+	var (
+		next     ext.SpawnOpts
+		nextStep int
+		recover  bool
+	)
+	if r.eligible(err, output) {
+		next, nextStep, recover = nextAttempt(r.opts, r.step, output)
+	}
 	e.mu.Lock()
 	if e.cur == r {
 		e.cur = nil
+	}
+	if recover {
+		e.recovering++ // the fallback's count: held messages wait for its session
 	}
 	e.mu.Unlock()
 
 	for _, id := range r.inbound.drain() {
 		r.coal.PushMsg(ext.ControlCancelMsg{EngineID: e.id, RequestID: id})
+	}
+	if len(held) > 0 {
+		r.failHeld(held, ErrExited)
+	}
+	if recover {
+		why := r.why
+		if r.step == stepOriginal {
+			why = recovery{noConversation: isNoConversation(output), reason: firstLine(output)}
+			if why.reason == "" {
+				why.reason = err.Error()
+			}
+		}
+		e.mgr.logf("engine %s: start failed (%v; %s); falling back (step %d)", e.id, err, firstLine(output), nextStep)
+		r.releaseQueue(nil)
+		r.coal.Stop()
+		close(r.exited)
+		go e.recoverFrom(r, next, nextStep, why)
+		return
+	}
+	cause := err
+	if cause == nil {
+		cause = ErrExited
+	}
+	r.releaseQueue(cause)
+	if err != nil && r.step > stepOriginal {
+		r.coal.PushMsg(ext.NoticeMsg{Notice: r.why.giveUpNotice(e.id, err)})
 	}
 	r.coal.PushMsg(ext.EngineExitedMsg{EngineID: e.id, Err: err, Stderr: r.stderr.Tail(20)})
 	r.coal.Stop()
