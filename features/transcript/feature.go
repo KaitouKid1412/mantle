@@ -83,7 +83,7 @@ func (f *Feature) Store() *Store { return f.store }
 func (f *Feature) Setup(r ext.Registrar) error {
 	f.registerRenderers(r)
 	r.AddComponent(ext.SlotLive, f.live, ext.SlotOpts{})
-	r.AddComponent(ext.SlotStatus, f.spinner, ext.SlotOpts{MaxHeight: 2})
+	r.AddComponent(ext.SlotStatus, f.spinner, ext.SlotOpts{MaxHeight: 3})
 	r.OnStart("transcript.attach", func(c ext.Ctx) tea.Cmd {
 		f.store.now = c.Clock().Now
 		f.cfg = loadConfig(c.Settings())
