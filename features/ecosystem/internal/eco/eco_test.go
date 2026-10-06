@@ -231,7 +231,7 @@ func TestHandoffAndRestart(t *testing.T) {
 	ctx.Opened = nil
 
 	exttest.Exec(eco.RestartEngine(ctx, "to load the new login"))
-	if len(eng.Restarts) != 1 || eng.Restarts[0].Resume != ctx.SessionValue.SessionID || eng.Restarts[0].Cwd != "/work" {
+	if len(eng.Restarts) != 1 || eng.Restarts[0].Resume != "" || eng.Restarts[0].Cwd != "/work" || eng.Restarts[0].Model != "claude-test" {
 		t.Fatalf("restart = %+v", eng.Restarts)
 	}
 	ecotest.Observe(&proto.BackgroundTasksChanged{Tasks: []proto.BackgroundTask{{TaskID: "t1", Description: "npm run dev"}}})

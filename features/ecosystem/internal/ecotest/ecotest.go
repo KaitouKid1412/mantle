@@ -39,7 +39,13 @@ type Engine struct {
 	Controls []Control
 	Sent     []string // text of prompts sent
 	Restarts []ext.SpawnOpts
+	// Opts is what Options returns: the launch options, like
+	// internal/engine.Engine.Options.
+	Opts ext.SpawnOpts
 }
+
+// Options returns the engine's launch options.
+func (e *Engine) Options() ext.SpawnOpts { return e.Opts }
 
 // NewEngine returns an engine with no scripted responses (every control
 // succeeds with {}).
