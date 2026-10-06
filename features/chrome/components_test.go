@@ -656,3 +656,49 @@ func TestEffortLineFullscreenOnly(t *testing.T) {
 		t.Error("fullscreen: the footer drops the hint")
 	}
 }
+
+// TestFooterWithFullscreenSuggestionOverlay: in fullscreen the / and @ menus are an
+// overlay above the prompt (input.suggestions); EditorStateMsg.Panel stays false, so
+// the footer and the effort line keep their rows (the overlay covers the effort line).
+// Claude Code 2.1.290's footer is then exactly its non-empty-prompt footer: the
+// manual mode drops the shortcuts hint, other modes keep their cycle hint
+// (fs-slash-menu, fs-at-mention and per-mode side-by-side frames).
+func TestFooterWithFullscreenSuggestionOverlay(t *testing.T) {
+	for _, mode := range []string{"", ModePlan, ModeAcceptEdits} {
+		ctx := exttest.NewCtx()
+		ctx.LayoutMode = ext.Fullscreen
+		ctx.SettingsV.ClaudeM["effortLevel"] = "low"
+		f := newFooter()
+		f.Init(ctx)
+		e := &effortLine{s: newSessionState()}
+		e.Update(ctx, ext.LayoutChangedMsg{Mode: ext.Fullscreen})
+		if mode != "" {
+			f.Update(ctx, ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{PermissionMode: mode}})
+		}
+		f.Update(ctx, ext.EditorStateMsg{Mode: "prompt", Empty: true})
+		empty := plainView(f, ctx, 100)
+		f.Update(ctx, ext.EditorStateMsg{Mode: "prompt", Empty: false})
+		text := plainView(f, ctx, 100)
+		// "/" typed: the overlay is open above the prompt; Panel stays false.
+		f.Update(ctx, ext.EditorStateMsg{Mode: "prompt", Empty: false, Panel: false})
+		e.Update(ctx, ext.EditorStateMsg{Mode: "prompt", Empty: false, Panel: false})
+		overlay := plainView(f, ctx, 100)
+		if overlay == "" || overlay != text {
+			t.Errorf("mode %q: footer with the overlay open = %q, want the non-empty-prompt footer %q", mode, overlay, text)
+		}
+		if plainView(e, ctx, 40) == "" {
+			t.Errorf("mode %q: the effort line keeps its row under the overlay", mode)
+		}
+		switch mode {
+		case "":
+			if !strings.Contains(empty, "? for shortcuts") || strings.Contains(overlay, "? for shortcuts") ||
+				strings.TrimSpace(overlay) != "⏸ manual approval" {
+				t.Errorf("manual mode: empty %q, overlay %q", empty, overlay)
+			}
+		default:
+			if !strings.Contains(overlay, "shift+tab to change") {
+				t.Errorf("mode %q keeps its cycle hint with the overlay open: %q", mode, overlay)
+			}
+		}
+	}
+}
