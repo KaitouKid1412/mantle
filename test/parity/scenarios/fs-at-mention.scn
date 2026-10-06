@@ -1,0 +1,20 @@
+# Fullscreen renderer: the @ file suggestions are drawn over the rows above the prompt.
+name: fs-at-mention
+size: 100x30
+args: --permission-mode default
+files: ../../../testdata/fixtures/12/app
+settings: {"tui": "fullscreen"}
+parity: AC-12, VW-15
+---
+ready
+settle 3s
+checkpoint start
+type Explain @mai
+settle 3s
+checkpoint suggestions
+keys tab
+settle
+checkpoint completed
+keys esc
+settle
+checkpoint closed

@@ -14,8 +14,9 @@ import (
 // IDs registered by this feature.
 const (
 	FeatureID   = "input.editor"
-	ComponentID = "input.editor" // the prompt (SlotInput)
-	MenuID      = "input.menu"   // menus, help and search status (SlotBelowInput)
+	ComponentID = "input.editor"      // the prompt (SlotInput)
+	MenuID      = "input.menu"        // menus, help and search status (SlotBelowInput)
+	OverlayID   = "input.suggestions" // the / and @ menus in fullscreen, over the rows above the prompt
 
 	StageHistory     = "input.history"
 	StageSlash       = "input.slash"
@@ -76,6 +77,9 @@ func setup(r ext.Registrar) error {
 func register(r ext.Registrar, s *state) {
 	r.AddComponent(ext.SlotInput, &promptComp{s: s}, ext.SlotOpts{})
 	r.AddComponent(ext.SlotBelowInput, &menuComp{s: s}, ext.SlotOpts{Weight: -100})
+	r.AddComponent(ext.SlotAboveInput, &overlayComp{s: s}, ext.SlotOpts{
+		Weight: 2000, MaxHeight: fsMenuRows, Modes: []ext.LayoutMode{ext.Fullscreen},
+	})
 
 	for _, a := range ownedActions {
 		id := a.id

@@ -36,6 +36,21 @@ type region struct {
 	lines      []string
 }
 
+// aboveInputOverlay is an optional interface for SlotAboveInput components in the
+// fullscreen layout. When OverlayAboveInput reports true, the component takes no rows
+// of the bottom stack: its lines are drawn over the rows directly above the input (the
+// transcript's last rows and the stack above the input), padded to the full width, so
+// the input never moves while it shows. The / and @ suggestion menus use it, as Claude
+// Code draws them in fullscreen. Inline, such a component is an ordinary one.
+type aboveInputOverlay interface {
+	OverlayAboveInput() bool
+}
+
+func isAboveInputOverlay(c ext.Component) bool {
+	o, ok := c.(aboveInputOverlay)
+	return ok && o.OverlayAboveInput()
+}
+
 func (r *Root) fullscreenView() tea.View {
 	W, H := r.w, r.h
 	mode := ext.Fullscreen
@@ -51,7 +66,12 @@ func (r *Root) fullscreenView() tea.View {
 	// An inline dialog (permission prompt, AskUserQuestion, pickers) takes the input's
 	// place at the bottom, as in inline mode; only PlaceCentered dialogs overlay.
 	inlineDialog := dialog != nil && dialog.d.Placement() == ext.PlaceInline
+	var overlays []*comp // aboveInputOverlay components, drawn after the layout
+	inputAt := -1        // index into bottom of the input slot's first region
 	for _, slot := range bottomSlots {
+		if slot == ext.SlotInput {
+			inputAt = len(bottom)
+		}
 		if slot == ext.SlotInput && inlineDialog {
 			d := dialog
 			lines := r.render(d.c, func(a ext.Area) ext.Rendered { return d.d.View(r.ctx, a) }, ext.Area{Width: W, MaxHeight: remaining, Focused: true, Mode: mode})
@@ -70,6 +90,10 @@ func (r *Root) fullscreenView() tea.View {
 		}
 		for _, c := range r.comps {
 			if c.m.slot != slot || r.host.Disabled(c.feature) || !r.modeOK(c) {
+				continue
+			}
+			if slot == ext.SlotAboveInput && isAboveInputOverlay(c.m.comp) {
+				overlays = append(overlays, c)
 				continue
 			}
 			maxH := remaining
@@ -149,12 +173,46 @@ func (r *Root) fullscreenView() tea.View {
 	}
 	regions = append(regions, bottom...)
 
+	// Overlays above the input: stacked upwards from the input's top row (the last
+	// registered nearest the input), over whatever is there.
+	inputY := by
+	if inputAt >= 0 && inputAt < len(bottom) {
+		inputY = bottom[inputAt].y
+	}
+	var overlayRegions []region
+	oy := inputY
+	for i := len(overlays) - 1; i >= 0 && oy > 0; i-- {
+		c := overlays[i]
+		comp := c.m.comp
+		maxH := oy
+		if c.m.opts.MaxHeight > 0 {
+			maxH = min(maxH, c.m.opts.MaxHeight)
+		}
+		lines := r.render(c, func(a ext.Area) ext.Rendered { return comp.View(r.ctx, a) }, ext.Area{Width: W, MaxHeight: maxH, Mode: mode})
+		if len(lines) > maxH {
+			lines = lines[len(lines)-maxH:]
+		}
+		if len(lines) == 0 {
+			continue
+		}
+		for j, l := range lines {
+			if pad := W - lipgloss.Width(l); pad > 0 {
+				lines[j] = l + strings.Repeat(" ", pad) // cover the rows underneath
+			}
+		}
+		oy -= len(lines)
+		overlayRegions = append(overlayRegions, region{id: comp.ID(), x: 0, y: oy, w: W, h: len(lines), lines: lines})
+	}
+
 	// Compose.
 	base := lipgloss.NewLayer(strings.Repeat("\n", max(0, H-1))).ID("frame")
 	var layers []*lipgloss.Layer
 	layers = append(layers, base)
 	for _, rg := range regions {
 		layers = append(layers, lipgloss.NewLayer(strings.Join(rg.lines, "\n")).ID(rg.id).X(rg.x).Y(rg.y).Z(1))
+	}
+	for _, rg := range overlayRegions {
+		layers = append(layers, lipgloss.NewLayer(strings.Join(rg.lines, "\n")).ID(rg.id).X(rg.x).Y(rg.y).Z(2))
 	}
 	if dialog != nil && !inlineDialog {
 		dw := min(W-4, 100)

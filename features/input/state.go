@@ -68,13 +68,14 @@ type state struct {
 	suggestion  string
 	workflowKw  bool
 
-	cfg       config
-	spell     spell
-	theme     *theme.Theme
-	lastState ext.EditorStateMsg
-	stateSent bool
-	seq       int // debounce generation for @ suggestions
-	now       func() time.Time
+	cfg        config
+	fullscreen bool // the host's layout, refreshed at every entry point
+	spell      spell
+	theme      *theme.Theme
+	lastState  ext.EditorStateMsg
+	stateSent  bool
+	seq        int // debounce generation for @ suggestions
+	now        func() time.Time
 }
 
 // config is what the feature reads from settings.
@@ -123,6 +124,7 @@ func newState() *state {
 // the editor state.
 func (s *state) start(c ext.Ctx) tea.Cmd {
 	s.ed.Tick = c.Clock().Tick
+	s.fullscreen = c.Layout() == ext.Fullscreen
 	s.applySettings(c)
 	s.workflowKw = ext.ClaudeBool(c.Settings(), "workflowKeywordTriggerEnabled", true)
 	s.syncSession(c.Session())
@@ -219,15 +221,19 @@ func (s *state) stateCmd(force bool) tea.Cmd {
 }
 
 // panelOpen reports whether input.menu shows something below the prompt
-// (chrome hides the footer then).
+// (chrome then hides the footer and the effort line). In fullscreen the / and @
+// menus are drawn over the rows above the prompt and the search is a dialog, so
+// they don't count: the footer keeps its row and the prompt doesn't move.
 func (s *state) panelOpen() bool {
-	return s.comp.open() || s.search != nil || s.help || s.pasteHint
+	menu := s.comp.open() || s.comp.noMatch != ""
+	return (menu && !s.fullscreen) || (s.search != nil && !s.searchDialog) || s.help || s.pasteHint
 }
 
 // invalidate re-renders both components.
 func (s *state) invalidate(c ext.Ctx) {
 	c.Invalidate(ComponentID)
 	c.Invalidate(MenuID)
+	c.Invalidate(OverlayID)
 }
 
 // vimNormal reports whether vim mode is on and not inserting.
