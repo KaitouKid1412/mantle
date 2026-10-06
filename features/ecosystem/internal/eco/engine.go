@@ -25,9 +25,10 @@ type RestartArgs struct {
 	Reason string // why, shown in the dialog and the notice ("to load the new login")
 }
 
-// RestartEngine restarts the main engine on the same session (--resume) so it
-// picks up new credentials, plugins or MCP servers. If background tasks are
-// running, which a restart kills, it asks first.
+// RestartEngine restarts the main engine so it picks up new credentials,
+// plugins or MCP servers: on the same session when it has been saved, fresh
+// otherwise (see RestartOpts). If background tasks are running, which a
+// restart kills, it asks first.
 func RestartEngine(ctx ext.Ctx, reason string) tea.Cmd {
 	if ctx.Engine("") == nil {
 		return ctx.Notify(ext.Notice{Key: "ecosystem.restart", Level: ext.NoticeInfo,
@@ -44,14 +45,13 @@ func restartNow(ctx ext.Ctx, reason string) tea.Cmd {
 	if eng == nil {
 		return nil
 	}
-	s := ctx.Session()
 	text := "Restarting Claude"
 	if reason != "" {
 		text += " " + reason
 	}
 	return tea.Batch(
 		ctx.Notify(ext.Notice{Key: "ecosystem.restart", Level: ext.NoticeInfo, Text: text + "…"}),
-		eng.Restart(ext.SpawnOpts{Cwd: s.Cwd, Resume: s.SessionID, Model: s.Model, PermissionMode: s.PermissionMode}),
+		eng.Restart(RestartOpts(ctx)),
 	)
 }
 
