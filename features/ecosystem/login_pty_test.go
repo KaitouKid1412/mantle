@@ -139,6 +139,12 @@ func TestLoginOnFreshSession(t *testing.T) {
 	p.WaitForText("Claude subscription", ptyWait) // the sign-in method menu
 	p.Send("enter")                               // claude auth login --claudeai (stub succeeds)
 	p.WaitFor(func(string) bool { return strings.Contains(all(), "Signed in as user@example.test") }, ptyWait)
+	// The login restarts the engine; type once the new one is up, as a person would.
+	p.WaitFor(func(string) bool {
+		b, _ := os.ReadFile(stubLog)
+		return strings.Count(string(b), "--output-format stream-json") >= 2
+	}, ptyWait)
+	p.Settle(300*time.Millisecond, 5*time.Second)
 
 	p.Type("ping after login")
 	p.Send("enter")

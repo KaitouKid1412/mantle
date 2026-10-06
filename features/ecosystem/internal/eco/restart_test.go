@@ -2,7 +2,6 @@ package eco_test
 
 import (
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -27,11 +26,12 @@ func transcript(t *testing.T, cfg, cwd, content string) {
 	}
 }
 
-// TestRestartResumesOnlySavedSessions covers the fresh-session /login bug: a
-// headless session has no transcript before its first turn, and --resume of
-// it kills the engine, so the restart must be fresh until the transcript holds
-// a message.
-func TestRestartResumesOnlySavedSessions(t *testing.T) {
+// TestRestartSessionFlags covers the fresh-session /login bug: a headless
+// session has no transcript before its first turn, and --resume of it kills
+// the engine. The rule matches plan 06's hand-off: resume a saved session,
+// reuse the id when no file exists, and use no session flag for a file
+// without messages.
+func TestRestartSessionFlags(t *testing.T) {
 	cfg, cwd := t.TempDir(), t.TempDir()
 	t.Setenv("CLAUDE_CONFIG_DIR", cfg)
 	eng := ecotest.NewEngine()
@@ -42,10 +42,11 @@ func TestRestartResumesOnlySavedSessions(t *testing.T) {
 	ctx.SessionValue.Model = "claude-opus-test"
 	ctx.SessionValue.PermissionMode = "acceptEdits"
 
-	// Never written: fresh restart that keeps model, mode and launch options.
+	// No transcript yet: a new session under the same id, keeping model, mode and
+	// the launch options.
 	o := eco.RestartOpts(ctx)
-	if o.Resume != "" || o.Continue || o.SessionID != "" {
-		t.Fatalf("fresh session must not be resumed: %+v", o)
+	if o.Resume != "" || o.SessionID != sid || o.Continue {
+		t.Fatalf("fresh session: %+v", o)
 	}
 	if o.Model != "claude-opus-test" || o.PermissionMode != "acceptEdits" || o.Cwd != cwd {
 		t.Errorf("model, mode or cwd lost: %+v", o)
@@ -57,43 +58,38 @@ func TestRestartResumesOnlySavedSessions(t *testing.T) {
 		t.Errorf("session flags not stripped: %q", o.ExtraArgs)
 	}
 
-	// Only metadata, no message yet: still fresh.
-	transcript(t, cfg, cwd, `{"type":"file-history-snapshot","messageId":"x"}`+"\n")
-	if o := eco.RestartOpts(ctx); o.Resume != "" {
-		t.Errorf("metadata-only transcript resumed: %+v", o)
+	// A file without messages: neither --resume nor --session-id.
+	transcript(t, cfg, cwd, `{"type":"custom-title","customTitle":"x"}`+"\n")
+	if o := eco.RestartOpts(ctx); o.Resume != "" || o.SessionID != "" {
+		t.Errorf("metadata-only transcript: %+v", o)
 	}
 
 	// After a turn: resume.
-	transcript(t, cfg, cwd, `{"type":"file-history-snapshot"}`+"\n"+`{"type":"user","message":{"role":"user","content":"hi"}}`+"\n")
-	if o := eco.RestartOpts(ctx); o.Resume != sid {
-		t.Errorf("saved session not resumed: %+v", o)
+	transcript(t, cfg, cwd, `{"type":"custom-title"}`+"\n"+`{"type":"user","message":{"role":"user","content":"hi"}}`+"\n")
+	if o := eco.RestartOpts(ctx); o.Resume != sid || o.SessionID != "" {
+		t.Errorf("saved session: %+v", o)
 	}
 }
 
-func TestSessionPersistedUsesEngineConfigDir(t *testing.T) {
+// The engine's own CLAUDE_CONFIG_DIR decides where its transcripts are.
+func TestRestartUsesEngineConfigDir(t *testing.T) {
 	cfg, cwd := t.TempDir(), t.TempDir()
 	t.Setenv("CLAUDE_CONFIG_DIR", t.TempDir()) // mantle's own env points elsewhere
 	transcript(t, cfg, cwd, `{"type":"assistant"}`+"\n")
-	o := ext.SpawnOpts{Cwd: cwd, Env: map[string]string{"CLAUDE_CONFIG_DIR": cfg}}
-	if !eco.SessionPersisted(o, sid) {
-		t.Error("the engine's CLAUDE_CONFIG_DIR is where its transcripts are")
-	}
-	if eco.SessionPersisted(ext.SpawnOpts{Cwd: cwd}, sid) {
-		t.Error("found a transcript in the wrong config dir")
-	}
-	if eco.SessionPersisted(o, "not-a-uuid") {
-		t.Error("invalid ids are never resumable")
-	}
-	if !filepath.IsAbs(cfg) {
-		t.Fatal("temp dir not absolute")
+	eng := ecotest.NewEngine()
+	eng.Opts = ext.SpawnOpts{Cwd: cwd, Env: map[string]string{"CLAUDE_CONFIG_DIR": cfg}}
+	ctx := ecotest.NewCtx(eng, cwd)
+	ctx.SessionValue.SessionID = sid
+	if o := eco.RestartOpts(ctx); o.Resume != sid {
+		t.Errorf("transcript in the engine's config dir not found: %+v", o)
 	}
 }
 
-func TestRestartWithoutOptioner(t *testing.T) {
+func TestRestartWithoutEngineOptions(t *testing.T) {
 	ctx := exttest.NewCtx()
-	ctx.SessionValue = ext.SessionInfo{EngineID: ext.MainEngine, SessionID: sid, Cwd: t.TempDir(), Model: "m"}
+	ctx.SessionValue = ext.SessionInfo{EngineID: ext.MainEngine, SessionID: "not-a-uuid", Cwd: t.TempDir(), Model: "m"}
 	o := eco.RestartOpts(ctx) // no engine: options from the session only
-	if o.Resume != "" || o.Model != "m" || o.Cwd == "" {
+	if o.Resume != "" || o.SessionID != "" || o.Model != "m" || o.Cwd == "" {
 		t.Errorf("opts = %+v", o)
 	}
 }

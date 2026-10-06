@@ -1,9 +1,8 @@
 package eco
 
 import (
-	"bufio"
-	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -18,11 +17,11 @@ type optioner interface{ Options() ext.SpawnOpts }
 // RestartOpts returns the options for restarting the main engine after a login,
 // logout or configuration change. It starts from the engine's own launch
 // options, so the user's claude flags, the startup gates' --settings and
-// --add-dir survive, and clears the session fields. It resumes the current
-// session only when its transcript exists: headless claude writes a
-// transcript after the first turn, and `--resume` of a session that was never
-// written makes claude exit ("No conversation found with session ID"). A
-// fresh restart keeps the current model and permission mode.
+// --add-dir survive, clears the session fields, keeps the current model and
+// permission mode, and picks the session flag like plan 06's hand-off
+// (sessionFlags): headless claude writes a transcript only after the first
+// turn, and `--resume` of a session that was never written makes claude exit
+// ("No conversation found with session ID").
 func RestartOpts(ctx ext.Ctx) ext.SpawnOpts {
 	s := ctx.Session()
 	var o ext.SpawnOpts
@@ -41,10 +40,40 @@ func RestartOpts(ctx ext.Ctx) ext.SpawnOpts {
 	if s.PermissionMode != "" {
 		o.PermissionMode = s.PermissionMode
 	}
-	if s.SessionID != "" && SessionPersisted(o, s.SessionID) {
-		o.Resume = s.SessionID
-	}
+	o.Resume, o.SessionID = sessionFlags(o, s.SessionID)
 	return o
+}
+
+// sessionFlags picks --resume or --session-id for restarting session sid with
+// options o (the same rule as plan 06's hand-off):
+//   - its transcript holds a message (sessions.Layout.Persisted): resume it;
+//   - no transcript file yet: start a new session under the same id, so
+//     mantle's view of the session doesn't change;
+//   - a file without messages (a title set before the first prompt): no flag,
+//     because claude refuses --session-id for an id whose file exists.
+func sessionFlags(o ext.SpawnOpts, sid string) (resume, newID string) {
+	if !sessions.ValidID(sid) {
+		return "", ""
+	}
+	layout := engineLayout(o)
+	if layout.Persisted(o.Cwd, sid) {
+		return sid, ""
+	}
+	if _, err := os.Stat(sessions.SessionFile(layout.ProjectDir(o.Cwd), sid)); errors.Is(err, fs.ErrNotExist) {
+		return "", sid
+	}
+	return "", ""
+}
+
+// engineLayout is the session layout the engine writes to, honouring a
+// CLAUDE_CONFIG_DIR set in its own environment.
+func engineLayout(o ext.SpawnOpts) sessions.Layout {
+	return sessions.LayoutFromEnv(func(k string) string {
+		if v, ok := o.Env[k]; ok {
+			return v
+		}
+		return os.Getenv(k)
+	})
 }
 
 // stripSessionArgs drops session-selecting flags from forwarded claude args, so
@@ -66,48 +95,4 @@ func stripSessionArgs(args []string) []string {
 		out = append(out, a)
 	}
 	return out
-}
-
-// SessionPersisted reports whether claude can resume session id for an engine
-// started with o: its transcript (<config>/projects/<project>/<id>.jsonl, with
-// the engine's CLAUDE_CONFIG_DIR) exists and holds a conversation message.
-func SessionPersisted(o ext.SpawnOpts, id string) bool {
-	if !sessions.ValidID(id) {
-		return false
-	}
-	getenv := func(k string) string {
-		if v, ok := o.Env[k]; ok {
-			return v
-		}
-		return os.Getenv(k)
-	}
-	layout := sessions.LayoutFromEnv(getenv)
-	for _, dir := range layout.ProjectDirs(o.Cwd) {
-		if hasConversation(sessions.SessionFile(dir, id)) {
-			return true
-		}
-	}
-	return false
-}
-
-// hasConversation reports whether a transcript file has a user or assistant
-// record. It reads at most a few thousand lines.
-func hasConversation(path string) bool {
-	f, err := os.Open(path)
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
-	sc.Buffer(make([]byte, 64<<10), 16<<20)
-	for n := 0; n < 5000 && sc.Scan(); n++ {
-		var rec struct {
-			Type string `json:"type"`
-		}
-		if json.Unmarshal(sc.Bytes(), &rec) == nil && (rec.Type == "user" || rec.Type == "assistant") {
-			return true
-		}
-	}
-	// A line longer than the buffer means a large message, so a conversation.
-	return errors.Is(sc.Err(), bufio.ErrTooLong)
 }
