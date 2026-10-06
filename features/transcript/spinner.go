@@ -44,15 +44,15 @@ var spinFrames = []string{"·", "✢", "✳", "✶", "✻", "✽", "✻", "✶",
 const (
 	spinInterval  = 120 * time.Millisecond
 	staticRefresh = time.Second
-	tipAfter      = 3 * time.Second
-	tipEvery      = 12 * time.Second
 )
 
 // spinTick drives the animation; gen discards ticks from an earlier turn.
 type spinTick struct{ gen int }
 
 // spinner is the SlotStatus component: verb, elapsed time, tokens and the
-// interrupt hint while a turn runs, and a rotating tip under it.
+// interrupt hint while a turn runs, and a tip under it. As in Claude Code, a
+// tip is picked when a turn ends and shown for all of the next turn, so a
+// session's first turn has none.
 type spinner struct {
 	f *Feature
 
@@ -67,6 +67,8 @@ type spinner struct {
 
 	tokens  int64 // output tokens this turn (estimated from streamed bytes)
 	tipFile []string
+	turns   int // turns finished this session
+	tipIdx  int // 1 + this turn's tip in tips(); 0: none
 }
 
 func newSpinner(f *Feature) *spinner { return &spinner{f: f} }
@@ -127,6 +129,9 @@ func (s *spinner) onEvent(c ext.Ctx, ev proto.Event) tea.Cmd {
 			s.begin(c)
 		}
 	case *proto.Result:
+		if s.busy {
+			s.turns++
+		}
 		s.stop()
 	case *proto.ConversationReset:
 		s.stop()
@@ -156,6 +161,10 @@ func (s *spinner) begin(c ext.Ctx) {
 	h := fnv.New32a()
 	h.Write([]byte(s.start.String()))
 	s.verb = verbs[h.Sum32()%uint32(len(verbs))]
+	s.tipIdx = 0
+	if s.turns > 0 {
+		s.tipIdx = 1 + int(h.Sum32()>>8)
+	}
 }
 
 func (s *spinner) stop() {
@@ -205,8 +214,12 @@ func (s *spinner) View(c ext.Ctx, a ext.Area) ext.Rendered {
 	details = append(details, key+" to interrupt")
 	line += " " + st.dim.Render("("+strings.Join(details, " · ")+")")
 	lines := []string{render.Truncate(line, a.Width, "…")}
-
-	if tip := s.tip(elapsed); tip != "" && (a.MaxHeight == 0 || a.MaxHeight > 1) {
+	if a.Mode == ext.Inline {
+		// A blank row between the transcript and the spinner, as claude leaves
+		// (fullscreen's transcript view ends with one).
+		lines = append([]string{""}, lines...)
+	}
+	if tip := s.tip(); tip != "" && (a.MaxHeight == 0 || a.MaxHeight > len(lines)) {
 		lines = append(lines, render.Truncate(st.dim.Render(resultIndent+"Tip: "+tip), a.Width, "…"))
 	}
 	return ext.Rendered{Text: strings.Join(lines, "\n")}
@@ -220,22 +233,16 @@ func formatElapsed(d time.Duration) string {
 	return formatDuration(d.Truncate(time.Second))
 }
 
-// tip returns the tip to show after the turn has run a little while.
-func (s *spinner) tip(elapsed time.Duration) string {
-	if !s.f.cfg.tips || elapsed < tipAfter {
+// tip returns this turn's tip ("" in a session's first turn).
+func (s *spinner) tip() string {
+	if !s.f.cfg.tips || s.tipIdx == 0 {
 		return ""
 	}
 	tips := s.tips()
 	if len(tips) == 0 {
 		return ""
 	}
-	h := fnv.New32a()
-	h.Write([]byte(s.start.String()))
-	i := (int(h.Sum32()) + int((elapsed-tipAfter)/tipEvery)) % len(tips)
-	if i < 0 {
-		i = -i
-	}
-	return clean(tips[i])
+	return clean(tips[(s.tipIdx-1)%len(tips)])
 }
 
 func (s *spinner) tips() []string {

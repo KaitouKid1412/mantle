@@ -12,8 +12,13 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/render"
 )
 
+// spinnerView renders the spinner inline, without the blank row above it.
 func (g *rig) spinnerView() string {
-	return render.Strip(g.f.spinner.View(g.c, ext.Area{Width: 100, MaxHeight: 2, Mode: ext.Inline}).Text)
+	v := render.Strip(g.f.spinner.View(g.c, ext.Area{Width: 100, MaxHeight: 3, Mode: ext.Inline}).Text)
+	if v != "" && !strings.HasPrefix(v, "\n") {
+		g.t.Fatalf("no blank row above the spinner: %q", v)
+	}
+	return strings.TrimPrefix(v, "\n")
 }
 
 func TestSpinnerLifecycle(t *testing.T) {
@@ -42,13 +47,28 @@ func TestSpinnerLifecycle(t *testing.T) {
 	if v := g.spinnerView(); !strings.Contains(v, "1m 5s") || !strings.Contains(v, "↓ 6 tokens") {
 		t.Fatalf("spinner = %q", v)
 	}
-	// A tip appears after a few seconds.
-	if v := g.spinnerView(); !strings.Contains(v, "Tip: ") {
-		t.Fatalf("no tip: %q", v)
+	// Like claude, a tip is picked when a turn ends: none in the first turn.
+	if v := g.spinnerView(); strings.Contains(v, "Tip: ") {
+		t.Fatalf("tip in the first turn: %q", v)
 	}
 	g.send(`{"type":"result","subtype":"success","uuid":"r","duration_ms":65000,"is_error":false,"num_turns":1,"total_cost_usd":0}`)
 	if v := g.spinnerView(); v != "" {
 		t.Fatalf("spinner after result = %q", v)
+	}
+	// The next turn shows one from its start, and keeps it.
+	g.send(`{"type":"system","subtype":"session_state_changed","state":"running"}`)
+	tip := g.spinnerView()
+	if !strings.Contains(tip, "Tip: ") {
+		t.Fatalf("no tip in the second turn: %q", tip)
+	}
+	g.c.ClockV.Advance(40 * time.Second)
+	if v := g.spinnerView(); v[strings.Index(v, "Tip: "):] != tip[strings.Index(tip, "Tip: "):] {
+		t.Fatalf("tip changed during the turn: %q → %q", tip, v)
+	}
+	// The fullscreen layout has no blank row above the spinner (its
+	// transcript view ends with one).
+	if v := g.f.spinner.View(g.c, ext.Area{Width: 100, MaxHeight: 3, Mode: ext.Fullscreen}).Text; strings.HasPrefix(v, "\n") {
+		t.Fatalf("fullscreen spinner = %q", v)
 	}
 }
 
@@ -94,8 +114,9 @@ func TestSpinnerTipsOverride(t *testing.T) {
 		"spinnerTipsOverride": map[string]any{"tips": []any{"Only tip"}},
 	})
 	g.deliver(ext.SettingsMsg{})
-	g.send(`{"type":"system","subtype":"session_state_changed","state":"running"}`)
-	g.c.ClockV.Advance(10 * time.Second)
+	g.send(`{"type":"system","subtype":"session_state_changed","state":"running"}
+{"type":"result","subtype":"success","uuid":"r","duration_ms":1000,"is_error":false,"num_turns":1,"total_cost_usd":0}
+{"type":"system","subtype":"session_state_changed","state":"running"}`)
 	if v := g.spinnerView(); !strings.Contains(v, "Tip: Only tip") {
 		t.Fatalf("spinner = %q", v)
 	}

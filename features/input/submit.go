@@ -357,8 +357,93 @@ func (s *state) stageSend(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 			p.InlinePastes = append(p.InlinePastes, a.Text)
 		}
 	}
-	return ext.Consumed, s.dispatch(c, p, d.Text, s.lastSent)
+	var echo tea.Cmd
+	if !strings.HasPrefix(strings.TrimSpace(d.Text), "/") {
+		echo = s.echoPrompt(c, p, ext.KeyUserPrompt)
+		if echo != nil {
+			s.sentUUID, s.sentDraft = p.UUID, s.lastSent
+		}
+	}
+	// The echo goes first, so the transcript has it before any replay.
+	return ext.Consumed, tea.Sequence(echo, s.dispatch(c, p, d.Text, s.lastSent))
 }
+
+// echoPrompt shows a prompt in the transcript as it is sent, as Claude Code
+// does, instead of when the engine replays it (which waits for hooks and MCP
+// startup). Only prompts that run next: those sent to an idle engine, or the
+// first one typed while it starts. Queued prompts show in the queue, and
+// commands are echoed by the engine or by stageSlash. The item is
+// "user:<uuid>" and running; the transcript settles it in place when the
+// replay of that uuid arrives, and drops it if the prompt never reaches the
+// engine.
+func (s *state) echoPrompt(c ext.Ctx, p ext.Prompt, key ext.ContentKey) tea.Cmd {
+	if s.busy || len(s.starting) > 0 || c.Transcript() == nil {
+		return nil
+	}
+	if s.echoed == nil {
+		s.echoed = map[string]bool{}
+	}
+	s.echoed[p.UUID] = true
+	now := c.Clock().Now()
+	in := proto.NewUserInput(p.UUID, p.Blocks...)
+	it := &ext.Item{
+		ID: "user:" + p.UUID, Key: key, State: ext.Running, Start: now,
+		Data: &proto.User{Envelope: proto.Envelope{Type: proto.TypeUser, UUID: p.UUID}, Message: in.Message},
+	}
+	return ext.Msg(ext.TranscriptHistoryMsg{EngineID: ext.MainEngine, Items: []*ext.Item{it}})
+}
+
+// sendFailed handles a prompt the engine rejected (it could not deliver it: the
+// engine is down, or a restart failed). The transcript drops the prompt's echo;
+// like the send stage's reject path, the prompt goes back into the box, or,
+// when something new is typed there, stays in history (it was recorded on
+// submit).
+func (s *state) sendFailed(c ext.Ctx, m ext.ControlResultMsg) tea.Cmd {
+	text := "Could not send the prompt: " + m.Err.Error()
+	var d *savedDraft
+	var cmds []tea.Cmd
+	switch {
+	case m.RequestID == "":
+	case m.RequestID == s.sentUUID:
+		s.busy = false // no turn started
+		d = s.sentDraft
+		s.promptTaken()
+	default:
+		for _, q := range s.queue {
+			if q.uuid == m.RequestID {
+				d = q.draft // nil for "!" output, which is not given back
+			}
+		}
+		cmds = append(cmds, s.dequeue(m.RequestID))
+	}
+	switch {
+	case d == nil:
+	case s.ed.Empty():
+		s.restore(d)
+		cmds = append(cmds, s.changed(c))
+		text += "; the prompt is back in the box"
+	default:
+		text += "; press up to get it back from history"
+	}
+	cmds = append(cmds, c.Notify(ext.Notice{Key: "input.send", Text: text, Level: ext.NoticeError, Source: FeatureID}))
+	return tea.Batch(cmds...)
+}
+
+// restoreUnsent puts the echoed prompt the engine never took up back into an
+// empty box (the transcript drops its echo). It returns nil when there is none.
+func (s *state) restoreUnsent(c ext.Ctx) tea.Cmd {
+	d := s.sentDraft
+	s.sentUUID, s.sentDraft = "", nil
+	if d == nil || !s.ed.Empty() {
+		return nil
+	}
+	s.restore(d)
+	return s.changed(c)
+}
+
+// promptTaken notes that the engine took up the echoed prompt: from now on a
+// failure no longer gives it back.
+func (s *state) promptTaken() { s.sentUUID, s.sentDraft = "", nil }
 
 // startPending is a prompt sent before the main engine attached.
 type startPending struct {
@@ -375,12 +460,16 @@ func (s *state) dispatch(c ext.Ctx, p ext.Prompt, text string, draft *savedDraft
 	eng := c.Engine(ext.MainEngine)
 	if eng == nil {
 		s.starting = append(s.starting, startPending{p: p, text: text, draft: draft})
+		if s.echoed[p.UUID] {
+			return nil // in the transcript already
+		}
 		if draft != nil {
 			text = draft.Display
 		}
 		s.queue = append(s.queue, queued{uuid: p.UUID, text: text, priority: p.Priority, draft: draft, prompt: p})
 		return s.queueCmd()
 	}
+	defer delete(s.echoed, p.UUID)
 	if p.ShouldQuery != nil && !*p.ShouldQuery && !s.busy {
 		return eng.Send(p) // recorded without a turn
 	}
@@ -395,6 +484,7 @@ func (s *state) flushStarting(eng ext.Engine) tea.Cmd {
 	var cmds []tea.Cmd
 	for _, sp := range pend {
 		p := sp.p
+		delete(s.echoed, p.UUID)
 		noTurn := p.ShouldQuery != nil && !*p.ShouldQuery
 		switch {
 		case noTurn && !s.busy:
@@ -423,6 +513,12 @@ func (s *state) failStarting(c ext.Ctx, err error) tea.Cmd {
 	s.starting = nil
 	if len(pend) == 0 {
 		return nil
+	}
+	for _, sp := range pend {
+		delete(s.echoed, sp.p.UUID)
+		if sp.p.UUID == s.sentUUID {
+			s.promptTaken() // given back below, with the others
+		}
 	}
 	var texts []string
 	var chips []*editor.Chip
@@ -466,6 +562,9 @@ func (s *state) track(c ext.Ctx, p ext.Prompt, text string) tea.Cmd {
 	if !s.busy || p.Priority == "" || p.Priority == proto.PriorityNow {
 		s.busy = true
 		return nil
+	}
+	if s.echoed[p.UUID] {
+		return nil // a "!" command already in the transcript
 	}
 	q := queued{uuid: p.UUID, text: text, priority: p.Priority, draft: s.lastSent, prompt: p}
 	if s.lastSent != nil {

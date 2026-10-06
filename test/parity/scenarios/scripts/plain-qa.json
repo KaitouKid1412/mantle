@@ -2,6 +2,7 @@
   "turns": [
     {
       "match": {"contains": "markdown"},
+      "delay_ms": 8000,
       "reply": [
         {"type": "text", "text": "## Parsing plan\n\nHere is the plan:\n\n1. Read the **grammar**.\n2. Write a `lexer`.\n3. Add tests.\n\n```go\nfunc add(a, b int) int {\n\treturn a + b\n}\n```\n\nDone."}
       ]

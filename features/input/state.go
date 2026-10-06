@@ -76,6 +76,11 @@ type state struct {
 	stateSent  bool
 	seq        int // debounce generation for @ suggestions
 	now        func() time.Time
+
+	// Prompt echoes (echoPrompt).
+	echoed    map[string]bool // prompts already in the transcript: not shown as queued
+	sentUUID  string          // the echoed prompt the engine has not taken up yet
+	sentDraft *savedDraft     // its draft, put back if it never reaches the engine
 }
 
 // config is what the feature reads from settings.

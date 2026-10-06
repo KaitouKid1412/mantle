@@ -25,6 +25,8 @@ const (
 
 // bashDoneMsg is the result of a "!" command.
 type bashDoneMsg struct {
+	uuid           string // of the prompt that records it
+	echoed         bool   // the transcript shows the command (echoPrompt)
 	command        string
 	stdout, stderr string
 	code           int
@@ -35,10 +37,18 @@ type bashDoneMsg struct {
 // runBash runs a "!" command in the session's directory. Headless claude has
 // no "!" path that records output in the conversation, so mantle runs the
 // command and sends the command and its output as a user message, the way the
-// interactive UI records them.
+// interactive UI records them. With the engine idle the transcript shows the
+// command at once ("Running…" until its output is in); otherwise a notice
+// does.
 func (s *state) runBash(c ext.Ctx, command string) tea.Cmd {
 	cwd := s.cwd
-	notice := c.Notify(ext.Notice{Key: "input.bash", Text: "Running " + firstLine(command), Timeout: -1, Source: FeatureID})
+	id := uuid.NewString()
+	in := proto.Text("<bash-input>" + command + "</bash-input>")
+	notice := s.echoPrompt(c, ext.Prompt{UUID: id, Blocks: []proto.ContentBlock{in}}, ext.KeyUserBash)
+	echoed := notice != nil
+	if !echoed {
+		notice = c.Notify(ext.Notice{Key: "input.bash", Text: "Running " + firstLine(command), Timeout: -1, Source: FeatureID})
+	}
 	run := func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), bashTimeout)
 		defer cancel()
@@ -53,7 +63,7 @@ func (s *state) runBash(c ext.Ctx, command string) tea.Cmd {
 		cmd.Stdout, cmd.Stderr = &out, &errb
 		start := time.Now()
 		err := cmd.Run()
-		m := bashDoneMsg{command: command, stdout: out.String(), stderr: errb.String(), duration: time.Since(start)}
+		m := bashDoneMsg{uuid: id, echoed: echoed, command: command, stdout: out.String(), stderr: errb.String(), duration: time.Since(start)}
 		var ee *exec.ExitError
 		switch {
 		case errors.As(err, &ee):
@@ -83,7 +93,6 @@ func (s *state) bashDone(c ext.Ctx, m bashDoneMsg) tea.Cmd {
 		proto.Text("<bash-input>" + m.command + "</bash-input>"),
 		proto.Text("<bash-stdout>" + capOutput(m.stdout) + "</bash-stdout><bash-stderr>" + capOutput(stderr) + "</bash-stderr>"),
 	}
-	done := c.Notify(ext.Notice{Key: "input.bash", Text: "Ran " + firstLine(m.command), Timeout: 2 * time.Second, Source: FeatureID})
 	priority := ""
 	if s.busy {
 		priority = proto.PriorityLater
@@ -91,8 +100,27 @@ func (s *state) bashDone(c ext.Ctx, m bashDoneMsg) tea.Cmd {
 	// Composed: command output must not trigger @path or /command expansion.
 	// respondToBashCommands false records the output without a reply.
 	respond := s.cfg.respondBash
-	p := ext.Prompt{Blocks: blocks, Priority: priority, UUID: uuid.NewString(), Composed: true, ShouldQuery: &respond}
-	return tea.Batch(done, s.dispatch(c, p, "!"+m.command, nil))
+	p := ext.Prompt{Blocks: blocks, Priority: priority, UUID: m.uuid, Composed: true, ShouldQuery: &respond}
+	var done tea.Cmd
+	if m.echoed {
+		// The output goes into the transcript now, not when the engine
+		// replays the message (which waits for any turn in progress).
+		done = s.bashOutput(c, p)
+	} else {
+		done = c.Notify(ext.Notice{Key: "input.bash", Text: "Ran " + firstLine(m.command), Timeout: 2 * time.Second, Source: FeatureID})
+	}
+	return tea.Sequence(done, s.dispatch(c, p, "!"+m.command, nil))
+}
+
+// bashOutput finishes a "!" command's echo with its output.
+func (s *state) bashOutput(c ext.Ctx, p ext.Prompt) tea.Cmd {
+	now := c.Clock().Now()
+	in := proto.NewUserInput(p.UUID, p.Blocks...)
+	it := &ext.Item{
+		ID: "user:" + p.UUID, Key: ext.KeyUserBash, State: ext.Done, End: now,
+		Data: &proto.User{Envelope: proto.Envelope{Type: proto.TypeUser, UUID: p.UUID}, Message: in.Message},
+	}
+	return ext.Msg(ext.TranscriptHistoryMsg{EngineID: ext.MainEngine, Items: []*ext.Item{it}})
 }
 
 func capOutput(s string) string {

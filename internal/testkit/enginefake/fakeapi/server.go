@@ -251,6 +251,9 @@ func (s *Server) serveMessages(w http.ResponseWriter, rec *Request) {
 	}
 	rep := s.resolve(&m, &turn, len(rec.Body))
 	s.mu.Unlock()
+	if turn.DelayMS > 0 {
+		time.Sleep(time.Duration(turn.DelayMS) * time.Millisecond)
+	}
 
 	for k, v := range turn.Headers {
 		w.Header().Set(k, v)

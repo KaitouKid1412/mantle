@@ -145,8 +145,12 @@ func (f *Feature) renderBash(rc ext.RenderCtx, it *ext.Item) ext.Block {
 	lines = append(lines, out...)
 	errOut, hid2 := output(rc, st.err, stderr, len(out) == 0)
 	lines = append(lines, errOut...)
-	if len(out) == 0 && len(errOut) == 0 && (stdout != "" || stderr != "" || strings.Contains(text, "<bash-stdout>")) {
+	switch {
+	case len(out) > 0 || len(errOut) > 0:
+	case stdout != "" || stderr != "" || strings.Contains(text, "<bash-stdout>"):
 		lines = append(lines, result(rc, st.dim, "(no output)")...)
+	case !it.State.Finished():
+		lines = append(lines, result(rc, st.dim, "Running…")...) // an echo whose command still runs
 	}
 	return ext.Block{Lines: lines, Collapsible: hid1 || hid2}
 }
