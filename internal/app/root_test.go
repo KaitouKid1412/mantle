@@ -90,7 +90,7 @@ func TestDialogStack(t *testing.T) {
 		t.Fatalf("input got keys while the dialog was open: %v", in.keys)
 	}
 	var closed *ext.DialogClosedMsg
-	for _, m := range in.got {
+	for _, m := range in.msgs() {
 		if c, ok := m.(ext.DialogClosedMsg); ok {
 			closed = &c
 		}

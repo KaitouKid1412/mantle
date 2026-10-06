@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,6 +36,7 @@ type box struct {
 	pastes    []string
 	actions   []ext.ActionID
 	handle    map[ext.ActionID]bool // actions HandleAction claims
+	gotMu     sync.Mutex            // got is written by the program goroutine
 	got       []tea.Msg
 	panicView bool
 	views     int
@@ -43,8 +45,24 @@ type box struct {
 func (b *box) ID() string           { return b.id }
 func (b *box) Init(ext.Ctx) tea.Cmd { return nil }
 func (b *box) Update(c ext.Ctx, m tea.Msg) tea.Cmd {
+	b.gotMu.Lock()
 	b.got = append(b.got, m)
+	b.gotMu.Unlock()
 	return nil
+}
+
+// msgs returns the messages Update got so far (safe while a program runs).
+func (b *box) msgs() []tea.Msg {
+	b.gotMu.Lock()
+	defer b.gotMu.Unlock()
+	return append([]tea.Msg(nil), b.got...)
+}
+
+// resetMsgs forgets the messages Update got so far.
+func (b *box) resetMsgs() {
+	b.gotMu.Lock()
+	b.got = nil
+	b.gotMu.Unlock()
 }
 func (b *box) View(c ext.Ctx, a ext.Area) ext.Rendered {
 	b.views++
