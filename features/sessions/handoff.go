@@ -1,13 +1,16 @@
 package sessions
 
 import (
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/KaitouKid1412/mantle/internal/sessions"
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
 	"github.com/KaitouKid1412/mantle/pkg/theme"
@@ -91,13 +94,12 @@ func (f *feature) startHandoff(ctx ext.Ctx, extra []string) tea.Cmd {
 	}
 	cwd := f.cwd(ctx)
 	sid := ctx.Session().SessionID
+	// The session flags are chosen when each claude starts (sessionFlags): a fresh
+	// session has no transcript to resume until its first prompt.
 	h := &handoff{
 		engineID: ext.MainEngine, sid: sid, cwd: cwd, extra: extra, bin: bin,
-		args:    handoffArgs(sid, extra),
 		restart: ctx.Engine(ext.MainEngine) != nil || sid != "",
-		opts: f.spawnOpts(ctx, ext.MainEngine, cwd, func(o *ext.SpawnOpts) {
-			o.Resume = sid
-		}),
+		opts:    f.spawnOpts(ctx, ext.MainEngine, cwd, nil),
 	}
 	f.ho = h
 	st := f.engine(ext.MainEngine)
@@ -133,6 +135,9 @@ func (f *feature) onHandoffExec(ctx ext.Ctx, _ handoffExecMsg) tea.Cmd {
 	if h == nil {
 		return nil
 	}
+	// The engine has stopped, so the transcript on disk is final.
+	h.args = handoffArgs(f.sessionFlags(h.cwd, h.sid))
+	h.args = append(h.args, h.extra...)
 	return tea.Exec(&cleanExec{Cmd: handoffProcess(h)}, func(err error) tea.Msg { return handoffDoneMsg{err: err} })
 }
 
@@ -177,7 +182,8 @@ func (c *cleanExec) Run() error {
 }
 
 // onHandoffDone restarts the engine on the session and reprints its history, which
-// may have grown while Claude Code had it.
+// may have grown while Claude Code had it. A session that still has no transcript
+// (nothing was sent in either program) restarts fresh.
 func (f *feature) onHandoffDone(ctx ext.Ctx, m handoffDoneMsg) tea.Cmd {
 	h := f.ho
 	f.ho = nil
@@ -188,24 +194,51 @@ func (f *feature) onHandoffDone(ctx ext.Ctx, m handoffDoneMsg) tea.Cmd {
 	if m.err != nil {
 		cmds = append(cmds, notice(ctx, "handoff", "Claude Code exited with an error: "+m.err.Error(), ext.NoticeWarning))
 	}
-	if h.restart {
-		cmds = append(cmds, startEngine(h.engineID, h.opts))
+	if !h.restart {
+		return tea.Batch(cmds...)
 	}
-	if h.sid != "" {
+	opts := h.opts
+	opts.Resume, opts.SessionID = f.sessionFlags(h.cwd, h.sid)
+	cmds = append(cmds, startEngine(h.engineID, opts))
+	if opts.Resume != "" {
 		f.engine(h.engineID).loading = true
 		cmds = append(cmds, f.loadCmd(loadReq{engineID: h.engineID, mode: modeRefresh, id: h.sid, cwd: h.cwd}))
+	} else {
+		cmds = append(cmds, ctx.Reprint()) // the hand-off cleared the terminal
 	}
 	return tea.Batch(cmds...)
 }
 
-// handoffArgs is the claude command line for a hand-off: resume the session (if any),
-// then the extra arguments (a slash command runs as the first prompt).
-func handoffArgs(sid string, extra []string) []string {
-	var args []string
-	if sid != "" {
-		args = append(args, "--resume", sid)
+// handoffArgs is the session part of the claude command line for a hand-off; the extra
+// arguments follow it (a slash command runs as the first prompt).
+func handoffArgs(resume, newID string) []string {
+	switch {
+	case resume != "":
+		return []string{"--resume", resume}
+	case newID != "":
+		return []string{"--session-id", newID}
 	}
-	return append(args, extra...)
+	return nil
+}
+
+// sessionFlags picks how a claude run (Claude Code, or the engine after it) takes up
+// session sid in cwd. It resumes sid when sid's transcript can be loaded. The headless
+// engine writes a transcript only after the first prompt, and `--resume` of a session
+// without one fails ("No conversation found"). Then it starts a new session under the
+// same id, keeping mantle's view of the session, when no file of that id exists;
+// claude refuses an id whose file exists, so a file without messages (a title set
+// before the first prompt) means starting afresh with no id at all.
+func (f *feature) sessionFlags(cwd, sid string) (resume, newID string) {
+	switch {
+	case !sessions.ValidID(sid):
+		return "", ""
+	case f.layout.Persisted(cwd, sid):
+		return sid, ""
+	}
+	if _, err := os.Stat(sessions.SessionFile(f.layout.ProjectDir(cwd), sid)); errors.Is(err, fs.ErrNotExist) {
+		return "", sid
+	}
+	return "", ""
 }
 
 func handoffProcess(h *handoff) *exec.Cmd {
