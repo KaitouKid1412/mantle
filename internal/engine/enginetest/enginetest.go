@@ -31,10 +31,13 @@ type Spawner struct {
 	Scripts []*enginefake.Script
 	// Err, if set, makes Spawn fail.
 	Err error
+	// ErrFor, if set, can fail spawn number n (0-based) with an error.
+	ErrFor func(n int, spec engine.SpawnSpec) error
 
-	mu    sync.Mutex
-	specs []engine.SpawnSpec
-	procs []*enginefake.Proc
+	mu       sync.Mutex
+	specs    []engine.SpawnSpec
+	procs    []*enginefake.Proc
+	attempts int
 }
 
 // Spawn implements engine.Spawner.
@@ -44,6 +47,13 @@ func (s *Spawner) Spawn(spec engine.SpawnSpec) (engine.Proc, error) {
 	if s.Err != nil {
 		return nil, s.Err
 	}
+	if s.ErrFor != nil {
+		if err := s.ErrFor(s.attempts, spec); err != nil {
+			s.attempts++
+			return nil, err
+		}
+	}
+	s.attempts++
 	if len(s.Scripts) == 0 {
 		return nil, fmt.Errorf("enginetest: no script")
 	}

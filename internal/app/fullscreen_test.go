@@ -63,7 +63,7 @@ func TestFullscreenLayout(t *testing.T) {
 	// A mouse click on the sidebar reaches the sidebar in its own coordinates.
 	hs.Type("\x1b[<0;3;3M\x1b[<0;3;3m") // SGR press+release at column 3, row 3 (1-based)
 	hs.WaitFor(func(string) bool {
-		for _, m := range side.got {
+		for _, m := range side.msgs() {
 			if me, ok := m.(MouseEvent); ok && me.X == 2 && me.Y == 1 {
 				return true
 			}
@@ -94,7 +94,7 @@ func TestFullscreenPrintBroadcasts(t *testing.T) {
 	// No scrollback in fullscreen: printed blocks reach features as PrintedMsg (12-01).
 	drive(t, r, cmdMsgs(r.Ctx().Print("banner", "⎿  Help closed"))...)
 	var got []ext.PrintedMsg
-	for _, m := range side.got {
+	for _, m := range side.msgs() {
 		if p, ok := m.(ext.PrintedMsg); ok {
 			got = append(got, p)
 		}
@@ -106,13 +106,13 @@ func TestFullscreenPrintBroadcasts(t *testing.T) {
 	// Reprint has no scrollback to clear: it redraws and reports ScreenClearedMsg at
 	// once (plan 06's /resume and plan 03's reprint wait for it). Prints and clears
 	// keep their call order, as inline.
-	side.got = nil
+	side.resetMsgs()
 	c := r.Ctx()
 	out := drive(t, r, cmdMsgs(c.Print("before"))...)
 	out = append(out, drive(t, r, cmdMsgs(c.Reprint())...)...)
 	out = append(out, drive(t, r, cmdMsgs(c.Print("after"))...)...)
 	var order []string
-	for _, m := range side.got {
+	for _, m := range side.msgs() {
 		switch m := m.(type) {
 		case ext.PrintedMsg:
 			order = append(order, m.Blocks[0])
@@ -150,7 +150,7 @@ func TestPausedClearFinishesInFullscreen(t *testing.T) {
 	r.printer.paused = true
 	drive(t, r, ext.LayoutRequestMsg{Mode: ext.Fullscreen})
 	cleared := false
-	for _, m := range side.got {
+	for _, m := range side.msgs() {
 		if _, ok := m.(ext.ScreenClearedMsg); ok {
 			cleared = true
 		}

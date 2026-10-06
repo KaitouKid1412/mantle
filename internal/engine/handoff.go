@@ -197,7 +197,9 @@ func (m *Manager) Adopt(id string, s AdoptSpec) (*Engine, error) {
 		track:   newTracker(id, s.Opts),
 		inbound: newInboundSet(),
 		exited:  make(chan struct{}),
+		opts:    s.Opts,
 	}
+	r.initOK.Store(true) // it was up in the previous process
 	var stdout io.Reader = s.Stdout
 	if len(s.Pending) > 0 {
 		stdout = io.MultiReader(bytes.NewReader(s.Pending), s.Stdout)
