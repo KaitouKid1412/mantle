@@ -158,6 +158,20 @@ func TestMantleFile(t *testing.T) {
 	}
 }
 
+func TestResearchContext(t *testing.T) {
+	m, err := ParseFile("mantle.json", []byte(`{"bindings":[{"context":"Research","bindings":{"alt+up":"mantle:research.parent"}}]}`), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	km := New(m)
+	for _, is := range km.Issues {
+		t.Errorf("unexpected issue: %+v", is)
+	}
+	if a, _ := km.Lookup(ext.ContextResearch, "alt+up"); a != "mantle:research.parent" {
+		t.Errorf("alt+up = %q", a)
+	}
+}
+
 func TestLegacyAlias(t *testing.T) {
 	u, _ := ParseFile("u", []byte(`{"bindings":[{"context":"MessageSelector","bindings":{"k":"messageSelector:up"}}]}`), false)
 	km := New(u)

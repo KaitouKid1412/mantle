@@ -92,3 +92,24 @@ func TestRegisterRecordsOnly(t *testing.T) {
 		t.Fatal("Pending must return a copy")
 	}
 }
+
+// TestV111Contracts pins the contracts-v1.11 shapes (request 13-01).
+func TestV111Contracts(t *testing.T) {
+	var src Transcript
+	msgs := []any{
+		UIModeRequestMsg{Mode: UIModeResearch},
+		UIModeChangedMsg{Mode: UIModeResearch, Prev: ""},
+		TranscriptScopeMsg{Owner: "research", Source: src},
+		SelectionMsg{Source: "fullscreen.viewport", Text: "x"},
+		EditorQuoteMsg{Text: "> x"},
+		BranchRequestMsg{EngineID: "main", SessionID: "s", At: "u", DropPrompt: "p", Tag: "t"},
+		BranchedMsg{EngineID: "main", SessionID: "s", At: "u", Tag: "t", Restarted: true, Err: nil},
+		Draft{Text: "q", Resubmit: true},
+	}
+	if len(msgs) != 8 || ContextResearch != "Research" || EnvResearch != "MANTLE_RESEARCH" {
+		t.Fatal("contracts-v1.11 changed")
+	}
+	if slices.Contains(Contexts, ContextResearch) {
+		t.Error("Research is mantle-only and must not be in Contexts")
+	}
+}

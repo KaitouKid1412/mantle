@@ -9,6 +9,9 @@ type Draft struct {
 	Text           string
 	Attachments    []Attachment
 	Mode, Priority string // Mode: "prompt" | "bash" ; Priority as in Prompt
+	// Resubmit marks a draft a stage consumed earlier and now re-submits through
+	// Ctx.Submit (contracts-v1.11). Stages with side effects (history) skip it.
+	Resubmit bool
 }
 
 // Attachment is something attached to a draft: an image, a file reference or a
