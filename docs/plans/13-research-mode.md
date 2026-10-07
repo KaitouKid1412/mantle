@@ -214,16 +214,16 @@ type BranchedMsg struct{ EngineID, SessionID, At, Tag string; Restarted bool; Er
 ## Tasks
 
 ### 13a (core) [Part A]
-- [ ] `Makefile`: `PKGS_13 = ./internal/research/... ./features/research/...` (done by the coordinator).
-- [ ] Types: `tree.go` and `plan.go` signatures. Commit these first.
-- [ ] Spike, using fakeapi with an isolated `CLAUDE_CONFIG_DIR` (no real API). Confirm:
+- [x] `Makefile`: `PKGS_13 = ./internal/research/... ./features/research/...` (done by the coordinator).
+- [x] Types: `tree.go` and `plan.go` signatures. Commit these first.
+- [x] Spike, using fakeapi with an isolated `CLAUDE_CONFIG_DIR` (no real API). Confirm:
   - resume-at keeps the sid;
   - siblings are appended to the same file;
   - `rewind_conversation` followed by a send makes a sibling.
 
   Save the sanitized result as `testdata/fixtures/13/branching.jsonl` and record the
   findings under "Spike notes" below.
-- [ ] `Build`, `Merge`, `Plan`, sidecar, quote, all with table tests.
+- [x] `Build`, `Merge`, `Plan`, sidecar, quote, all with table tests.
 - [ ] Side quest: `scripts/batonwatch` (done by the coordinator), and later
   `batonwatch report` once the run ends.
 
@@ -301,4 +301,35 @@ and release for each file, and check that file-baton behaved correctly.
    mantle sessions.
 
 ## Spike notes
-_(13a fills this in.)_
+Run on 2026-10-07 with claude 2.1.292, fakeapi and an isolated `CLAUDE_CONFIG_DIR`
+(`MANTLE_SPIKES=1 go test -run Spike -v ./internal/research`; add
+`MANTLE_SPIKE_FIXTURE=1` to rewrite `testdata/fixtures/13/branching.jsonl`). Sequence:
+Q1, Q2; restart with `--resume=<sid> --resume-session-at=<Q1 leaf>`, then Q3; then
+`rewind_conversation` (target Q3) and Q4.
+
+- **resume-at keeps the sid.** After the restart `system/init` has the same session id
+  and no new session file appears.
+- **Siblings share the file.** Q3 is appended to the same JSONL with
+  `parentUuid = <Q1 leaf>`, so Q2 and Q3 are siblings.
+- **Rewind then send makes a sibling.** `rewind_conversation` is supported natively
+  (`Rewound:true, Restarted:false`, `PrefillText` = Q3's text). Q4 is then written with
+  `parentUuid = <Q1 leaf>`, so Q1 has three children: Q2, Q3, Q4.
+- **Node identity.** The client prompt UUID is the JSONL `uuid` of the user entry, as
+  `features/sessions/normalize.go` assumes (`user:<uuid>`).
+- **Q1's leaf is not the assistant record.** Each turn ends with an `attachment` entry
+  after the assistant message, and the next prompt hangs off that attachment. `Build`
+  uses the newest main-path entry of the span, which matches.
+  `Rewind`'s `PrecedingAssistantUUID` names the assistant record instead; do not use it
+  as `At`.
+- **`last-prompt` lags after resume-at.** The record written after Q3's turn named Q1's
+  assistant entry. Before it was flushed, the previous record still pointed into Q2's
+  branch, so `ActiveLeaf(hint)` said Q2. `Build` therefore takes `EngineLeaf` from the
+  newest main-path entry (`Tree.ActiveLeaf("")`). The live tree (`PromptSent`,
+  `SetEngineLeaf`) is preferred over both while mantle runs.
+- **Compaction.** When a compact boundary follows a turn, that node's `LeafUUID` is the
+  compact summary, after the boundary. A follow-up there keeps the compacted context, so
+  `NeedsConfirm` is set only when branching above the node whose span holds the
+  boundary.
+- **Fixture hygiene.** The spike keeps only each attachment's `type` and drops its
+  `rendered*` fields, which carry the engine's own prompt text. Paths are rewritten to
+  `/work/demo`.

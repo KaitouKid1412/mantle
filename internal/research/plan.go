@@ -87,20 +87,30 @@ func Plan(t *Tree, viewing string, busy bool) SendPlan {
 	return p
 }
 
-// undoesCompaction reports whether the engine's path to leaf crosses a compact boundary
-// below the point where it leaves v's path.
+// undoesCompaction reports whether branching at v drops a compaction the engine's
+// current path relies on. A Compacted node's boundary sits in its parent's span, before
+// the parent's LeafUUID, so branching at that parent (or below it, past the same
+// boundary) keeps the compacted context; branching above it does not.
 func undoesCompaction(v, leaf *Node) bool {
 	if leaf == nil {
 		return false
 	}
-	onV := map[*Node]bool{}
-	for p := v; p != nil; p = p.Parent {
-		onV[p] = true
+	// onV maps each node on v's path to its child on that path (nil for v).
+	onV := map[*Node]*Node{v: nil}
+	for c := v; c.Parent != nil; c = c.Parent {
+		onV[c.Parent] = c
 	}
-	for c := leaf; c != nil && !onV[c]; c = c.Parent {
-		if c.Compacted {
-			return true
+	for c := leaf; c != nil; c = c.Parent {
+		if _, ok := onV[c]; ok {
+			break
 		}
+		if !c.Compacted || c.Parent == v {
+			continue
+		}
+		if d, ok := onV[c.Parent]; ok && d != nil && d.Compacted {
+			continue // v's own path crosses the same boundary
+		}
+		return true
 	}
 	return false
 }
