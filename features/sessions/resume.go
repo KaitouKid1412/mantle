@@ -71,6 +71,9 @@ type switchOpts struct {
 	// skipSummary skips the resume-from-summary offer; compactAfter compacts once the
 	// engine is back.
 	skipSummary, compactAfter bool
+	// branch marks a branch request's load (branchreq.go): same session, never a fork
+	// or a dropped turn, and the requester gets the reply.
+	branch bool
 }
 
 // switchTo shows meta's history and restarts the main engine on it.
@@ -202,7 +205,8 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 		if req.mode == modeDisplay && errors.Is(m.err, sessions.ErrNotFound) {
 			return nil
 		}
-		return notice(ctx, "history", "Could not read the conversation: "+m.err.Error(), ext.NoticeError)
+		return tea.Batch(notice(ctx, "history", "Could not read the conversation: "+m.err.Error(), ext.NoticeError),
+			f.branchShown(req, m.err))
 	}
 	title := m.title
 	if req.title != "" {
@@ -234,7 +238,7 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 
 	case modeRefresh:
 		st.shown = req.id
-		return f.showAfterClear(ctx, req.engineID, m.items, nil, nil)
+		return f.showAfterClear(ctx, req.engineID, m.items, nil, []tea.Cmd{f.branchShown(req, nil)})
 	}
 
 	// modeSwitch
@@ -243,9 +247,9 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 		if where == "" {
 			where = "its project directory"
 		}
-		return notice(ctx, "resume",
+		return tea.Batch(notice(ctx, "resume",
 			fmt.Sprintf("That conversation belongs to %s. To resume it: cd %s && mantle --resume %s", where, shellQuote(where), req.id),
-			ext.NoticeWarning)
+			ext.NoticeWarning), f.branchShown(req, errors.New("that conversation belongs to "+where)))
 	}
 	sw := req.sw
 	opts := f.spawnOpts(ctx, req.engineID, req.cwd, func(o *ext.SpawnOpts) {
@@ -255,6 +259,9 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 		}
 		if sw.at != "" {
 			o.ResumeSessionAt = sw.at
+		}
+		if sw.branch {
+			o.ForkSession, o.ResumeDropsTurn, o.SessionID = false, false, ""
 		}
 	})
 	sw.fork = opts.ForkSession
@@ -276,7 +283,8 @@ func (f *feature) onHistory(ctx ext.Ctx, m historyMsg) tea.Cmd {
 	if sw.compactAfter {
 		f.compactOnAttach = true
 	}
-	after := []tea.Cmd{startEngine(req.engineID, opts)}
+	// A branch request's reply waits for the restarted engine's attach.
+	after := []tea.Cmd{f.branchShown(req, nil), startEngine(req.engineID, opts)}
 	if sw.reason != "" {
 		after = append(after, notice(ctx, "switch", sw.reason, ext.NoticeSuccess))
 	}
