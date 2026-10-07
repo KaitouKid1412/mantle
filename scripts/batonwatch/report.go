@@ -63,7 +63,8 @@ func writeReport(p paths, out string) error {
 	return nil
 }
 
-// commit is one git commit in the recorded window.
+// commit is one git commit in the recorded window. Sessions run in worktrees
+// and commit on their own branches, so every local branch is read.
 type commit struct {
 	Hash, Subject string
 	Files         []string
@@ -73,7 +74,7 @@ func gitCommits(since time.Time) []commit {
 	if since.IsZero() {
 		return nil
 	}
-	raw, err := git("log", "--since="+since.Format(time.RFC3339), "--reverse",
+	raw, err := git("log", "--branches", "--no-merges", "--since="+since.Format(time.RFC3339), "--reverse",
 		"--format=%x00%h %s", "--name-only")
 	if err != nil {
 		return nil
