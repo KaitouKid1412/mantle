@@ -330,7 +330,9 @@ func (b *builder) run() {
 	}
 
 	b.leaves()
-	if leaf := b.tr.ActiveLeaf(); leaf != nil {
+	// The engine leaf is the newest main-path entry. The last-prompt hint is not used:
+	// after a resume-at it lags and can name another branch (see the spike notes).
+	if leaf := b.tr.Tree.ActiveLeaf(""); leaf != nil {
 		if o := b.owner[leaf]; o != nil {
 			b.t.EngineLeaf = o.ID
 		}
