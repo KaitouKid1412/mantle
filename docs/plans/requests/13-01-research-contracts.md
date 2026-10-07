@@ -1,6 +1,6 @@
 # 13 → 01: research mode contracts (MT-R1–R8)
 
-**Status:** open
+**Status:** resolved 2026-10-07: contracts-v1.11 (plan 01 f25e3e5): `pkg/ext/v1_11.go`, `Draft.Resubmit`, `Research` accepted by `internal/keymap`.
 
 Plan 13 (`docs/plans/13-research-mode.md`) needs additive `pkg/ext` types. Please add them
 in a new `pkg/ext/v1_11.go` and tag `contracts-v1.11`. Every item is a new type, a new

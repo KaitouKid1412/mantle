@@ -175,7 +175,7 @@ func New(sources ...Source) *Keymap {
 				issue(SevError, err.Error())
 				continue
 			}
-			if e.Context != ext.ContextMantle && !slices.Contains(ext.Contexts, e.Context) {
+			if e.Context != ext.ContextMantle && e.Context != ext.ContextResearch && !slices.Contains(ext.Contexts, e.Context) {
 				issue(SevWarning, "unknown context")
 			}
 			action := e.Action
