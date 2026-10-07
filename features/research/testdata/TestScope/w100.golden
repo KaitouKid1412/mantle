@@ -1,0 +1,11 @@
+on branch (q2):
+[38;2;230;227;222muser.prompt        Question q2[m
+[38;2;230;227;222mtool.Read          Read q2.go[m
+[38;2;230;227;222m  ⎿ assistant.text     nested[m
+[38;2;230;227;222massistant.text     Answer to q2[m
+
+off branch (q2b):
+[38;2;230;227;222muser.prompt        Question q2b[m
+[38;2;230;227;222mtool.Read          Read q2b.go[m
+[38;2;230;227;222m  ⎿ assistant.text     nested[m
+[38;2;230;227;222massistant.text     Answer to q2b[m
