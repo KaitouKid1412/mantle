@@ -191,6 +191,8 @@ Everything that decides *whether* and *how* Claude proceeds:
 - [x] **B3 [M1] Mode cycling.** `chat:cycleMode` (shift+tab) and `confirm:cycleMode` in
   dialogs → `set_permission_mode`; update the footer indicator (plan 07 renders it from
   `SessionInfo.PermissionMode`); the startup mode follows the interactive defaults.
+  - [x] MT-R1 research step (request 13-05): `chat:cycleMode` goes default → research →
+    acceptEdits via `mode.NextUI` and `ext.UIModeRequestMsg`; dialogs keep the plain cycle.
 - [x] **B4 [M1] Interrupt and exit.** `chat:cancel` (esc) → `Interrupt(false)` while
   running; `app:interrupt` (ctrl+c) with the clear-input / double-press-exit ladder;
   ctrl+d double press (800 ms) exits; graceful engine shutdown (`end_session`).

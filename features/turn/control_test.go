@@ -104,6 +104,83 @@ func TestCycleModeFailureDisablesAuto(t *testing.T) {
 	}
 }
 
+// withResearch registers /research, as plan 13 does, so the research step appears in
+// the cycle.
+func (x *h) withResearch() {
+	x.c.CommandList = append(x.c.CommandList, ext.Command{Name: "research"})
+}
+
+func (x *h) uiRequests() []ext.UIModeRequestMsg { return find[ext.UIModeRequestMsg](x) }
+
+// MT-R1: default → research → acceptEdits. Entering research is a UI-mode request only.
+func TestCycleModeThroughResearch(t *testing.T) {
+	x := newH(t)
+	x.withResearch()
+	x.action(ext.ActChatCycleMode)
+	if r := x.uiRequests(); len(r) != 1 || r[0].Mode != ext.UIModeResearch {
+		t.Fatalf("ui requests = %+v", r)
+	}
+	if n := x.eng.count(proto.SubSetPermissionMode); n != 0 {
+		t.Fatalf("entering research sent set_permission_mode: %v", x.eng.controls)
+	}
+	if x.st.mode(ext.MainEngine).userMode != proto.ModeDefault {
+		t.Fatalf("userMode = %q", x.st.mode(ext.MainEngine).userMode)
+	}
+	x.send(ext.UIModeChangedMsg{Mode: ext.UIModeResearch})
+
+	x.action(ext.ActChatCycleMode)
+	if r := x.uiRequests(); len(r) != 2 || r[1].Mode != "" {
+		t.Fatalf("leaving research should request mode \"\": %+v", r)
+	}
+	if x.c.SessionValue.PermissionMode != proto.ModeAcceptEdits {
+		t.Fatalf("mode = %q", x.c.SessionValue.PermissionMode)
+	}
+	x.send(ext.UIModeChangedMsg{Mode: "", Prev: ext.UIModeResearch})
+
+	x.action(ext.ActChatCycleMode) // → plan
+	x.action(ext.ActChatCycleMode) // → default (manual)
+	if x.c.SessionValue.PermissionMode != proto.ModeDefault || len(x.uiRequests()) != 2 {
+		t.Fatalf("mode=%q ui=%+v", x.c.SessionValue.PermissionMode, x.uiRequests())
+	}
+	x.action(ext.ActChatCycleMode) // → research again
+	if r := x.uiRequests(); len(r) != 3 || r[2].Mode != ext.UIModeResearch {
+		t.Fatalf("ui requests = %+v", r)
+	}
+}
+
+// Without /research (a mod removed the feature) the cycle skips the step.
+func TestCycleModeWithoutResearch(t *testing.T) {
+	x := newH(t)
+	x.action(ext.ActChatCycleMode)
+	if x.c.SessionValue.PermissionMode != proto.ModeAcceptEdits || len(x.uiRequests()) != 0 {
+		t.Fatalf("mode=%q ui=%+v", x.c.SessionValue.PermissionMode, x.uiRequests())
+	}
+}
+
+// shift+tab inside a dialog keeps the plain cycle, even with research available.
+func TestDialogCycleSkipsResearch(t *testing.T) {
+	x := newH(t)
+	x.withResearch()
+	x.send(permMsg(ext.MainEngine, "r1", bashRaw, &replies{}))
+	x.press("shift+tab")
+	if x.c.SessionValue.PermissionMode != proto.ModeAcceptEdits || len(x.uiRequests()) != 0 {
+		t.Fatalf("mode=%q ui=%+v", x.c.SessionValue.PermissionMode, x.uiRequests())
+	}
+}
+
+// An engine restart while research is on keeps manual, not the auto startup default.
+func TestResearchRestartKeepsManual(t *testing.T) {
+	x := newH(t)
+	x.withResearch()
+	x.c.SessionValue.Model = "claude-x"
+	x.action(ext.ActChatCycleMode)
+	x.send(ext.UIModeChangedMsg{Mode: ext.UIModeResearch})
+	x.boot(autoModels)
+	if n := x.eng.count(proto.SubSetPermissionMode); n != 0 {
+		t.Fatalf("restart in research switched mode: %v", x.eng.controls)
+	}
+}
+
 // boot is what the engine bridge delivers when an engine starts: the attach, then the
 // initialize result.
 func (x *h) boot(initResp string) {
