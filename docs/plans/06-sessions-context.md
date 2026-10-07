@@ -245,8 +245,13 @@ Everything about conversations as objects:
   it rewinds in place (no file restore) and reprints the branch up to `At`; otherwise it
   restarts on the same session with `--resume-session-at=At` (no fork, never
   `--resume-drops-turn`, behind the restart guard). `ext.BranchedMsg` follows the
-  history reprint, and after a restart the engine's `EngineAttachMsg`; an
-  `EngineExitedMsg` with an error fails it. The prompt is never refilled.
+  history reprint, and after a restart the restarted engine's successful `initialize`
+  on the requested session. An error `result` before that (claude 2.1.292 prints
+  `No message found with message.uuid of: <At>` and exits when `At` is off the chain
+  it resumes), a second attach (the engine's fresh-session fallback), another session
+  id, a failed initialize or an `EngineExitedMsg` error fails it (request 13-06
+  resume-failure); the engine then goes back to the session's own branch (plain
+  `--resume`). The prompt is never refilled.
 - Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
 - PARITY rows without a box above, also done: SE-04 (full output of large tool results
   on resume, read only from the session's `tool-results` dir), SE-14 (picker grouped by

@@ -1,6 +1,6 @@
 # 13 → 06: a failed resume-at restart replies success (MT-R6)
 
-**Status:** open
+**Status:** done in 6660ebd (branch `worktree-06-branch`). Both items: the restart replies on the restarted engine's `initialize`; an error `result` before it, a second attach (fallback), another session id, a failed initialize or an exit error replies `BranchedMsg{Err}` and resumes the session's own branch (plain `--resume`). Spiked on claude 2.1.292: a bad `At` prints the error result ~0.5 s after spawn and never answers initialize; a good one answers initialize with no result. Tests: `TestBranchRequestResumeFailure` (error result, fallback start, new session, initialize error) and `TestBranchRequestRestart` in `features/sessions/branchreq_test.go`; `make test-06`, `make lint` and `make e2e-research` pass.
 
 Found by 13c's e2e test (`make e2e-research`, claude 2.1.292 on fakeapi).
 
