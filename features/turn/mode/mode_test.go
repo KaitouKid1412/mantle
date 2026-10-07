@@ -74,6 +74,61 @@ func TestNext(t *testing.T) {
 	}
 }
 
+// NextUI adds research between default and acceptEdits when research is available.
+func TestNextUI(t *testing.T) {
+	both := Availability{Bypass: true, Auto: true}
+	cases := []struct {
+		from          Mode
+		research, has bool
+		a             Availability
+		want          Mode
+		wantResearch  bool
+	}{
+		{Default, false, true, both, Default, true},
+		{"manual", false, true, both, Default, true},
+		{Default, true, true, both, AcceptEdits, false},
+		{Default, true, false, both, AcceptEdits, false}, // leaving still works if the step went away
+		{Default, false, false, both, AcceptEdits, false},
+		{AcceptEdits, false, true, both, Plan, false},
+		{Plan, false, true, Availability{}, Default, false},
+		{Plan, false, true, both, BypassPermissions, false},
+		{Auto, false, true, both, Default, false},
+	}
+	for _, c := range cases {
+		got, r := NextUI(c.from, c.research, c.has, c.a)
+		if got != c.want || r != c.wantResearch {
+			t.Errorf("NextUI(%q, %v, %v, %+v) = %q, %v want %q, %v", c.from, c.research, c.has, c.a, got, r, c.want, c.wantResearch)
+		}
+	}
+}
+
+// With research available the loop visits default twice: manual, then research.
+func TestCycleLoopWithResearch(t *testing.T) {
+	type step struct {
+		m        Mode
+		research bool
+	}
+	want := []step{{Default, false}, {Default, true}, {AcceptEdits, false}, {Plan, false}, {Auto, false}}
+	cur := step{Default, false}
+	var got []step
+	for range 10 {
+		got = append(got, cur)
+		m, r := NextUI(cur.m, cur.research, true, Availability{Auto: true})
+		cur = step{m, r}
+		if cur == (step{Default, false}) {
+			break
+		}
+	}
+	if len(got) != len(want) {
+		t.Fatalf("loop %v want %v", got, want)
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Fatalf("loop %v want %v", got, want)
+		}
+	}
+}
+
 // Full loops: starting at default, repeated shift+tab visits exactly these modes.
 func TestCycleLoops(t *testing.T) {
 	cases := []struct {

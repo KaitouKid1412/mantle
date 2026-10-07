@@ -1,6 +1,9 @@
 # 13 → 04: quote into editor, resubmit drafts (MT-R6, MT-R7)
 
-**Status:** open (needs `contracts-v1.11`)
+**Status:** done in b07ad9f (`Editor.SetQuote` in `pkg/ui/editor/quote.go`, handled in
+`features/input`; `stageHistory` skips `Resubmit`). Tests: `TestSetQuote*`
+(`pkg/ui/editor`), `TestEditorQuote`, `TestResubmitSkipsHistory` (`features/input`).
+Quoting also leaves bash mode; text lines without `>` get `> ` (blank lines become `>`).
 
 1. **`ext.EditorQuoteMsg{Text}`.**
    - If the buffer starts with a quote block (lines starting with `> `, then one blank

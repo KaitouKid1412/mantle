@@ -235,8 +235,18 @@ Everything about conversations as objects:
   on its own at ≥ 144 once a turn edited files, and draws nothing while closed).
 - Unstable requests used only when `Supports()`: `set_cwd` (else hand-off), `side_question`
   (`{question, history}` → `{response}`; else a forked `claude -p`). Not used:
-  `rewind_conversation`, `fork_conversation`, `export_conversation`, `get_workspace_diff`
-  (no documented shapes; mantle has its own path for each).
+  `fork_conversation`, `export_conversation`, `get_workspace_diff` (no documented
+  shapes; mantle has its own path for each). `rewind_conversation` (via plan 02's
+  `Engine.Rewind`) serves only research branch requests (below).
+- Research branch requests (request 13-06): the normalizer lives in
+  `internal/sessions/normalize` (`features/sessions.Normalize` forwards to it).
+  `ext.BranchRequestMsg` is handled in `features/sessions/branchreq.go`: refused while a
+  turn runs or another load is in flight; with `DropPrompt` and `rewind_conversation`
+  it rewinds in place (no file restore) and reprints the branch up to `At`; otherwise it
+  restarts on the same session with `--resume-session-at=At` (no fork, never
+  `--resume-drops-turn`, behind the restart guard). `ext.BranchedMsg` follows the
+  history reprint, and after a restart the engine's `EngineAttachMsg`; an
+  `EngineExitedMsg` with an error fails it. The prompt is never refilled.
 - Summarize from/up to here (rewind) hands off to Claude Code's `/rewind`.
 - PARITY rows without a box above, also done: SE-04 (full output of large tool results
   on resume, read only from the session's `tool-results` dir), SE-14 (picker grouped by

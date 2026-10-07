@@ -59,7 +59,9 @@ type feature struct {
 	away       awayState
 	// branching is a /branch waiting for its fork's session id.
 	branching *branching
-	seq       int // for IDs of items this feature adds
+	// branch is the research branch request in flight (branchreq.go).
+	branch *pendingBranch
+	seq    int // for IDs of items this feature adds
 	// compactOnAttach sends /compact when the main engine next attaches.
 	compactOnAttach bool
 	// account is the main engine's account (initialize); costChecked marks the cost
@@ -153,6 +155,7 @@ func (f *feature) setup(r ext.Registrar) error {
 	f.registerDiffPanel(r)
 	f.registerSummary(r)
 	f.registerBtw(r)
+	f.registerBranchRequest(r)
 	ext.Subscribe(r, "sessions.plan-file", f.onPlanFile)
 	ext.Subscribe(r, "sessions.notify", f.onNotify)
 	ext.Subscribe(r, "sessions.cwd-changed", f.onCwdChanged)

@@ -21,6 +21,7 @@ type modeState struct {
 	auto        bool   // current model supports auto mode
 	flags       gates.LaunchFlags
 	startupDone bool
+	research    bool // research UI mode is on (main engine only; from UIModeChangedMsg)
 }
 
 func (st *state) mode(engineID string) *modeState {
@@ -35,10 +36,14 @@ func (st *state) mode(engineID string) *modeState {
 
 func (st *state) setupModes(r ext.Registrar) {
 	ext.Subscribe(r, "turn.autoNotice", st.printAutoNotice)
+	ext.Subscribe(r, "turn.uiMode", func(c ext.Ctx, m ext.UIModeChangedMsg) tea.Cmd {
+		st.mode(ext.MainEngine).research = m.Mode == ext.UIModeResearch
+		return nil
+	})
 	r.AddAction(ext.Action{
 		ID: ext.ActChatCycleMode, Context: ext.ContextChat,
 		Description: "Cycle the permission mode",
-		Run:         func(c ext.Ctx) (bool, tea.Cmd) { return true, st.cycleMode(c, ext.MainEngine) },
+		Run:         func(c ext.Ctx) (bool, tea.Cmd) { return true, st.cycleUIMode(c) },
 	})
 }
 
@@ -77,6 +82,29 @@ func (st *state) cycleMode(c ext.Ctx, engineID string) tea.Cmd {
 	next := mode.Next(mode.Mode(st.currentMode(c, engineID)), st.availability(c, engineID))
 	st.mode(engineID).userMode = string(next)
 	return st.setMode(c, engineID, next)
+}
+
+// cycleUIMode is shift+tab at the prompt: the permission-mode cycle plus the research
+// step after default (MT-R1). Research is a UI mode on top of default, so entering it
+// sends no control request and userMode stays default, which keeps the main engine in
+// manual when research restarts it. The step exists only while /research resolves.
+func (st *state) cycleUIMode(c ext.Ctx) tea.Cmd {
+	if c.Engine(ext.MainEngine) == nil {
+		return nil
+	}
+	ms := st.mode(ext.MainEngine)
+	_, avail := c.Command("research")
+	next, research := mode.NextUI(mode.Mode(st.currentMode(c, ext.MainEngine)), ms.research, avail, st.availability(c, ext.MainEngine))
+	if research {
+		ms.userMode = string(mode.Default)
+		return ext.Msg(ext.UIModeRequestMsg{Mode: ext.UIModeResearch})
+	}
+	ms.userMode = string(next)
+	set := st.setMode(c, ext.MainEngine, next)
+	if ms.research {
+		return tea.Sequence(ext.Msg(ext.UIModeRequestMsg{}), set)
+	}
+	return set
 }
 
 func (st *state) setMode(c ext.Ctx, engineID string, m mode.Mode) tea.Cmd {

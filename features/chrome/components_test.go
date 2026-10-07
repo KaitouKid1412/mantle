@@ -59,6 +59,23 @@ func TestFooterTracksMode(t *testing.T) {
 	}
 }
 
+// MT-R1: research mode replaces the manual indicator and names the cycle key.
+func TestFooterResearchMode(t *testing.T) {
+	ctx := exttest.NewCtx()
+	f := newFooter()
+	f.Init(ctx)
+	f.Update(ctx, ext.UIModeChangedMsg{Mode: ext.UIModeResearch})
+	got := plainView(f, ctx, 100)
+	if !slices.Contains(ctx.Invalidated, FooterID) || !strings.HasPrefix(got, "  ⌕ research · shift+tab to change") ||
+		strings.Contains(got, "manual approval") || strings.Contains(got, "? for shortcuts") {
+		t.Errorf("research footer = %q", got)
+	}
+	f.Update(ctx, ext.UIModeChangedMsg{Mode: "", Prev: ext.UIModeResearch})
+	if got := plainView(f, ctx, 100); !strings.HasPrefix(got, "  ⏸ manual approval · ? for shortcuts") {
+		t.Errorf("footer after leaving research = %q", got)
+	}
+}
+
 func TestFooterLayoutLikeClaudeCode(t *testing.T) {
 	ctx := exttest.NewCtx()
 	f := newFooter()

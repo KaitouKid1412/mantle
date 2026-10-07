@@ -15,6 +15,7 @@ import (
 // mod that replaces one component doesn't break the others.
 type sessionState struct {
 	Mode        string // permission mode
+	UIMode      string // mantle UI mode (UIModeChangedMsg): "" or ext.UIModeResearch
 	SessionID   string
 	Cwd         string
 	ProjectDir  string // the first cwd seen: where the session started
@@ -60,6 +61,8 @@ func (s *sessionState) observe(msg tea.Msg) bool {
 		set(&s.Mode, i.PermissionMode)
 		set(&s.Version, i.ClaudeVersion)
 		set(&s.OutputStyle, i.OutputStyle)
+	case ext.UIModeChangedMsg:
+		s.UIMode = m.Mode
 	case ext.EditorStateMsg:
 		s.EditorMode, s.Vim, s.EditorEmpty = m.Mode, m.Vim, m.Empty
 		s.Panel, s.FrameTitle = m.Panel, m.FrameTitle

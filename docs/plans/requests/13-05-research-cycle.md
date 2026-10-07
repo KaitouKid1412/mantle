@@ -1,6 +1,6 @@
 # 13 → 05: research step in the shift+tab cycle (MT-R1)
 
-**Status:** open (needs `contracts-v1.11`)
+**Status:** done in 30b1f41 (`mode.NextUI` with `TestNextUI` and `TestCycleLoopWithResearch`; `cycleUIMode` in `features/turn/modes.go` with `TestCycleModeThroughResearch`, `TestCycleModeWithoutResearch`, `TestDialogCycleSkipsResearch` and `TestResearchRestartKeepsManual`; `make test-05` and `make lint` pass)
 
 Research mode is a UI mode on top of permission mode `default`. The cycle becomes
 `default → research → acceptEdits → plan → (bypass|auto) → default`.
