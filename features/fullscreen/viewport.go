@@ -100,6 +100,12 @@ func (v *Viewport) Top() {
 	v.offset, v.follow = 0, v.maxOffset() == 0
 }
 
+// ResetTop jumps to the start of a new document: nothing counts as new below.
+func (v *Viewport) ResetTop() {
+	v.unseen = 0
+	v.Top()
+}
+
 // Bottom jumps to the end and resumes following.
 func (v *Viewport) Bottom() {
 	v.follow, v.unseen = true, 0

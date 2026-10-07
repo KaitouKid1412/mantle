@@ -1,6 +1,22 @@
 # 13 → 12: scoped viewport and selection broadcast (MT-R2, MT-R7)
 
-**Status:** open (needs `contracts-v1.11`)
+**Status:** done (e922224, 2026-10-07). Tests in `features/fullscreen/scope_test.go`
+(`make test-12` and `make lint` pass):
+- **Scope:** `TestScopeShowsOnlyScopedItems` (scoped items only; switching nodes renders
+  afresh; nil restores the whole transcript), `TestScopeSkipsPrinted`,
+  `TestScopeChangeResetsView` (top, no selection/search/expansions, `""` broadcast),
+  `TestScopeFollowsStreamingTail`. The scope is taken in any layout, so it may arrive
+  before the switch to fullscreen. Item cache keys carry owner, first item ID and a scope
+  generation.
+- **Selection:** `TestSelectionBroadcast` (mouse release, click clears, keyboard
+  extension, `selection:clear`; unchanged text isn't resent) and `TestSourceText`.
+  `SelectionMsg.Text` comes from `SourceText`: it drops gutters (a leading `⏺ ⎿ ❯ ✻ ●`
+  with its blanks, and the hanging indent under it, while nested indentation stays) and
+  joins word-wrapped lines with a space. A line counts as word-wrapped when the next
+  line's first word would not have fit. The clipboard still gets `Text`, unchanged.
+- **`>`:** no viewport change was needed. The host resolves bindings in ambient
+  contexts before the focused component's `HandleKey`. When the action returns false (no
+  selection), the key falls through as before. `TestVTResearchQuoteKey` covers this.
 
 Research mode shows one conversation node at a time in the existing fullscreen viewport
 instead of adding its own `SlotLive` component (only one is visible).
