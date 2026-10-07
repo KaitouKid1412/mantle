@@ -1,7 +1,6 @@
 // Package launcher is the supervising launcher behind the mantle command.
 //
-// The launcher is the one part of mantle that /mantle never rebuilds, so it
-// imports only the standard library (enforced by TestStdlibOnly) and stays
+// The launcher supervises every mantle-ui build, so it imports only the standard library (enforced by TestStdlibOnly) and stays
 // small. It:
 //
 //   - dispatches argv: its own commands (versions, rollback, doctor, --safe)

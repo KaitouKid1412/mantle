@@ -37,7 +37,7 @@ type Manifest struct {
 	Pipeline *PipelineSummary `json:"pipeline,omitempty"`
 }
 
-// PipelineSummary is the short form of a selfmod pipeline report.
+// PipelineSummary is the short form of a build pipeline report (kept for old manifests).
 type PipelineSummary struct {
 	OK       bool          `json:"ok"`
 	BuildDir string        `json:"build_dir,omitempty"`

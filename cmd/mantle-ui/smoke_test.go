@@ -15,7 +15,7 @@ import (
 )
 
 // ptyWait bounds every wait in the pty tests. It is generous on purpose: these tests
-// also run inside the /mantle pipeline's fully parallel `go test ./...`, where a boot
+// also run inside a fully parallel `go test ./...`, where a boot
 // can take many seconds; a correct run finishes long before it.
 const ptyWait = 60 * time.Second
 

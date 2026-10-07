@@ -1,7 +1,7 @@
 // Command mantle-install installs mantle from a dev checkout into ~/.mantle.
 // It is run by scripts/install.sh (make install):
 //
-//	go run ./internal/selfmod/cmd/mantle-install [-branch main] [-link-dir ~/.local/bin]
+//	go run ./internal/install/cmd/mantle-install [-branch main] [-link-dir ~/.local/bin]
 //
 // Re-running it is idempotent.
 package main
@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/KaitouKid1412/mantle/internal/install"
 	"github.com/KaitouKid1412/mantle/internal/launcher"
-	"github.com/KaitouKid1412/mantle/internal/selfmod"
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	res, err := selfmod.Install(ctx, selfmod.InstallOptions{
+	res, err := install.Install(ctx, install.InstallOptions{
 		Layout:  l,
 		DevRepo: *devRepo,
 		Branch:  *branch,
@@ -51,9 +51,6 @@ func main() {
 		fail(err)
 	}
 	fmt.Printf("\nmantle is installed (build %s). Run `mantle` to start it.\n", res.BuildID)
-	if res.Behind {
-		fmt.Println("Your mods are on an older upstream: run /mantle update inside mantle to rebase them.")
-	}
 }
 
 func fail(err error) {

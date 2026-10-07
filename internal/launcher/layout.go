@@ -42,11 +42,10 @@ const ManifestName = "manifest.json"
 // Layout is the ~/.mantle directory tree.
 //
 //	bin/mantle            launcher
-//	src/                  private clone; branch user = upstream + mods
-//	work/<mod-id>/        worktrees for in-flight /mantle requests
+//	src/                  private clone that installs build from (branch user)
 //	versions/<build-id>/  immutable: mantle-ui, manifest.json
 //	current, last-good    symlinks into versions/
-//	builds/<id>/          pipeline logs and reports
+//	builds/<id>/          build scratch space
 //	run/<pid>.json        live run files
 //	state/                healthy markers, probation counters, feature state
 //	logs/<pid>.log        mantle-ui stderr

@@ -1,5 +1,11 @@
 # Plan 10: self-modification & launcher
 
+> **2026-10-07: `/mantle` removed.** Self-modification (`features/selfmod`,
+> `internal/selfmod`, `mods/`) was deleted, to be redesigned later. What remains: the
+> launcher (`cmd/mantle`, `internal/launcher`), the installer (`internal/install`,
+> `make install`) and mantle-ui's side of the launcher protocol (`features/launch`: run
+> file, healthy marker). The rest of this plan describes the removed design.
+
 | Session | Primary paths | Part B needs | Produces |
 |---|---|---|---|
 | mantle-10 | `cmd/mantle`, `internal/launcher`, `internal/selfmod`, `features/selfmod`, `mods/`, `docs/EXTENDING.md`, `scripts/install.sh` | tags `contracts-v1`, `proto-v1` | none |

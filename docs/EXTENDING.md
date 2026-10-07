@@ -1,5 +1,9 @@
 # Extending mantle
 
+> **2026-10-07:** `/mantle` and the `mods/` directory were removed pending a redesign.
+> The `pkg/ext` guidance below still applies to built-in features; the parts about the
+> builder, mods and the pipeline are out of date.
+
 This guide is for anyone who changes mantle: people, and the `/mantle` builder agent.
 Built-in features and user mods register the same way, through `pkg/ext`. A mod can
 add anything a built-in can, and can Replace, Wrap, Remove or Alias any built-in by ID

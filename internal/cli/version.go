@@ -100,7 +100,7 @@ mantle is a terminal UI for Claude Code. It runs your installed claude as its en
 so sessions, settings, tools and plugins are Claude Code's own.
 
 mantle options:
-  --safe          start the last good build without your /mantle changes
+  --safe          start the last build that passed probation
   -h, --help      show this help and claude's
   -v, --version   show the mantle and engine versions
 

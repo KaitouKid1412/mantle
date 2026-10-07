@@ -110,7 +110,7 @@ func TestPassthroughMissingClaude(t *testing.T) {
 }
 
 // TestStdlibOnly enforces that the launcher imports nothing outside the
-// standard library: it is never rebuilt by /mantle.
+// standard library.
 func TestStdlibOnly(t *testing.T) {
 	gobin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	if _, err := os.Stat(gobin); err != nil {

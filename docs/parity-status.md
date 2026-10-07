@@ -8,7 +8,7 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 
 |  | Rows | compared | tagged | evidenced | scenario only | untagged | hand-off | gap | not applicable |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| All rows | 572 | 62 | 351 | 98 | 0 | 0 | 36 | 24 | 1 |
+| All rows | 572 | 62 | 335 | 95 | 0 | 0 | 36 | 43 | 1 |
 
 ## By owner plan
 
@@ -23,7 +23,7 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 | 07 | 34 | 5 | 24 | 1 | 0 | 0 | 0 | 4 | 0 |
 | 08 | 37 | 2 | 35 | 0 | 0 | 0 | 0 | 0 | 0 |
 | 09 | 71 | 1 | 25 | 16 | 0 | 0 | 28 | 0 | 1 |
-| 10 | 28 | 0 | 17 | 10 | 0 | 0 | 0 | 1 | 0 |
+| 10 | 28 | 0 | 1 | 7 | 0 | 0 | 0 | 20 | 0 |
 | 11 | 33 | 0 | 20 | 5 | 0 | 0 | 6 | 2 | 0 |
 | 12 | 10 | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | – | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
@@ -49,7 +49,7 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 | CLI: flags, subcommands, drift (owner 11) | 28 | 0 | 20 | 5 | 0 | 0 | 3 | 0 | 0 |
 | CL: cloud & product hand-offs (owner 09 or 11) | 27 | 0 | 1 | 0 | 0 | 0 | 25 | 0 | 1 |
 | GAP: known gaps (X) | 13 | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 0 |
-| MT: mantle-only (owner 10; extension API 01) | 36 | 0 | 26 | 10 | 0 | 0 | 0 | 0 | 0 |
+| MT: mantle-only (owner 10; extension API 01) | 36 | 0 | 10 | 7 | 0 | 0 | 0 | 19 | 0 |
 
 ## Plan 12 triage requests
 
@@ -88,7 +88,7 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 | ENG-09 | `unstable.go` for undocumented subtypes | N | 02 | evidenced | evidence: `enginetest` TestUnstableFallbacks (get_workspace_diff → git diff, side_question → private forked engine, rewind_conversation → restart at --resume-session-at), TestRealUnstable (all three native on the real engine) |
 | ENG-10 | CLI→client requests as messages | N | 02 | evidenced | evidence: `enginetest` TestPermissionRoundTripAndCancel (can_use_tool → PermissionMsg, exactly-once Reply, control_cancel_request → ControlCancelMsg, hook_callback answered {}, elicitation → ControlRequestMsg, unknown subtype → error), TestRepliesNotHeld, TestPendingRequestsFromInitialize, TestRealEngine (real can_use_tool approved through PermissionMsg); fixtures ask-user-question, exit-plan-mode, elicitation |
 | ENG-11 | Stream delta coalescing | N | 02 | evidenced | evidence: `internal/engine` TestCoalescerMergesAndKeepsOrder, TestCoalescerTimerFlushAndNoAliasing, TestCoalescerConcurrentOrder (timer vs reader race), TestCoalescingRate, BenchmarkDecodeAndCoalesce; `enginetest` TestSpikeS17DeltaRate (real engine at ~50k deltas/s → ~60 messages/s) |
-| ENG-12 | `session_state_changed` | R | 02 | evidenced | evidence: `enginetest` TestSessionTracking (session_state_changed → Snapshot().State); fixtures carry running/idle around every turn (e.g. queued-priority); consumers: features/transcript (spinner), features/input, features/selfmod |
+| ENG-12 | `session_state_changed` | R | 02 | evidenced | evidence: `enginetest` TestSessionTracking (session_state_changed → Snapshot().State); fixtures carry running/idle around every turn (e.g. queued-priority); consumers: features/transcript (spinner), features/input |
 | ENG-13 | Session tracker | N | 02 | evidenced | evidence: `enginetest` TestSessionTracking (status mode, title, conversation_reset clears the id and takes the real one from the next system/init, set_model), TestTurnFlowsInOrder |
 | ENG-14 | Supervisor restart variants | N | 02 | evidenced | evidence: `internal/engine` TestBuildArgs (--resume=, --continue, --fork-session, --resume-session-at=, --resume-drops-turn=, --session-id=); `enginetest` TestUnexpectedExitAndRestart (Restart with resume + fork), TestUnstableFallbacks (rewind restart), fixture resume; spikes TestSpikeS7Resume, TestSpikeS7DropsTurn |
 | ENG-15 | Engine crash recovery | N | 02 | evidenced | evidence: `enginetest` TestUnexpectedExitAndRestart (EngineExitedMsg with the stderr tail, Control on a dead engine errors, Restart brings it back), TestSpawnFailure |
@@ -136,78 +136,78 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 | ENG-57 | Shell snapshot / session-env / `CLAUDE_ENV_FILE` | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/env-file (Bash sees variables exported by CLAUDE_ENV_FILE) |
 | ENG-58 | Structured tool results (`tool_use_result`) | E | 02 | evidenced | evidence: `enginetest` TestRealEngine (tool_use_result carried as ToolResult.Structured); fixtures tool-allow, background-task; `pkg/proto` TestUserToolResults |
 | ENG-59 | Engine-side expansion of `@path`, `@server:res`, `/cmd` | E | 02 | evidenced | evidence: `enginetest` TestRealPassthrough/expansion (@path and /command expand in the engine; client_composed turns @ expansion off) |
-| ED-01 | Editing buffer | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-02 | Newline: `\`+Enter | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-03 | Newline: Shift+Enter | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-04 | Newline: Option/Alt+Enter | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-05 | Newline: Ctrl+J | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-06 | Bracketed paste with newlines | N | 04 | compared | scenarios: large-paste; tags: features/input/input.go:54 |
-| ED-07 | Enter submits | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-08 | Readline movement | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-09 | Readline kill | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-10 | Kill ring | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-11 | Undo | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-12 | Double-Esc clears input | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-13 | Ctrl+L clears input | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-14 | Vim mode | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-15 | Vim insert-mode remaps | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-16 | Vim mode indicator | N | 04 | tagged | tags: features/chrome/chrome.go:17, features/input/input.go:54 |
-| ED-17 | Vim `/` history search | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-18 | Stash prompt | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-19 | External editor | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-20 | Large paste collapse | N | 04 | compared | scenarios: large-paste; tags: features/input/input.go:54 |
-| ED-21 | paste-cache storage | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-22 | Expand a collapsed paste | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-23 | Paste metadata to the engine | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-24 | Image paste from clipboard | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-25 | Drag-and-drop image | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-26 | Attachments navigation | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-27 | Atomic chips | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-28 | Images sent as base64 blocks | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-29 | Emoji shortcodes | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-30 | Spellcheck | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-31 | Invisible-character stripping | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-32 | `ultrathink` highlight | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-33 | `ultracode` highlight and toggle | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-34 | Prompt-suggestion ghost text | R | 04 | tagged | tags: features/input/input.go:54 |
+| ED-01 | Editing buffer | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-02 | Newline: `\`+Enter | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-03 | Newline: Shift+Enter | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-04 | Newline: Option/Alt+Enter | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-05 | Newline: Ctrl+J | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-06 | Bracketed paste with newlines | N | 04 | compared | scenarios: large-paste; tags: features/input/input.go:55 |
+| ED-07 | Enter submits | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-08 | Readline movement | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-09 | Readline kill | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-10 | Kill ring | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-11 | Undo | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-12 | Double-Esc clears input | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-13 | Ctrl+L clears input | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-14 | Vim mode | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-15 | Vim insert-mode remaps | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-16 | Vim mode indicator | N | 04 | tagged | tags: features/chrome/chrome.go:17, features/input/input.go:55 |
+| ED-17 | Vim `/` history search | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-18 | Stash prompt | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-19 | External editor | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-20 | Large paste collapse | N | 04 | compared | scenarios: large-paste; tags: features/input/input.go:55 |
+| ED-21 | paste-cache storage | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-22 | Expand a collapsed paste | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-23 | Paste metadata to the engine | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-24 | Image paste from clipboard | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-25 | Drag-and-drop image | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-26 | Attachments navigation | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-27 | Atomic chips | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-28 | Images sent as base64 blocks | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-29 | Emoji shortcodes | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-30 | Spellcheck | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-31 | Invisible-character stripping | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-32 | `ultrathink` highlight | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-33 | `ultracode` highlight and toggle | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-34 | Prompt-suggestion ghost text | R | 04 | tagged | tags: features/input/input.go:55 |
 | ED-35 | Initial example prompt | X | 04 | gap |  |
-| ED-36 | `?` shortcut help | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-37 | Placeholder and inline hints | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-38 | Real cursor placement for IME | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-39 | Large-input performance | N | 04 | tagged | tags: features/input/input.go:54 |
-| ED-40 | Keyboard fallback for Terminal.app | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-01 | `/` command menu | N | 04 | compared | scenarios: fs-slash-menu, slash-menu; tags: features/input/input.go:54 |
-| AC-02 | Fuzzy filtering | N | 04 | compared | scenarios: slash-menu; tags: features/input/input.go:54 |
-| AC-03 | Merged command sources | R | 04 | tagged | tags: features/input/input.go:54 |
-| AC-04 | Live command refresh | R | 04 | tagged | tags: features/input/input.go:54 |
-| AC-05 | Alias matching and highlighting | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-06 | Hidden commands | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-07 | Argument hints | R | 04 | tagged | tags: features/input/input.go:54 |
-| AC-08 | Mid-prompt `/` completion | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-09 | Ghost-text completion | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-10 | Argument completions | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-11 | Autocomplete keys | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-12 | `@` file mentions | N | 04 | compared | scenarios: at-mention; tags: features/input/input.go:54 |
-| AC-13 | `respectGitignore` / `fileSuggestion` | E | 04 | tagged | tags: features/input/input.go:54 |
+| ED-36 | `?` shortcut help | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-37 | Placeholder and inline hints | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-38 | Real cursor placement for IME | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-39 | Large-input performance | N | 04 | tagged | tags: features/input/input.go:55 |
+| ED-40 | Keyboard fallback for Terminal.app | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-01 | `/` command menu | N | 04 | compared | scenarios: fs-slash-menu, slash-menu; tags: features/input/input.go:55 |
+| AC-02 | Fuzzy filtering | N | 04 | compared | scenarios: slash-menu; tags: features/input/input.go:55 |
+| AC-03 | Merged command sources | R | 04 | tagged | tags: features/input/input.go:55 |
+| AC-04 | Live command refresh | R | 04 | tagged | tags: features/input/input.go:55 |
+| AC-05 | Alias matching and highlighting | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-06 | Hidden commands | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-07 | Argument hints | R | 04 | tagged | tags: features/input/input.go:55 |
+| AC-08 | Mid-prompt `/` completion | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-09 | Ghost-text completion | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-10 | Argument completions | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-11 | Autocomplete keys | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-12 | `@` file mentions | N | 04 | compared | scenarios: at-mention, fs-at-mention; tags: features/input/input.go:55 |
+| AC-13 | `respectGitignore` / `fileSuggestion` | E | 04 | tagged | tags: features/input/input.go:55 |
 | AC-14 | `@server:resource` mentions | X | 04 | gap |  |
 | AC-15 | `@` live-session suggestions | X | 04 | gap |  |
-| AC-16 | `!` shell mode entry | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-17 | `!` command execution | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-18 | `!` history completion | N | 04 | tagged | tags: features/input/input.go:54 |
-| AC-19 | `!` path completion | N | 04 | tagged | tags: features/input/input.go:54 |
+| AC-16 | `!` shell mode entry | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-17 | `!` command execution | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-18 | `!` history completion | N | 04 | tagged | tags: features/input/input.go:55 |
+| AC-19 | `!` path completion | N | 04 | tagged | tags: features/input/input.go:55 |
 | AC-20 | `!` backgrounding | N | 04 | evidenced | evidence: `features/input` TestBashMode, TestRealEngineBashMode: `!` commands run off the UI goroutine (`bash.go` runBash) and never block the prompt or the turn, so there is no foreground command for ctrl+b to background |
-| AC-21 | Slash dispatch to engine | E | 04 | tagged | tags: features/input/input.go:54 |
-| AC-22 | Native vs engine vs H routing | N | 04 | compared | scenarios: handoff; tags: features/input/input.go:54 |
-| HI-01 | Up/Down recall | N | 04 | compared | scenarios: history; tags: features/input/input.go:54 |
-| HI-02 | Read `history.jsonl` | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-03 | Write `history.jsonl` | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-04 | Consecutive duplicates collapse | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-05 | Multiline-aware Up/Down | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-06 | Ctrl+R reverse search | N | 04 | compared | scenarios: fs-history-search, history; tags: features/input/input.go:54 |
-| HI-07 | Search scope cycling | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-08 | HistorySearch keys | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-09 | History restores pastes | N | 04 | tagged | tags: features/input/input.go:54 |
-| HI-10 | History across sessions | N | 04 | tagged | tags: features/input/input.go:54 |
+| AC-21 | Slash dispatch to engine | E | 04 | tagged | tags: features/input/input.go:55 |
+| AC-22 | Native vs engine vs H routing | N | 04 | compared | scenarios: handoff; tags: features/input/input.go:55 |
+| HI-01 | Up/Down recall | N | 04 | compared | scenarios: history; tags: features/input/input.go:55 |
+| HI-02 | Read `history.jsonl` | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-03 | Write `history.jsonl` | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-04 | Consecutive duplicates collapse | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-05 | Multiline-aware Up/Down | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-06 | Ctrl+R reverse search | N | 04 | compared | scenarios: fs-history-search, history; tags: features/input/input.go:55 |
+| HI-07 | Search scope cycling | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-08 | HistorySearch keys | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-09 | History restores pastes | N | 04 | tagged | tags: features/input/input.go:55 |
+| HI-10 | History across sessions | N | 04 | tagged | tags: features/input/input.go:55 |
 | TC-01 | Esc interrupts the turn | N | 05 | compared | scenarios: interrupt; tags: features/turn/turn.go:43 |
 | TC-02 | Interrupt and cancel queue | N | 05 | tagged | tags: features/turn/turn.go:43 |
 | TC-03 | Ctrl+C semantics | N | 05 | tagged | tags: features/turn/turn.go:43 |
@@ -303,7 +303,7 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 | VW-12 | `defaultView` | N | 03 | compared | scenarios: default-renderer; tags: features/transcript/feature.go:26 |
 | VW-13 | Inline (classic) renderer default | N | 03 | compared | scenarios: default-renderer; tags: features/transcript/feature.go:26 |
 | VW-14 | Screen-reader flat mode | N | 07 | tagged | tags: features/chrome/chrome.go:29 |
-| VW-15 | Fullscreen renderer | N | 12 | compared | scenarios: default-renderer, fs-history-search, fs-plain-qa, fs-scroll, fs-slash-menu, fs-tool-approval; tags: features/fullscreen/fullscreen.go:14 |
+| VW-15 | Fullscreen renderer | N | 12 | compared | scenarios: default-renderer, fs-at-mention, fs-history-search, fs-plain-qa, fs-scroll, fs-slash-menu, fs-tool-approval; tags: features/fullscreen/fullscreen.go:14 |
 | VW-16 | Fullscreen scrolling | N | 12 | compared | scenarios: fs-scroll; tags: features/fullscreen/fullscreen.go:14 |
 | VW-17 | Mouse wheel | N | 12 | tagged | tags: features/fullscreen/fullscreen.go:14 |
 | VW-18 | Selection and copy | N | 12 | tagged | tags: features/fullscreen/fullscreen.go:14 |
@@ -622,30 +622,30 @@ States: **compared**, a tagged (or evidenced) row that a side-by-side scenario a
 | MT-07 | Stories / `mantle-ui story <id> --width N` | N | 01 | tagged | tags: internal/app/core.go:50 |
 | MT-08 | `mantle-ui catalog --json` | N | 01 | tagged | tags: internal/app/core.go:25 |
 | MT-09 | `mantle-ui selftest` | N | 01 | tagged | tags: internal/app/core.go:25 |
-| MT-10 | Launcher supervisor | N | 10 | evidenced | evidence: `internal/launcher` TestCrashOnProbationThenRollback (crash restores the terminal and prints the panic excerpt), TestSignalsForwardedAndSIGINTSwallowed (SIGTERM forwarded, SIGINT not), TestCrashKillsEngineGroup (engine process groups killed after a UI crash, from the run file and from engine records), TestStdlibOnly (launcher imports only the standard library); `internal/selfmod` TestSpikeS16LauncherJobControl (real launcher under bash in a pty: shared process group, ctrl+z stops both, fg resumes, ctrl+c inside an exec'd editor spares the launcher, crash leaves the terminal echoing) |
-| MT-11 | Exit 75 restart protocol | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
+| MT-10 | Launcher supervisor | N | 10 | evidenced | evidence: `internal/launcher` TestCrashOnProbationThenRollback (crash restores the terminal and prints the panic excerpt), TestSignalsForwardedAndSIGINTSwallowed (SIGTERM forwarded, SIGINT not), TestCrashKillsEngineGroup (engine process groups killed after a UI crash, from the run file and from engine records), TestStdlibOnly (launcher imports only the standard library); `internal/install` TestSpikeS16LauncherJobControl (real launcher under bash in a pty: shared process group, ctrl+z stops both, fg resumes, ctrl+c inside an exec'd editor spares the launcher, crash leaves the terminal echoing) |
+| MT-11 | Exit 75 restart protocol | N | 10 | tagged | tags: features/launch/launch.go:37 |
 | MT-12 | Versions store | N | 10 | evidenced | evidence: `internal/launcher` TestInstallAndGet (immutable versions/<id>/ with manifest, read-only binary), TestListNewestFirst, TestFlipLinks (relative current/last-good symlinks, relocatable home), TestFlipIsAtomicUnderConcurrentReaders (rename(2) flips never expose a missing link), TestGC (keeps the newest 10, current, last-good and versions of live run files; removes stale temp folders), TestVersionsCommand, TestRollbackCommand |
-| MT-13 | Probation and auto-rollback | N | 10 | evidenced | evidence: `internal/launcher` TestDecide and TestClassify (probation state machine and exit classification), TestCleanExitPassesProbation (healthy marker, last-good follows), TestMarkerWrittenDuringRunPassesProbationEvenIfLaterCrash, TestCrashOnProbationThenRollback (two failed launches flip current to last-good and relaunch with --resume), TestCrashWithoutRollbackTarget, TestHandoffAccountsToTheNewBuild (in-place restart); `features/selfmod` TestRunFileAndHealthyMarker (marker only after first frame, engine init and 20 s) |
+| MT-13 | Probation and auto-rollback | N | 10 | evidenced | evidence: `internal/launcher` TestDecide and TestClassify (probation state machine and exit classification), TestCleanExitPassesProbation (healthy marker, last-good follows), TestMarkerWrittenDuringRunPassesProbationEvenIfLaterCrash, TestCrashOnProbationThenRollback (two failed launches flip current to last-good and relaunch with --resume), TestCrashWithoutRollbackTarget, TestHandoffAccountsToTheNewBuild (in-place restart); `features/launch` TestRunFileAndHealthyMarker (marker only after first frame, engine init and 20 s) |
 | MT-14 | `mantle versions\|rollback\|doctor\|--safe` | N | 10 | evidenced | evidence: `internal/launcher` TestVersionsCommand (`mantle versions`), TestRollbackCommand (`mantle rollback`), TestDoctorCommand (`mantle doctor`), TestSafeModeRunsLastGood (`mantle --safe`), TestClassifyArgs (the launcher handles these and passes everything else on) |
-| MT-15 | Install | N | 10 | evidenced | evidence: `internal/selfmod` TestInstallIdempotentAndUpdates (launcher into ~/.mantle/bin, ~/.local/bin link, ~/.mantle/src clone on branch user, first build installed as current and last-good; re-run builds nothing; upstream fast-forward; mods recorded), TestLinkLauncherKeepsRegularFile; `scripts/install.sh` (`make install`) |
-| MT-16 | `/mantle <request>` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-17 | Builder rules and permissions | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-18 | Pipeline steps 1–9 | N | 10 | evidenced | evidence: `internal/selfmod` TestPipelineAllPass (all nine steps, logs, report.json, safety env), TestProtectedPathsRejected (step 1 incl. the go.mod toolchain line), TestLintGroupCollectsAllFailures (gofmt, vet, import rules), TestBuildFailureStopsBeforeTests, TestTestFailure, TestFlakyPackageReRunAlone, TestSelftestFailure, TestSmokeFailures (pty smoke boot), TestStepTimeoutKillsProcessGroup; TestRealPipelineOnThisRepo (opt-in `MANTLE_PIPELINE_E2E=1`: all nine steps over this repository plus a mod, smoke boot against the real mantle-ui and fakeclaude; passed on integration-3) |
-| MT-19 | Fix loop | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-20 | Promote | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-21 | Restart now | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-22 | `/mantle list\|show\|status` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-23 | `/mantle undo <id>\|rollback\|retry` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-24 | Config-first triage | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-25 | Visual preview | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-26 | `/mantle update` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-27 | `/mantle edit <id>` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-28 | `/mantle upstream <id>` | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-29 | Dev mode | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-30 | Builder cost and budget | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-31 | `docs/EXTENDING.md` | N | 10 | evidenced | evidence: `docs/EXTENDING.md`; `internal/selfmod` TestExtendingExamplesCompile (every complete example in the guide compiles against pkg/ext via a go build overlay) |
-| MT-32 | fd-handoff instant restart | N | 10 | tagged | tags: internal/cli/flags.go:269 |
-| MT-33 | Go toolchain check | N | 10 | evidenced | evidence: `scripts/install.sh` (checks for `go` and `git`, prints an install hint); `internal/selfmod` TestInstallNeedsGo (installer refuses without a Go toolchain, with the go.dev hint); `internal/launcher` TestDoctorCommand (`mantle doctor` reports the go version or warns that /mantle needs it) |
-| MT-34 | `mods.json` derived from git | N | 10 | evidenced | evidence: `internal/selfmod` TestEndToEndModLifecycle (mods.json rewritten from `Mantle-Mod` trailers after promotion), TestCommitModSplitsCoreSeam and TestRevertMod (mod list derived from `git log --grep '^Mantle-Mod:'`) |
-| MT-35 | Builder progress block | N | 10 | tagged | tags: features/selfmod/selfmod.go:56 |
-| MT-36 | Several instances on different versions | N | 10 | evidenced | evidence: `internal/launcher` TestGC (a version referenced by a live run file is never collected), TestRestartRelaunchesWithHandoffArgs (each launch resolves current afresh, so instances started before a promotion keep their build); `features/selfmod` TestRunFileAndHealthyMarker (each mantle-ui records its build id in run/<pid>.json) |
+| MT-15 | Install | N | 10 | evidenced | evidence: `internal/install` TestInstallIdempotentAndUpdates (launcher into ~/.mantle/bin, ~/.local/bin link, ~/.mantle/src clone on branch user, first build installed as current and last-good; re-run builds nothing; upstream fast-forward), TestLinkLauncherKeepsRegularFile; `scripts/install.sh` (`make install`) |
+| MT-16 | `/mantle <request>` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-17 | Builder rules and permissions | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-18 | Pipeline steps 1–9 | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-19 | Fix loop | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-20 | Promote | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-21 | Restart now | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-22 | `/mantle list\|show\|status` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-23 | `/mantle undo <id>\|rollback\|retry` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-24 | Config-first triage | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-25 | Visual preview | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-26 | `/mantle update` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-27 | `/mantle edit <id>` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-28 | `/mantle upstream <id>` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-29 | Dev mode | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-30 | Builder cost and budget | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-31 | `docs/EXTENDING.md` | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-32 | fd-handoff instant restart | N | 10 | gap | tags: internal/cli/flags.go:269 |
+| MT-33 | Go toolchain check | N | 10 | evidenced | evidence: `scripts/install.sh` (checks for `go` and `git`, prints an install hint); `internal/install` TestInstallNeedsGo (installer refuses without a Go toolchain, with the go.dev hint); `internal/launcher` TestDoctorCommand (`mantle doctor` reports the go version or warns that make install needs it) |
+| MT-34 | `mods.json` derived from git | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-35 | Builder progress block | N | 10 | gap | evidence: Gap: /mantle was removed on 2026-10-07 pending a redesign. |
+| MT-36 | Several instances on different versions | N | 10 | evidenced | evidence: `internal/launcher` TestGC (a version referenced by a live run file is never collected), TestRestartRelaunchesWithHandoffArgs (each launch resolves current afresh, so instances started before a promotion keep their build); `features/launch` TestRunFileAndHealthyMarker (each mantle-ui records its build id in run/<pid>.json) |

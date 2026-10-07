@@ -2,7 +2,7 @@
 
   [1;38;2;230;227;222mmantle[m
   [38;2;147;180;251m❯ [m[38;2;111;194;139m✓[m [38;2;147;180;251mClaude Code     [m  [38;2;139;139;147m2.1.288 (/usr/local/bin/claude)[m
-    [38;2;231;183;95m![m [38;2;230;227;222mGo toolchain    [m  [38;2;139;139;147mgo not found on PATH; mantle runs, but /mantle cannot rebuild it[m
+    [38;2;231;183;95m![m [38;2;230;227;222mGo toolchain    [m  [38;2;139;139;147mgo not found on PATH; mantle runs, but make install cannot build it[m
     [38;2;111;194;139m✓[m [38;2;230;227;222mTerminal        [m  [38;2;139;139;147mghostty[m
     [38;2;231;183;95m![m [38;2;230;227;222mSettings files  [m  [38;2;139;139;147m1 of 3 file(s) are invalid[m
     [38;2;139;139;147m–[m [38;2;230;227;222mmantle install  [m  [38;2;139;139;147m~/.mantle does not exist yet[m

@@ -1,4 +1,4 @@
-package selfmod
+package install
 
 import (
 	"os"
@@ -18,7 +18,7 @@ import (
 
 // TestSpikeS16LauncherJobControl is spike S16 for the launcher: an
 // interactive shell in a pty runs the real mantle launcher supervising a
-// small Bubble Tea program (internal/selfmod/testdata/s16ui).
+// small Bubble Tea program (internal/install/testdata/s16ui).
 //
 //   - ctrl+z suspends: launcher and UI share a process group, so both stop and
 //     the shell reports the job stopped; fg resumes both.
@@ -39,7 +39,7 @@ func TestSpikeS16LauncherJobControl(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	for pkg, out := range map[string]string{"./cmd/mantle": "mantle", "./internal/selfmod/testdata/s16ui": "s16ui"} {
+	for pkg, out := range map[string]string{"./cmd/mantle": "mantle", "./internal/install/testdata/s16ui": "s16ui"} {
 		cmd := exec.Command("go", "build", "-o", filepath.Join(dir, out), pkg)
 		cmd.Dir = root
 		if b, err := cmd.CombinedOutput(); err != nil {

@@ -52,7 +52,7 @@ func Setup(r ext.Registrar) error {
 func StoryChecks() []checks.Check {
 	return []checks.Check{
 		{ID: "claude", Title: "Claude Code", Status: checks.OK, Detail: "2.1.288 (/usr/local/bin/claude)"},
-		{ID: "go", Title: "Go toolchain", Status: checks.Warn, Detail: "go not found on PATH; mantle runs, but /mantle cannot rebuild it",
+		{ID: "go", Title: "Go toolchain", Status: checks.Warn, Detail: "go not found on PATH; mantle runs, but make install cannot build it",
 			Fix: "Install Go 1.27 or newer."},
 		{ID: "terminal", Title: "Terminal", Status: checks.OK, Detail: "ghostty"},
 		{ID: "settings", Title: "Settings files", Status: checks.Warn, Detail: "1 of 3 file(s) are invalid",

@@ -275,14 +275,14 @@ func (c *Commands) Doctor(args []string) int {
 	}
 
 	if p, err := lookPath("go"); err != nil {
-		warn("go not found in PATH: /mantle needs a Go toolchain (https://go.dev/dl/)")
+		warn("go not found in PATH: make install needs a Go toolchain (https://go.dev/dl/)")
 	} else if out, err := runVersion(p, "version"); err != nil {
 		warn("go version failed: %v", err)
 	} else {
 		ok("%s", out)
 	}
 	if p, err := lookPath("git"); err != nil {
-		warn("git not found in PATH: /mantle needs git")
+		warn("git not found in PATH: make install needs git")
 	} else if out, err := runVersion(p, "--version"); err == nil {
 		ok("%s", out)
 	}
@@ -299,7 +299,7 @@ func (c *Commands) Doctor(args []string) int {
 	}
 
 	if !isDir(filepath.Join(l.Src(), ".git")) && !isFile(filepath.Join(l.Src(), ".git")) {
-		warn("%s is not a git clone; /mantle cannot build mods (run `make install`)", l.Src())
+		warn("%s is not a git clone (run `make install`)", l.Src())
 	} else {
 		ok("source clone %s", l.Src())
 	}

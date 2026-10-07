@@ -3,7 +3,7 @@ Doctor
 
   mantle
   ❯ ✓ Claude Code       2.1.288 (/usr/local/bin/claude)
-    ! Go toolchain      go not found on PATH; mantle runs, but /mantle cannot rebuild it
+    ! Go toolchain      go not found on PATH; mantle runs, but make install cannot build it
     ✓ Terminal          ghostty
     ! Settings files    1 of 3 file(s) are invalid
     – mantle install    ~/.mantle does not exist yet

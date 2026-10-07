@@ -9,8 +9,7 @@ import (
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 )
 
-// Stories render each component with fixed data, for goldens, `mantle-ui story` and the
-// /mantle builder.
+// Stories render each component with fixed data, for goldens and `mantle-ui story`.
 
 func footerStories() []ext.Story {
 	mk := func(id string, s sessionState, statusLine bool) ext.Story {

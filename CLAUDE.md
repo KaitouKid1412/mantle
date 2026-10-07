@@ -2,9 +2,9 @@
 
 mantle is a terminal UI for Claude Code written in Go with Bubble Tea v2. It drives the
 real `claude` binary headlessly (stream-json over stdio), so the engine stays exactly
-Claude Code's; only the UI is new. Two goals: full parity with the Claude Code 2.1.288
-terminal UI, and `/mantle <request>`, which rebuilds mantle itself with new or changed
-features. "mantle" is a working name.
+Claude Code's; only the UI is new. The goal is full parity with the Claude Code 2.1.288
+terminal UI. ("/mantle <request>", self-modification, was removed on 2026-10-07 and will
+be redesigned.) "mantle" is a working name.
 
 ## Start here
 

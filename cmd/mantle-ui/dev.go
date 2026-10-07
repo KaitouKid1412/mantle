@@ -1,7 +1,7 @@
 package main
 
-// mantle-ui's developer subcommands: the /mantle builder's map (catalog) and eyes
-// (story), and the pipeline's self-test.
+// mantle-ui's developer subcommands: the feature map (catalog), component renders
+// (story) and the self-test.
 
 import (
 	"encoding/json"

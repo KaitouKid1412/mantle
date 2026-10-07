@@ -1,4 +1,4 @@
-// Package doctor runs mantle's health checks: the Go toolchain /mantle needs,
+// Package doctor runs mantle's health checks: the Go toolchain installs need,
 // the claude binary and its probe status, terminal capabilities, every settings
 // and keybindings file, the ~/.mantle version store and the cwd's trust state.
 // Each check returns ok, warn or fail with a fix hint. /doctor (plan 09) shows
@@ -283,7 +283,7 @@ func readEngineState(path string) (engineState, error) {
 	return st, nil
 }
 
-// CheckGo checks the Go toolchain that /mantle needs to rebuild mantle.
+// CheckGo checks the Go toolchain that make install needs to build mantle.
 func CheckGo(ctx context.Context, env Env) Check {
 	look := env.LookPath
 	if look == nil {
@@ -291,7 +291,7 @@ func CheckGo(ctx context.Context, env Env) Check {
 	}
 	bin, err := look("go")
 	if err != nil {
-		return Check{Status: Warn, Detail: "go not found on PATH; mantle runs, but /mantle cannot rebuild it",
+		return Check{Status: Warn, Detail: "go not found on PATH; mantle runs, but make install cannot build it",
 			Fix: "Install Go " + MinGo + " or newer (https://go.dev/dl)."}
 	}
 	gv := env.GoVersion
@@ -305,7 +305,7 @@ func CheckGo(ctx context.Context, env Env) Check {
 	num := strings.TrimPrefix(v, "go")
 	if claudecli.CompareVersions(num, MinGo) < 0 {
 		return Check{Status: Warn, Detail: fmt.Sprintf("%s is older than %s (%s)", v, MinGo, bin),
-			Fix: "Install Go " + MinGo + " or newer; /mantle builds with the local toolchain."}
+			Fix: "Install Go " + MinGo + " or newer; mantle builds with the local toolchain."}
 	}
 	return Check{Status: OK, Detail: fmt.Sprintf("%s (%s)", v, bin)}
 }
@@ -383,7 +383,7 @@ func CheckMantleHome(ctx context.Context, env Env) Check {
 			dc := Check{Title: "Free disk space", Status: OK, Detail: humanBytes(free) + " free"}
 			switch {
 			case free < 200<<20:
-				dc.Status, dc.Fix = Fail, "Free some space: /mantle builds need a few hundred MB."
+				dc.Status, dc.Fix = Fail, "Free some space: mantle builds need a few hundred MB."
 			case free < 1<<30:
 				dc.Status, dc.Fix = Warn, "Builds and the version store may run out of space soon."
 			}

@@ -15,7 +15,7 @@ import (
 // (names and aliases, sorted, minus doctor, which belongs to the launcher).
 // It includes claude's hidden root subcommands: without them `mantle rc`
 // would become a model prompt. The launcher stays standard-library-only, so
-// it cannot import internal/cli; a test in internal/selfmod asserts the two
+// it cannot import internal/cli; a test in internal/install asserts the two
 // lists match.
 var PassthroughSubcommands = []string{
 	"agents", "attach", "auth", "auto-mode", "daemon", "design-login",

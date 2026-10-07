@@ -92,7 +92,7 @@ func splitRow(line string) []string {
 // in the non-test Go files under root's source directories.
 func ScanParityTags(root string) (map[string][]string, error) {
 	tags := map[string][]string{}
-	for _, dir := range []string{"cmd", "features", "internal", "mods", "pkg"} {
+	for _, dir := range []string{"cmd", "features", "internal", "pkg"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err

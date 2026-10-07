@@ -1,4 +1,7 @@
-package selfmod
+// Package install installs mantle from a checkout: the launcher, the PATH link, a
+// private source clone (~/.mantle/src, branch user) and a mantle-ui version built from
+// it. make install runs it through cmd/mantle-install.
+package install
 
 import (
 	"context"
@@ -15,7 +18,7 @@ import (
 	"github.com/KaitouKid1412/mantle/internal/launcher"
 )
 
-// UserBranch is the branch of ~/.mantle/src that holds upstream plus mods.
+// UserBranch is the branch of ~/.mantle/src that installs build from.
 const UserBranch = "user"
 
 // KeepVersions is how many versions GC keeps (plus current, last-good and
@@ -63,9 +66,6 @@ type InstallResult struct {
 	BuildID  string
 	// Built is false when the current build already matches user's HEAD.
 	Built bool
-	// Behind is set when origin moved but user has mods, so it was not
-	// fast-forwarded (run /mantle update).
-	Behind bool
 }
 
 // Install builds and installs mantle into the layout: the launcher, the
@@ -78,7 +78,7 @@ func Install(ctx context.Context, o InstallOptions) (*InstallResult, error) {
 		return nil, errors.New("install: no dev repo")
 	}
 	if _, err := exec.LookPath(o.Go); err != nil {
-		return nil, fmt.Errorf("mantle needs a Go toolchain to build itself and to run /mantle; install one from https://go.dev/dl/ (%v)", err)
+		return nil, fmt.Errorf("mantle needs a Go toolchain to build itself; install one from https://go.dev/dl/ (%v)", err)
 	}
 	if err := l.EnsureDirs(); err != nil {
 		return nil, err
@@ -112,15 +112,13 @@ func Install(ctx context.Context, o InstallOptions) (*InstallResult, error) {
 	}
 
 	// 3. The private clone.
-	behind, err := o.syncSource(ctx)
-	if err != nil {
+	if err := o.syncSource(ctx); err != nil {
 		return nil, err
 	}
-	res.Behind = behind
 
 	// 4. A version built from user's HEAD.
 	src := Git{Dir: l.Src(), Bin: o.Git}
-	sha, err := src.HeadSHA()
+	sha, err := src.run("rev-parse", "HEAD")
 	if err != nil {
 		return nil, err
 	}
@@ -162,9 +160,8 @@ func (o InstallOptions) goBuild(ctx context.Context, dir, out, pkg string) error
 	return nil
 }
 
-// syncSource creates or updates ~/.mantle/src. It reports whether origin has
-// commits that user lacks and could not be fast-forwarded because of mods.
-func (o InstallOptions) syncSource(ctx context.Context) (behind bool, err error) {
+// syncSource creates ~/.mantle/src, or fast-forwards its user branch to upstream.
+func (o InstallOptions) syncSource(ctx context.Context) error {
 	l := o.Layout
 	src := Git{Dir: l.Src(), Bin: o.Git}
 	upstream := "origin/" + o.Branch
@@ -172,53 +169,51 @@ func (o InstallOptions) syncSource(ctx context.Context) (behind bool, err error)
 		fmt.Fprintf(o.Out, "cloning %s into %s\n", o.DevRepo, l.Src())
 		parent := Git{Dir: filepath.Dir(l.Src()), Bin: o.Git}
 		if _, err := parent.run("clone", "--quiet", "--no-checkout", "--origin", "origin", o.DevRepo, l.Src()); err != nil {
-			return false, err
+			return err
 		}
 		if _, err := src.run("checkout", "--quiet", "-b", UserBranch, upstream); err != nil {
-			return false, err
+			return err
 		}
 		// Drop the clone's default branch so only user remains.
 		if out, err := src.run("for-each-ref", "--format=%(refname:short)", "refs/heads/"); err == nil {
 			for _, b := range strings.Fields(out) {
 				if b != UserBranch {
-					src.DeleteBranch(b)
+					src.run("branch", "-D", b)
 				}
 			}
 		}
-		return false, nil
+		return nil
 	}
 	if url, _ := src.run("remote", "get-url", "origin"); url != o.DevRepo {
 		if _, err := src.run("remote", "set-url", "origin", o.DevRepo); err != nil {
-			return false, err
+			return err
 		}
 	}
 	fmt.Fprintf(o.Out, "fetching %s into %s\n", o.DevRepo, l.Src())
 	if _, err := src.run("fetch", "--quiet", "origin"); err != nil {
-		return false, err
+		return err
 	}
 	if !src.BranchExists(UserBranch) {
 		_, err := src.run("checkout", "--quiet", "-b", UserBranch, upstream)
-		return false, err
+		return err
 	}
-	if branch, _ := src.CurrentBranch(); branch != UserBranch {
-		return false, fmt.Errorf("%s is on branch %q; check out %s first", l.Src(), branch, UserBranch)
+	if branch, _ := src.run("symbolic-ref", "--quiet", "--short", "HEAD"); branch != UserBranch {
+		return fmt.Errorf("%s is on branch %q; check out %s first", l.Src(), branch, UserBranch)
 	}
 	if upToDate, err := src.IsAncestor(upstream, UserBranch); err != nil || upToDate {
-		return false, err
+		return err
 	}
-	ffable, err := src.IsAncestor(UserBranch, upstream)
-	if err != nil {
-		return false, err
+	if ffable, err := src.IsAncestor(UserBranch, upstream); err != nil {
+		return err
+	} else if !ffable {
+		return fmt.Errorf("%s has commits that %s lacks; not updating it", UserBranch, upstream)
 	}
-	if !ffable {
-		fmt.Fprintf(o.Out, "%s has mods and %s moved; run /mantle update to rebase them\n", UserBranch, upstream)
-		return true, nil
-	}
-	if clean, err := src.IsClean(); err != nil || !clean {
-		return true, fmt.Errorf("%s has uncommitted changes; not updating it", l.Src())
+	if st, err := src.run("status", "--porcelain"); err != nil || st != "" {
+		return fmt.Errorf("%s has uncommitted changes; not updating it", l.Src())
 	}
 	fmt.Fprintf(o.Out, "fast-forwarding %s to %s\n", UserBranch, upstream)
-	return false, src.MergeFastForward(upstream)
+	_, err := src.run("merge", "--quiet", "--ff-only", upstream)
+	return err
 }
 
 // linkLauncher points dir/mantle at the launcher. An existing symlink is
@@ -263,9 +258,9 @@ type BuildOptions struct {
 	Layout launcher.Layout
 	// Dir is the checkout to build (user's HEAD in ~/.mantle/src).
 	Dir string
-	// Upstream is the ref the mods sit on ("origin/main"), for the manifest.
+	// Upstream is the upstream ref ("origin/main"), for the manifest.
 	Upstream string
-	// Source is recorded in the manifest ("install", "promote", ...).
+	// Source is recorded in the manifest ("install").
 	Source string
 	// Binary, if set, is installed instead of building Dir again.
 	Binary string
@@ -289,7 +284,7 @@ func BuildVersion(ctx context.Context, o BuildOptions) (launcher.Version, error)
 		o.Now = time.Now
 	}
 	g := Git{Dir: o.Dir, Bin: o.Git}
-	sha, err := g.HeadSHA()
+	sha, err := g.run("rev-parse", "HEAD")
 	if err != nil {
 		return launcher.Version{}, err
 	}
@@ -315,15 +310,8 @@ func BuildVersion(ctx context.Context, o BuildOptions) (launcher.Version, error)
 		Pipeline:      o.Pipeline,
 	}
 	if o.Upstream != "" {
-		if base, err := g.MergeBase(o.Upstream, "HEAD"); err == nil {
+		if base, err := g.run("merge-base", o.Upstream, "HEAD"); err == nil {
 			m.UpstreamSHA = base
-			if mods, err := g.ListMods(base + "..HEAD"); err == nil {
-				for _, mod := range mods {
-					if mod.State == ModActive {
-						m.Mods = append(m.Mods, mod.ID)
-					}
-				}
-			}
 		}
 	}
 	store := launcher.Store{L: o.Layout}

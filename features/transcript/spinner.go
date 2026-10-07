@@ -34,7 +34,6 @@ var builtinTips = []string{
 	"Press shift+tab to cycle permission modes, including plan mode",
 	"Queue a follow-up while Claude works: just type and press enter",
 	"Run /compact when the conversation gets long to free up context",
-	"Use /mantle to change how mantle itself looks or behaves",
 	"Press esc twice to rewind the conversation to an earlier message",
 }
 
