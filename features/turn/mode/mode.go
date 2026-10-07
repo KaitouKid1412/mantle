@@ -92,6 +92,24 @@ func Next(m Mode, a Availability) Mode {
 	return Default
 }
 
+// NextUI is Next with mantle's research step: research is a UI mode on top of default,
+// entered between default and acceptEdits when researchAvail.
+//
+//	default → research → acceptEdits → plan → …
+//
+// It returns the next permission mode and whether research is on.
+func NextUI(m Mode, research, researchAvail bool, a Availability) (Mode, bool) {
+	if Normalize(m) == Default {
+		switch {
+		case research:
+			return AcceptEdits, false
+		case researchAvail:
+			return Default, true
+		}
+	}
+	return Next(m, a), false
+}
+
 // Indicator is what the footer and dialogs show for a mode.
 type Indicator struct {
 	Symbol string // "⏸" or "⏵⏵"
