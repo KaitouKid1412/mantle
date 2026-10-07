@@ -107,6 +107,8 @@ type MantleOpts struct {
 	Prefill string
 	// Safe is mantle --safe: run without user mods.
 	Safe bool
+	// Research is mantle --research: start in research mode (plan 13).
+	Research bool
 	// AttachEngineFDs is the hand-off file of an in-place restart
 	// (--attach-engine-fds=<path>): adopt those engines instead of spawning.
 	AttachEngineFDs string
@@ -397,6 +399,8 @@ func (p *Parsed) collect() error {
 			m.Prefill = string(b)
 		case "--safe":
 			m.Safe = true
+		case "--research":
+			m.Research = true
 		case "--attach-engine-fds":
 			m.AttachEngineFDs = o.Value()
 		case "--verbose":

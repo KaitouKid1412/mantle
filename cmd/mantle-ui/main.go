@@ -67,9 +67,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	cli.SetCurrent(st)
-	if st.Safe {
-		os.Setenv(ext.EnvSafe, "1")
-	}
+	st.SetEnv(os.Setenv)
 	return runUI(ctx, cwd, st, stdout, stderr)
 }
 

@@ -200,6 +200,12 @@ func TestParse(t *testing.T) {
 					t.Error("want safe")
 				}
 			}},
+		{name: "research", argv: []string{"--research", "hi"}, mode: ModeUI, engine: sw, prompt: "hi",
+			check: func(t *testing.T, p Parsed) {
+				if !p.Mantle.Research {
+					t.Error("want research")
+				}
+			}},
 		{name: "prefill", argv: []string{"--prefill-b64", "aGVsbG8="}, mode: ModeUI, engine: sw,
 			check: func(t *testing.T, p Parsed) { eq(t, p.Mantle.Prefill, "hello") }},
 		{name: "prefill bad", argv: []string{"--prefill-b64", "%%%"}, err: "not valid base64"},
