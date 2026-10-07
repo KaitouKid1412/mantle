@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -43,6 +44,9 @@ func writeReport(p paths, out string) error {
 	evs, err := readEvents(p.Events)
 	if err != nil {
 		return err
+	}
+	for i := range evs {
+		evs[i].File = fileKey(p.Repo, evs[i].File)
 	}
 	commits := gitCommits(firstTime(evs))
 	r := analyze(evs, commits)
@@ -154,13 +158,13 @@ func analyze(evs []event, commits []commit) *report {
 		switch e.Kind {
 		case evAcquire, evHandoff:
 			owners[e.File] = append(owners[e.File], ownerSpan{e.T, e.SID})
-			locked[e.File] = true
+			locked[relOf(e.File)] = true
 		case evRelease:
 			owners[e.File] = append(owners[e.File], ownerSpan{e.T, ""})
 		case evQueue:
 			queued[e.File] = append(queued[e.File], e)
 		case evTouched:
-			locked[e.File] = true
+			locked[relOf(e.File)] = true
 		case evLog:
 			logs = append(logs, e)
 		}
@@ -305,7 +309,9 @@ func analyze(evs []event, commits []commit) *report {
 	return r
 }
 
-// checkLog checks one file-baton decision against the recorded state.
+// checkLog checks one file-baton decision against the recorded state. The log
+// names files relative to the session's checkout while the state keys them by
+// absolute path, so a log line matches every recorded key with that relative path.
 func (r *report) checkLog(e event, ownedWithin func(string, string, time.Time, time.Duration) bool,
 	queue map[string]map[string]time.Time, queued map[string][]event, undelivered map[string]string,
 	owners map[string][]ownerSpan) {
@@ -316,27 +322,74 @@ func (r *report) checkLog(e event, ownedWithin func(string, string, time.Time, t
 	if !ok {
 		return
 	}
+	var ks []string
+	for k := range owners {
+		if relOf(k) == f {
+			ks = append(ks, k)
+		}
+	}
+	for k := range queued {
+		if relOf(k) == f && owners[k] == nil {
+			ks = append(ks, k)
+		}
+	}
 	ts := e.T.Format("15:04:05.000")
 	switch verdict {
 	case "allow":
-		if _, tracked := owners[f]; tracked && !ownedWithin(f, e.SID, e.T, ownWindow) {
-			r.Violations = append(r.Violations, fmt.Sprintf("%s %s: edit allowed for %s, which did not own it", ts, f, e.SID))
+		owned := len(ks) == 0 // untracked: nothing to check against
+		for _, k := range ks {
+			owned = owned || ownedWithin(k, e.SID, e.T, ownWindow)
+			if undelivered[k] == e.SID {
+				r.Violations = append(r.Violations, fmt.Sprintf("%s %s: %s edited before its handoff was delivered", ts, k, e.SID))
+			}
 		}
-		if undelivered[f] == e.SID {
-			r.Violations = append(r.Violations, fmt.Sprintf("%s %s: %s edited before its handoff was delivered", ts, f, e.SID))
+		if !owned {
+			r.Violations = append(r.Violations, fmt.Sprintf("%s %s: edit allowed for %s, which did not own it", ts, f, e.SID))
 		}
 	case "deny":
 		r.stat(e.SID).Denied++
-		if _, ok := queue[f][e.SID]; ok {
-			return
-		}
-		for _, q := range queued[f] {
-			if q.SID == e.SID && !q.T.Before(e.T.Add(-queueWindow)) && !q.T.After(e.T.Add(queueWindow)) {
+		for _, k := range ks {
+			if _, ok := queue[k][e.SID]; ok {
 				return
+			}
+			for _, q := range queued[k] {
+				if q.SID == e.SID && !q.T.Before(e.T.Add(-queueWindow)) && !q.T.After(e.T.Add(queueWindow)) {
+					return
+				}
 			}
 		}
 		r.Violations = append(r.Violations, fmt.Sprintf("%s %s: edit denied for %s, but it was not queued", ts, f, e.SID))
 	}
+}
+
+// fileKey turns a state path into a report key: the path relative to its
+// checkout, prefixed with "[name] " for a worktree under .claude/worktrees.
+// Relative paths (log lines, tests) are returned unchanged.
+func fileKey(repo, path string) string {
+	if path == "" || !filepath.IsAbs(path) {
+		return path
+	}
+	rel, err := filepath.Rel(repo, path)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return path
+	}
+	rel = filepath.ToSlash(rel)
+	if rest, ok := strings.CutPrefix(rel, ".claude/worktrees/"); ok {
+		if name, file, ok := strings.Cut(rest, "/"); ok {
+			return "[" + name + "] " + file
+		}
+	}
+	return rel
+}
+
+// relOf strips the worktree prefix from a report key.
+func relOf(key string) string {
+	if strings.HasPrefix(key, "[") {
+		if _, rel, ok := strings.Cut(key, "] "); ok {
+			return rel
+		}
+	}
+	return key
 }
 
 func (r *report) stat(sid string) *sessStats {
@@ -380,7 +433,7 @@ func (r *report) write(w io.Writer) {
 		p("| %s | %d |\n", k, r.Counts[k])
 	}
 
-	p("\n## Sessions\n\n| Session | Locks taken | Edits denied | Waits | Longest wait | Time holding |\n|---|---|---|---|---|---|\n")
+	p("\n## Sessions\n\n| Session | Locks taken | Edits denied | Waits | Longest wait | Lock time (summed over files) |\n|---|---|---|---|---|---|\n")
 	for _, sid := range sortedKeys(r.Sessions) {
 		s := r.Sessions[sid]
 		p("| %s | %d | %d | %d | %s | %s |\n", sid, s.Acquired, s.Denied, s.Waits,

@@ -331,6 +331,36 @@ and release for each file, and check that file-baton behaved correctly.
 3. Write any violations up as notes for the file-baton repo. Never change the plugin from
    mantle sessions.
 
+### Results (2026-10-07 run, `docs/plans/13-baton-report.md`)
+- **The run:** 38 minutes, 10 sessions, 80 locks taken and released, 172 decisions logged.
+  - There were **no invariant violations**.
+  - There were also no denies, waits or handoffs, so those paths were not exercised.
+- **Each session had its own git worktree.** `claude --bg` puts every session in a
+  worktree under `.claude/worktrees/<name>` on its own branch.
+  - file-baton keeps one shared state in the common `.git`.
+  - It keys locks by **absolute path**, so the same file in two worktrees counts as two
+    files and the sessions never contended.
+  - Coordination happened at merge time instead: the coordinator merged each branch into
+    main.
+  - Its log names files **relative to the session's checkout**. batonwatch now maps both
+    forms to `[worktree] rel/path`.
+- **Shell edits bypass the baton.** 50 committed files were never locked. All of them
+  were edited through Bash rather than the edit tools:
+  - `cat > f <<EOF`
+  - `python3` rewrite scripts
+  - `sed -i`
+  - test `-update` goldens
+
+  Examples: `pkg/ext/v1_11.go` (01), `features/fullscreen/viewport.go` (12),
+  `features/sessions/resume.go` (06), `features/turn/mode/mode.go` (05). In a shared
+  checkout this would defeat file-baton; CLAUDE.md rule 4 already forbids shell edits
+  across directories. Goldens written by tests are expected.
+- **Possible upstream improvements to file-baton:**
+  - name the released files in its `stop` and `session-end` log lines;
+  - log paths the same way the state stores them;
+  - optionally warn when a Bash command writes into a tracked file (`>`, `sed -i`,
+    `python3 - <<`).
+
 ## Spike notes
 Run on 2026-10-07 with claude 2.1.292, fakeapi and an isolated `CLAUDE_CONFIG_DIR`
 (`MANTLE_SPIKES=1 go test -run Spike -v ./internal/research`; add

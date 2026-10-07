@@ -106,3 +106,37 @@ func TestAnalyzeViolations(t *testing.T) {
 		t.Errorf("warnings %v", r.Warnings)
 	}
 }
+
+func TestFileKey(t *testing.T) {
+	for in, want := range map[string]string{
+		"/repo/pkg/x.go":                       "pkg/x.go",
+		"/repo/.claude/worktrees/13a/pkg/x.go": "[13a] pkg/x.go",
+		"pkg/x.go":                             "pkg/x.go",
+		"/elsewhere/x.go":                      "/elsewhere/x.go",
+	} {
+		if got := fileKey("/repo", in); got != want {
+			t.Errorf("fileKey(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if got := relOf("[13a] pkg/x.go"); got != "pkg/x.go" {
+		t.Errorf("relOf = %q", got)
+	}
+}
+
+// Two worktrees hold the same relative path at once; log lines name it relatively.
+func TestAnalyzeWorktrees(t *testing.T) {
+	evs := []event{
+		{T: at(0), Kind: evAcquire, File: "[13a] a.go", SID: "aaaaaaaa"},
+		{T: at(0), Kind: evAcquire, File: "[13b] a.go", SID: "bbbbbbbb"},
+		{T: at(1), Kind: evLog, SID: "aaaaaaaa", Reason: "pre-edit", Msg: "allow a.go"},
+		{T: at(1), Kind: evLog, SID: "bbbbbbbb", Reason: "pre-edit", Msg: "allow a.go"},
+		{T: at(2), Kind: evLog, SID: "cccccccc", Reason: "pre-edit", Msg: "allow a.go"},
+	}
+	r := analyze(evs, []commit{{Hash: "abc", Files: []string{"a.go"}}})
+	if len(r.Violations) != 1 || !strings.Contains(r.Violations[0], "cccccccc") {
+		t.Fatalf("violations %v", r.Violations)
+	}
+	if len(r.Warnings) != 0 {
+		t.Fatalf("warnings %v", r.Warnings)
+	}
+}
