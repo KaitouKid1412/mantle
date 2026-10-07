@@ -1,6 +1,9 @@
 package fullscreen
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
@@ -15,6 +18,7 @@ type cacheKey struct {
 	mode     ext.ViewMode
 	theme    string
 	expanded bool
+	scope    string // "" unscoped; else the scope's owner and first item ID
 }
 
 type cacheEntry struct {
@@ -37,6 +41,12 @@ type renderer struct {
 	lastOut   []Block
 	lastColl  []bool
 	lastItems []*ext.Item
+
+	// The transcript scope (ext.TranscriptScopeMsg): its owner, and a generation bumped
+	// on every scope change.
+	scoped   bool
+	owner    string
+	scopeGen int
 }
 
 // docKey is everything a whole-document layout depends on.
@@ -45,11 +55,29 @@ type docKey struct {
 	mode               ext.ViewMode
 	theme              string
 	tr                 ext.Transcript
+	scopeGen           int
 }
 
 // revSource is the transcript store's change counter (plan 03's store bumps it on
 // every change).
 type revSource interface{ Rev() int }
+
+// setScope switches the document to another transcript scope: expansions are forgotten.
+func (r *renderer) setScope(owner string, scoped bool) {
+	r.scoped, r.owner = scoped, owner
+	r.scopeGen++
+	r.expanded = map[string]bool{}
+	r.expGen++
+}
+
+// scopeKey is the per-item cache key's scope part for a document whose first item is
+// first. The generation keeps two sources that reuse item IDs and revisions apart.
+func (r *renderer) scopeKey(first string) string {
+	if !r.scoped {
+		return ""
+	}
+	return fmt.Sprintf("%s\x00%s\x00%d", r.owner, first, r.scopeGen)
+}
 
 // toggle expands or collapses an item.
 func (r *renderer) toggle(id string) {
@@ -88,17 +116,19 @@ func viewMode(ctx ext.Ctx) ext.ViewMode {
 	return ext.Normal
 }
 
-// blocks renders the document at width w. collapsible reports, per block, whether a
+// blocks renders transcript tr at width w. collapsible reports, per block, whether a
 // click can expand it.
-func (r *renderer) blocks(ctx ext.Ctx, w int) (out []Block, collapsible []bool, items []*ext.Item) {
-	tr := ctx.Transcript()
+func (r *renderer) blocks(ctx ext.Ctx, tr ext.Transcript, w int) (out []Block, collapsible []bool, items []*ext.Item) {
 	if tr == nil {
 		return nil, nil, nil
 	}
 	rs, hasRev := tr.(revSource)
+	// A scope's Transcript may be any type: only comparable ones can key the layout.
+	hasRev = hasRev && reflect.TypeOf(tr).Comparable()
 	var key docKey
 	if hasRev {
-		key = docKey{rev: rs.Rev(), width: w, expGen: r.expGen, mode: viewMode(ctx), theme: ctx.Theme().Name, tr: tr}
+		key = docKey{rev: rs.Rev(), width: w, expGen: r.expGen, mode: viewMode(ctx), theme: ctx.Theme().Name,
+			tr: tr, scopeGen: r.scopeGen}
 		if r.lastOK && key == r.last && !r.anyRunning() {
 			return r.lastOut, r.lastColl, r.lastItems
 		}
@@ -122,6 +152,10 @@ func (r *renderer) blocks(ctx ext.Ctx, w int) (out []Block, collapsible []bool, 
 		}
 	}
 	mode, theme, now := viewMode(ctx), ctx.Theme().Name, ctx.Clock().Now()
+	scope := ""
+	if len(all) > 0 {
+		scope = r.scopeKey(all[0].ID)
+	}
 	seen := make(map[string]bool, len(all))
 	for _, it := range all {
 		if it.ParentID != "" {
@@ -139,7 +173,7 @@ func (r *renderer) blocks(ctx ext.Ctx, w int) (out []Block, collapsible []bool, 
 			childRev = childRev*31 + c.Rev + int(c.State)
 		}
 		key := cacheKey{rev: it.Rev*8 + int(it.State), childRev: childRev, width: w, mode: mode,
-			theme: theme, expanded: r.expanded[it.ID]}
+			theme: theme, expanded: r.expanded[it.ID], scope: scope}
 		e, ok := r.cache[it.ID]
 		running := it.State == ext.Running || it.State == ext.Streaming
 		if !ok || e.key != key || running {

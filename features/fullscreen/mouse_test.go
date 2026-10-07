@@ -44,8 +44,10 @@ func TestMouseDragCopies(t *testing.T) {
 	ctx.SettingsV.ClaudeM["copyOnSelect"] = false
 	v.mouse(ctx, ev(tea.MouseClickMsg{Button: tea.MouseLeft}, 0, 1))
 	v.mouse(ctx, ev(tea.MouseMotionMsg{Button: tea.MouseLeft}, 5, 1))
-	if cmd := v.mouse(ctx, ev(tea.MouseReleaseMsg{Button: tea.MouseLeft}, 5, 1)); cmd != nil {
-		t.Error("copyOnSelect=false: no copy on release")
+	for _, m := range exttest.Exec(v.mouse(ctx, ev(tea.MouseReleaseMsg{Button: tea.MouseLeft}, 5, 1))) {
+		if _, ok := m.(ext.SelectionMsg); !ok {
+			t.Errorf("copyOnSelect=false: no copy on release (got %T)", m)
+		}
 	}
 	if handled, cmd := v.action(ext.ActSelectionCopy)(ctx); !handled || cmd == nil {
 		t.Error("selection:copy copies explicitly")

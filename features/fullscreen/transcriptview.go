@@ -66,6 +66,10 @@ type transcriptView struct {
 	panes paneTracker
 	print printed // what features printed (Ctx.Print) in this layout
 
+	scope   ext.Transcript // ext.TranscriptScopeMsg's Source; nil = the whole transcript
+	toTop   bool           // the scope changed: show the new document from its start
+	selSent string         // the text of the last SelectionMsg sent
+
 	env terminal.Env
 }
 
@@ -93,6 +97,10 @@ func (v *transcriptView) readSettings(ctx ext.Ctx) {
 func (v *transcriptView) active(ctx ext.Ctx) bool { return ctx.Layout() == ext.Fullscreen }
 
 func (v *transcriptView) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
+	if m, ok := msg.(ext.TranscriptScopeMsg); ok {
+		// Taken in any layout: research mode scopes before its layout switch lands.
+		return v.setScope(ctx, m)
+	}
 	if !v.active(ctx) {
 		if v.ready {
 			ctx.SetContextActive(ext.ContextScroll, false)
@@ -140,6 +148,53 @@ func (v *transcriptView) Update(ctx ext.Ctx, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+// transcript is what the viewport shows: the scope, else the whole transcript.
+func (v *transcriptView) transcript(ctx ext.Ctx) ext.Transcript {
+	if v.scope != nil {
+		return v.scope
+	}
+	return ctx.Transcript()
+}
+
+// setScope shows m.Source instead of the whole transcript (nil restores it). Every
+// change starts over: no selection, search or expansions, scrolled to the top.
+func (v *transcriptView) setScope(ctx ext.Ctx, m ext.TranscriptScopeMsg) tea.Cmd {
+	v.scope = m.Source
+	v.r.setScope(m.Owner, m.Source != nil)
+	v.sel, v.dragging, v.clicks = Selection{}, false, 0
+	v.search, v.typing, v.query = Search{}, false, ""
+	v.hover = -1
+	v.toTop = true
+	v.invalidate(ctx)
+	return tea.Batch(v.selectionChanged(), v.maybeTick(ctx))
+}
+
+// selectionChanged broadcasts the selection's source text (ext.SelectionMsg), "" once
+// it is cleared. Unchanged text is not sent again.
+func (v *transcriptView) selectionChanged() tea.Cmd {
+	text := v.sourceText()
+	if text == v.selSent {
+		return nil
+	}
+	v.selSent = text
+	return ext.Msg(ext.SelectionMsg{Source: ViewportID, Text: text})
+}
+
+// sourceText is the selection as source text: soft wraps joined, gutters and glyphs
+// dropped.
+func (v *transcriptView) sourceText() string {
+	return SourceText(v.line, v.sel, v.width, v.blockStart)
+}
+
+// blockStart is the first document line of the block holding line n (-1 outside).
+func (v *transcriptView) blockStart(n int) int {
+	b, _, ok := v.vp.BlockAt(n)
+	if !ok {
+		return -1
+	}
+	return v.vp.BlockStart(b)
+}
+
 // invalidate redraws the viewport and the sticky header that follows it.
 func (v *transcriptView) invalidate(ctx ext.Ctx) {
 	ctx.Invalidate(ViewportID)
@@ -175,10 +230,18 @@ func (v *transcriptView) maybeTick(ctx ext.Ctx) tea.Cmd {
 func (v *transcriptView) layout(ctx ext.Ctx, a ext.Area) {
 	v.area = a
 	v.width = max(10, a.Width-1) // one column of gutter, like the inline print width
-	v.blocks, v.collapsible, v.items = v.r.blocks(ctx, v.width)
-	v.blocks, v.collapsible, v.items = v.print.merge(ctx.Transcript(), v.blocks, v.collapsible, v.items, v.width)
+	v.blocks, v.collapsible, v.items = v.r.blocks(ctx, v.transcript(ctx), v.width)
+	if v.scope == nil { // printed blocks belong to the whole conversation
+		v.blocks, v.collapsible, v.items = v.print.merge(ctx.Transcript(), v.blocks, v.collapsible, v.items, v.width)
+	}
 	follow := v.vp.Following()
 	v.vp.SetHeight(max(1, a.MaxHeight))
+	if v.toTop {
+		v.toTop = false
+		v.vp.SetBlocks(v.blocks)
+		v.vp.ResetTop()
+		return
+	}
 	if !v.autoScroll && follow {
 		// Without auto-scroll the view stays put when content arrives.
 		prevOff := v.vp.Offset()
@@ -358,11 +421,13 @@ func (v *transcriptView) mouse(ctx ext.Ctx, ev ext.MouseEvent) tea.Cmd {
 		v.dragging = false
 		if v.clicks == 1 && !v.dragMoved {
 			v.sel = Selection{}
-			return v.toggleExpand(ctx, v.docPos(ev.X, ev.Y).Line)
+			return tea.Batch(v.selectionChanged(), v.toggleExpand(ctx, v.docPos(ev.X, ev.Y).Line))
 		}
+		sent := v.selectionChanged()
 		if !v.sel.Empty() && ext.ClaudeBool(ctx.Settings(), "copyOnSelect", true) {
-			return v.copy(ctx)
+			return tea.Batch(sent, v.copy(ctx))
 		}
+		return sent
 	}
 	return nil
 }
@@ -476,7 +541,7 @@ func (v *transcriptView) HandleKey(ctx ext.Ctx, k tea.KeyPressMsg) (bool, tea.Cm
 			return true, nil
 		}
 		v.sel = Selection{}
-		return true, ctx.Focus(EditorID)
+		return true, tea.Batch(v.selectionChanged(), ctx.Focus(EditorID))
 	default:
 		return true, ctx.Focus(EditorID)
 	}
@@ -535,6 +600,7 @@ func (v *transcriptView) action(id ext.ActionID) ext.ActionFunc {
 				return false, nil
 			}
 			v.sel = Selection{}
+			return true, v.selectionChanged()
 		case ext.ActSelectionExtendLeft, ext.ActSelectionExtendRight, ext.ActSelectionExtendUp,
 			ext.ActSelectionExtendDown, ext.ActSelectionExtendLineStart, ext.ActSelectionExtendLineEnd:
 			return v.extend(id)
@@ -576,7 +642,7 @@ func (v *transcriptView) extend(id ext.ActionID) (bool, tea.Cmd) {
 	}
 	v.sel.Head = h
 	v.vp.ScrollTo(h.Line)
-	return true, nil
+	return true, v.selectionChanged() // each step ends a keyboard extension
 }
 
 // scrollActions are the actions the viewport registers.
