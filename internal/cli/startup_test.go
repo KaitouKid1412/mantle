@@ -205,6 +205,28 @@ func TestStartupConsumedFlags(t *testing.T) {
 	}
 }
 
+// --research is mantle's own: it never reaches the engine and reaches the UI process as
+// ext.EnvResearch (request 13-11).
+func TestStartupResearch(t *testing.T) {
+	s := startup(t, "--research", "--model", "opus", "hi")
+	if !s.Research || s.Prompt != "hi" {
+		t.Errorf("startup %+v", s)
+	}
+	if slices.Contains(s.Spawn.ExtraArgs, "--research") {
+		t.Errorf("extra args %q", s.Spawn.ExtraArgs)
+	}
+	env := map[string]string{}
+	s.SetEnv(func(k, v string) error { env[k] = v; return nil })
+	if env[ext.EnvResearch] != "1" || len(env) != 1 {
+		t.Errorf("env %v", env)
+	}
+	env = map[string]string{}
+	startup(t, "hi").SetEnv(func(k, v string) error { env[k] = v; return nil })
+	if len(env) != 0 {
+		t.Errorf("env without flags %v", env)
+	}
+}
+
 func TestStartupNeedsUIMode(t *testing.T) {
 	p, _ := Parse([]string{"-p", "hi"})
 	if _, err := p.Startup("/w", nil); err == nil {

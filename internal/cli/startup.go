@@ -54,6 +54,7 @@ type Startup struct {
 	ScreenReader      bool  // --ax-screen-reader
 	Verbose           bool  // --verbose
 	Safe              bool  // mantle --safe reached mantle-ui: skip user mods
+	Research          bool  // --research: start in research mode
 	PromptSuggestions *bool // --prompt-suggestions, for initialize.promptSuggestions
 	// AttachEngineFDs is the hand-off file of an in-place restart (request 10-02). When
 	// set, the host adopts the engines it lists instead of spawning; Spawn (resuming the
@@ -77,6 +78,17 @@ func (s Startup) MainSpawn() *ext.SpawnOpts {
 	}
 	o := s.Spawn
 	return &o
+}
+
+// SetEnv exports the mantle-only flags the UI process reads from its environment
+// (mantle-ui passes os.Setenv): ext.EnvSafe for --safe, ext.EnvResearch for --research.
+func (s Startup) SetEnv(setenv func(key, value string) error) {
+	if s.Safe {
+		setenv(ext.EnvSafe, "1")
+	}
+	if s.Research {
+		setenv(ext.EnvResearch, "1")
+	}
 }
 
 // FlagSettings is the flag-scope settings for mantle's own config (plan 01's
@@ -161,6 +173,7 @@ func (p *Parsed) Startup(cwd string, res SessionResolver) (Startup, error) {
 		ScreenReader:      m.ScreenReader,
 		Verbose:           m.Verbose,
 		Safe:              m.Safe,
+		Research:          m.Research,
 		AttachEngineFDs:   m.AttachEngineFDs,
 		PromptSuggestions: m.PromptSuggestions,
 		Warnings:          slices.Clone(p.Warnings),

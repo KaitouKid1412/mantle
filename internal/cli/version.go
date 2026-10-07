@@ -101,6 +101,7 @@ so sessions, settings, tools and plugins are Claude Code's own.
 
 mantle options:
   --safe          start the last build that passed probation
+  --research      start in research mode (a tree-structured conversation)
   -h, --help      show this help and claude's
   -v, --version   show the mantle and engine versions
 
