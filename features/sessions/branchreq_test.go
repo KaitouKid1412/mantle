@@ -63,15 +63,71 @@ func TestBranchRequestRestart(t *testing.T) {
 	}
 
 	h.run(ext.Msg(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: h.eng}))
+	h.run(ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{EngineID: ext.MainEngine, SessionID: sidPlain}}))
+	if len(replies(h)) != 0 {
+		t.Fatalf("replied before initialize: %+v", replies(h))
+	}
+	h.run(ext.Msg(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize}))
 	r := replies(h)
 	if len(r) != 1 || r[0].Tag != "t1" || r[0].At != u("1s", 1) || r[0].SessionID != sidPlain ||
 		r[0].EngineID != ext.MainEngine || !r[0].Restarted || r[0].Err != nil {
 		t.Fatalf("reply = %+v", r)
 	}
-	// A later attach does not reply again.
+	// A later start does not reply again.
 	h.run(ext.Msg(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: h.eng}))
-	if len(replies(h)) != 1 {
-		t.Fatal("replied twice")
+	h.run(ext.Msg(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize}))
+	if len(replies(h)) != 1 || len(find[ext.EngineStartMsg](h)) != 1 {
+		t.Fatal("replied or restarted twice")
+	}
+}
+
+// TestBranchRequestResumeFailure: the engine cannot resume at the message (claude
+// prints an error result and exits; the engine package falls back to a fresh
+// session). The request fails and the engine goes back to the session's own branch.
+func TestBranchRequestResumeFailure(t *testing.T) {
+	notFound := "No message found with message.uuid of: " + u("1s", 1)
+	cases := map[string]func(h *harness){
+		"error result": func(h *harness) {
+			h.run(ext.Msg(ext.EngineEventMsg{EngineID: ext.MainEngine, Event: &proto.Result{
+				Envelope: proto.Envelope{Type: proto.TypeResult, Subtype: "error_during_execution"},
+				IsError:  true, Errors: []string{notFound},
+			}}))
+		},
+		"fallback start": func(h *harness) {
+			h.run(ext.Msg(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: h.eng}))
+		},
+		"new session": func(h *harness) {
+			h.run(ext.Msg(ext.SessionChangedMsg{EngineID: ext.MainEngine, Info: ext.SessionInfo{EngineID: ext.MainEngine, SessionID: sidOther}}))
+		},
+		"initialize error": func(h *harness) {
+			h.run(ext.Msg(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize, Err: errors.New("exited")}))
+		},
+	}
+	for name, fail := range cases {
+		t.Run(name, func(t *testing.T) {
+			h := branchHarness(t)
+			h.run(ext.Msg(branchReq()))
+			h.run(ext.Msg(ext.EngineAttachMsg{EngineID: ext.MainEngine, Engine: h.eng}))
+			h.reset()
+			fail(h)
+			// Whatever follows (the fallback's initialize) changes nothing.
+			h.run(ext.Msg(ext.ControlResultMsg{EngineID: ext.MainEngine, Subtype: proto.SubInitialize}))
+			r := replies(h)
+			if len(r) != 1 || r[0].Err == nil || r[0].Restarted || r[0].Tag != "t1" {
+				t.Fatalf("reply = %+v", r)
+			}
+			if name == "error result" && r[0].Err.Error() != notFound {
+				t.Fatalf("err = %v", r[0].Err)
+			}
+			start := find[ext.EngineStartMsg](h)
+			if len(start) != 1 || start[0].Opts.Resume != sidPlain || start[0].Opts.ResumeSessionAt != "" ||
+				start[0].Opts.ForkSession || start[0].Opts.ResumeDropsTurn {
+				t.Fatalf("back to the session: %+v", start)
+			}
+			if hist := find[ext.TranscriptHistoryMsg](h); len(hist) != 2 || !hist[0].Reset {
+				t.Fatalf("history = %+v", hist)
+			}
+		})
 	}
 }
 
