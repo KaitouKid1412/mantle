@@ -25,6 +25,14 @@ func FormatQuote(sel string) string {
 	return b.String()
 }
 
+// IsQuestion reports whether text, a prompt as the user sent it, starts a node: not a
+// slash command, not engine-generated text (command tags, bash mode, interruption
+// markers) and not empty. It is the live counterpart of what Build treats as a prompt.
+func IsQuestion(text string) bool {
+	t := strings.TrimSpace(text)
+	return t != "" && !strings.HasPrefix(t, "/") && !syntheticRE.MatchString(t)
+}
+
 // SplitQuote splits a prompt into its leading quote block (markers removed) and the
 // question after it. A prompt without a leading quote returns "" and the prompt
 // trimmed.

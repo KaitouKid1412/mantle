@@ -21,10 +21,9 @@ const (
 
 func init() {
 	ext.Register(ext.Feature{
-		ID:    FeatureID,
-		Order: 650,
-		// MT-R1, R6 and R8 come with the mode switch, the send stage and the sidecar.
-		Parity: []string{"MT-R2", "MT-R3", "MT-R4", "MT-R5", "MT-R7"},
+		ID:     FeatureID,
+		Order:  650,
+		Parity: []string{"MT-R1", "MT-R2", "MT-R3", "MT-R4", "MT-R5", "MT-R6", "MT-R7", "MT-R8"},
 		Setup: func(r ext.Registrar) error {
 			newFeature().setup(r)
 			return nil
@@ -33,7 +32,7 @@ func init() {
 }
 
 func newFeature() *feature {
-	return &feature{lastChild: map[string]string{}, scopes: newScopeCache(), hover: noHover}
+	return &feature{lastChild: map[string]string{}, scopes: newScopeCache(), hover: noHover, env: defaultEnv()}
 }
 
 func (f *feature) setup(r ext.Registrar) {
@@ -42,6 +41,9 @@ func (f *feature) setup(r ext.Registrar) {
 	r.AddComponent(ext.SlotAboveInput, &bar{f: f, id: ChildrenID}, ext.SlotOpts{Weight: -10, Modes: only})
 	r.AddDialog(TreeID, f.openPicker)
 	f.addActions(r)
+	f.setupMode(r)
+	f.setupStage(r)
+	f.setupBranch(r)
 	for _, s := range stories() {
 		r.AddStory(s)
 	}
@@ -49,15 +51,13 @@ func (f *feature) setup(r ext.Registrar) {
 	ext.Subscribe(r, FeatureID+".scopeLoaded", func(ctx ext.Ctx, m scopeLoadedMsg) tea.Cmd {
 		return f.scopeLoaded(ctx, m)
 	})
-	ext.Subscribe(r, FeatureID+".selection", func(ctx ext.Ctx, m ext.SelectionMsg) tea.Cmd {
-		f.selection = m.Text
-		return nil
-	})
+	ext.Subscribe(r, FeatureID+".selection", f.selected)
 	// The store was reset (session switch, rewind) or the screen redrawn: send the
-	// scope again so the viewport points at the new store's items.
+	// scope again so the viewport points at the new store's items. A prompt's echo
+	// adds its node.
 	ext.Subscribe(r, FeatureID+".history", func(ctx ext.Ctx, m ext.TranscriptHistoryMsg) tea.Cmd {
 		if !m.Reset {
-			return nil
+			return f.echoed(ctx, m)
 		}
 		return f.rescope(ctx)
 	})

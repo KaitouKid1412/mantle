@@ -43,3 +43,21 @@ func TestSplitQuote(t *testing.T) {
 		t.Errorf("round trip: %q %q", q, s)
 	}
 }
+
+func TestIsQuestion(t *testing.T) {
+	for text, want := range map[string]bool{
+		"why is the sky blue?":                true,
+		"> quoted\n\nand a question":          true,
+		"":                                    false,
+		"  \n":                                false,
+		"/compact":                            false,
+		"<command-name>/model</command-name>": false,
+		"<bash-input>ls</bash-input>":         false,
+		"[Request interrupted by user]":       false,
+		"<local-command-stdout>x</local-command-stdout>": false,
+	} {
+		if got := IsQuestion(text); got != want {
+			t.Errorf("IsQuestion(%q) = %v, want %v", text, got, want)
+		}
+	}
+}

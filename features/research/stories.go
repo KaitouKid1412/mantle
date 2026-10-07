@@ -25,6 +25,12 @@ type fakeNode struct {
 // the given order (the last node is the engine's tip), and parses it. Stories and
 // tests build trees this way, through research.Build, as the real UI does.
 func fakeTranscript(nodes []fakeNode) *sessions.Transcript {
+	t, _ := sessions.Parse(strings.NewReader(fakeJSONL(nodes)))
+	return t
+}
+
+// fakeJSONL is fakeTranscript's session file.
+func fakeJSONL(nodes []fakeNode) string {
 	at := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
 	var b strings.Builder
 	line := func(m map[string]any) {
@@ -50,8 +56,7 @@ func fakeTranscript(nodes []fakeNode) *sessions.Transcript {
 				}}})
 		}
 	}
-	t, _ := sessions.Parse(strings.NewReader(b.String()))
-	return t
+	return b.String()
 }
 
 // fakeTree builds the research tree of fakeTranscript(nodes).

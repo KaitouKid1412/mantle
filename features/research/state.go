@@ -26,6 +26,25 @@ type feature struct {
 	// mode wiring; nil shows off-branch nodes empty).
 	load   Loader
 	scopes *scopeCache
+
+	// Mode and session wiring (mode.go, stage.go, branch.go).
+	env  sessionEnv
+	sid  string // the main engine's session ("" before it starts)
+	cwd  string
+	busy bool // the main engine runs a turn
+	// sideLoaded is set once sid's sidecar was read: before that nothing is saved,
+	// so a fresh start never overwrites it.
+	sideLoaded bool
+	// prevLayout is the layout research mode replaced, restored on leave.
+	prevLayout ext.LayoutMode
+	// forkFrom is the session a fork (--fork-session) was started from; its sidecar is
+	// copied to the next new session.
+	forkFrom string
+	// branching is the follow-up waiting for its BranchedMsg.
+	branching *pendingSend
+	// confirmed is the follow-up the user was warned about (compaction); sending it
+	// again goes ahead.
+	confirmed string
 }
 
 // hoverRow is a bar row: which bar and which row.
@@ -118,7 +137,7 @@ func (f *feature) navigate(ctx ext.Ctx, id string) tea.Cmd {
 	f.viewing = n.ID
 	f.hover = noHover
 	f.invalidate(ctx)
-	return f.rescope(ctx)
+	return tea.Batch(f.rescope(ctx), f.saveSidecar())
 }
 
 // siblings returns n's siblings, n included, in order.
