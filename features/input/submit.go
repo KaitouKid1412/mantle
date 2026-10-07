@@ -156,9 +156,10 @@ func (s *state) buildDraft(priority string) ext.Draft {
 
 // ---- prompt stages ----
 
-// stageHistory records the prompt in history.jsonl.
+// stageHistory records the prompt in history.jsonl. A resubmitted draft was
+// recorded on its first pass, and must not take a newer submit's entry.
 func (s *state) stageHistory(c ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
-	if s.pendingHist == nil {
+	if d.Resubmit || s.pendingHist == nil {
 		return ext.Continue, nil
 	}
 	e := *s.pendingHist

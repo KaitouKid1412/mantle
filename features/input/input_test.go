@@ -742,6 +742,73 @@ func TestSetText(t *testing.T) {
 	}
 }
 
+func TestEditorQuote(t *testing.T) {
+	r := newRig(t, nil)
+	r.keys("'why?'")
+	r.event(ext.EditorQuoteMsg{Text: "first\nselection"})
+	if r.text() != "> first\n> selection\n\nwhy?" || !r.s.ed.AtEnd() {
+		t.Fatalf("insert: %q", r.text())
+	}
+	r.event(ext.EditorQuoteMsg{Text: "second"})
+	if r.text() != "> second\n\nwhy?" {
+		t.Fatalf("replace: %q", r.text())
+	}
+	r.action(ext.ActChatUndo)
+	if r.text() != "> first\n> selection\n\nwhy?" {
+		t.Fatalf("one undo step: %q", r.text())
+	}
+	r.event(ext.EditorQuoteMsg{Text: ""})
+	if r.text() != "why?" {
+		t.Fatalf("remove: %q", r.text())
+	}
+	if len(r.eng.prompts()) != 0 {
+		t.Fatal("never submitted")
+	}
+	// Quoting into bash mode makes it a prompt again.
+	r.s.setText("")
+	r.keys("'!'", "'ls'")
+	r.event(ext.EditorQuoteMsg{Text: "q"})
+	if r.s.mode != modePrompt || r.text() != "> q\n\nls" {
+		t.Fatalf("bash: %q %s", r.text(), r.s.mode)
+	}
+}
+
+func TestResubmitSkipsHistory(t *testing.T) {
+	r := newRig(t, nil)
+	// A stage like research's (priority 600) consumes the draft, then
+	// re-submits it.
+	var held *ext.Draft
+	r.reg.AddPromptStage("test.branch", 600, func(_ ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
+		if d.Resubmit || held != nil {
+			return ext.Continue, nil
+		}
+		cp := *d
+		held = &cp
+		return ext.Consumed, nil
+	})
+	r.keys("'branch me'", "enter")
+	if held == nil || len(r.eng.prompts()) != 0 {
+		t.Fatal("stage consumed the draft")
+	}
+	// A newer submit's entry is pending while the resubmit runs.
+	newer := history.Entry{Display: "newer", Project: "/work/demo"}
+	r.s.pendingHist = &newer
+	d := *held
+	d.Resubmit = true
+	r.run(r.c.Submit(d))
+	ps := r.eng.prompts()
+	if len(ps) != 1 || ps[0].Blocks[0].Text != "branch me" {
+		t.Fatalf("resubmitted prompt %+v", ps)
+	}
+	if r.s.pendingHist != &newer {
+		t.Fatal("resubmit took the newer entry")
+	}
+	es, _ := history.Load(r.s.histPath)
+	if len(es) != 1 || es[0].Display != "branch me" {
+		t.Fatalf("history %+v", es)
+	}
+}
+
 func TestInvisibleCharactersNeedSecondEnter(t *testing.T) {
 	r := newRig(t, nil)
 	r.s.ed.SetValue("hi​there")
