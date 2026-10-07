@@ -37,8 +37,19 @@ func (st *state) mode(engineID string) *modeState {
 func (st *state) setupModes(r ext.Registrar) {
 	ext.Subscribe(r, "turn.autoNotice", st.printAutoNotice)
 	ext.Subscribe(r, "turn.uiMode", func(c ext.Ctx, m ext.UIModeChangedMsg) tea.Cmd {
-		st.mode(ext.MainEngine).research = m.Mode == ext.UIModeResearch
-		return nil
+		ms := st.mode(ext.MainEngine)
+		ms.research = m.Mode == ext.UIModeResearch
+		if !ms.research {
+			return nil
+		}
+		// Research runs in manual mode however it was entered (/research and --research
+		// too, not only the cycle): the startup mode becomes default, and a running
+		// engine in another mode is switched.
+		ms.userMode = string(mode.Default)
+		if !ms.startupDone || c.Engine(ext.MainEngine) == nil || st.currentMode(c, ext.MainEngine) == string(mode.Default) {
+			return nil
+		}
+		return st.setMode(c, ext.MainEngine, mode.Default)
 	})
 	r.AddAction(ext.Action{
 		ID: ext.ActChatCycleMode, Context: ext.ContextChat,

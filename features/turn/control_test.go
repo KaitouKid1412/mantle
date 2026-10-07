@@ -181,6 +181,29 @@ func TestResearchRestartKeepsManual(t *testing.T) {
 	}
 }
 
+// Research entered without the cycle (/research, --research) still runs in manual
+// mode: at startup instead of auto, and mid-session by switching.
+func TestResearchEnteredElsewhereIsManual(t *testing.T) {
+	x := newH(t)
+	x.c.SessionValue.Model = "claude-x"
+	x.send(ext.UIModeChangedMsg{Mode: ext.UIModeResearch}) // --research, before the engine
+	x.boot(autoModels)
+	if n := x.eng.count(proto.SubSetPermissionMode); n != 0 {
+		t.Fatalf("startup in research left manual: %v", x.eng.controls)
+	}
+
+	y := newH(t)
+	y.c.SessionValue.Model = "claude-x"
+	y.boot(autoModels) // starts in auto
+	if y.c.SessionValue.PermissionMode != proto.ModeAuto {
+		t.Fatalf("mode = %q", y.c.SessionValue.PermissionMode)
+	}
+	y.send(ext.UIModeChangedMsg{Mode: ext.UIModeResearch}) // /research
+	if got := y.eng.lastControl(proto.SubSetPermissionMode); got != (proto.SetPermissionModeRequest{Mode: proto.ModeDefault}) {
+		t.Fatalf("set_permission_mode = %+v", got)
+	}
+}
+
 // boot is what the engine bridge delivers when an engine starts: the attach, then the
 // initialize result.
 func (x *h) boot(initResp string) {
