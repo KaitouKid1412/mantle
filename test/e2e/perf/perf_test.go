@@ -132,7 +132,7 @@ func runs() int {
 // startup banner prints at initialize), median of N, and memory.
 func TestPerfStartup(t *testing.T) {
 	skipUnlessPerf(t)
-	const banner = "/help for commands"
+	const banner = "▟██▌ ▐██▙" // the banner's logo
 	sc := scenario(t, "name: startup\nsize: 100x30\n---\nready 60s\n@mantle wait_for 60s "+banner+"\n", "")
 	med := map[string]time.Duration{}
 	var rows [][]string

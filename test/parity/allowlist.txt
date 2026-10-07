@@ -12,12 +12,11 @@
 # strings. Lines that differ only in wording are listed here.
 
 # Banner (CH-20): mantle's own art and text instead of the Claude Code header.
-* | * | ^<logo> (Claude Code|mantle) v\S+ | mantle prints its own banner (own art, names mantle and the engine versions)
+* | * | ^<logo> (Claude Code|mantle) v?\S+ | mantle prints its own banner (own art, names mantle and the engine versions)
 * | * | ^<logo> \S.* · API Usage Billing$ | the banner's model/account line is mantle's own (model only, no billing label for API keys)
 * | * | ^(<logo>)? +(Opus|Sonnet|Haiku|Fable) [0-9.]+$ | the banner's model/account line is mantle's own (model only, no billing label for API keys)
 * | * | ^(<logo>)? +<work>$ | same working-directory line; only the banner art beside it differs
-* | * | ^ +/help for commands · /mantle to change mantle itself$ | mantle's banner hint names /mantle
-* | * | ^<logo>$ | rows of the Claude Code logo art (mantle's banner art is one row)
+* | * | ^<logo>$ | rows of the Claude Code logo art (mantle's own art is the same size)
 
 # mantle-only notices.
 * | * | ^· Claude Code [0-9.]+ adds \d+ tools? mantle doesn't know yet | mantle's engine-drift notice (plan 11): a newer engine works as passthrough

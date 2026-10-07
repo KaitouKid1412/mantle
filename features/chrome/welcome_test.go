@@ -36,7 +36,7 @@ func TestWelcomeOncePerSession(t *testing.T) {
 		t.Fatalf("the banner is printed at startup, on initialize: printed = %q", ctx.Printed)
 	}
 	b := ansi.Strip(ctx.Printed[0])
-	if !strings.Contains(b, "mantle 0.1.0") || !strings.Contains(b, "Sonnet 5.5 · Claude Pro") ||
+	if !strings.Contains(b, "mantle v0.1.0") || !strings.Contains(b, "Sonnet 5.5 · Claude Pro") ||
 		!strings.Contains(b, "/w/app") || strings.Contains(b, "x@y.z") {
 		t.Errorf("banner = %q", b)
 	}
@@ -54,7 +54,7 @@ func TestWelcomeOncePerSession(t *testing.T) {
 	if len(ctx.Printed) != 2 || len(ctx.Notices) != 1 {
 		t.Errorf("new session (/clear): banner again, startup notices once (%d, %d)", len(ctx.Printed), len(ctx.Notices))
 	}
-	if b := ansi.Strip(ctx.Printed[1]); !strings.Contains(b, "mantle 0.1.0 · Claude Code 2.1.288") {
+	if b := ansi.Strip(ctx.Printed[1]); !strings.Contains(b, "mantle v0.1.0 · Claude Code v2.1.288") {
 		t.Errorf("later banners name the engine version: %q", b)
 	}
 	w.Update(ctx, ext.SessionChangedMsg{EngineID: "builder", Info: ext.SessionInfo{SessionID: "b"}})
@@ -212,5 +212,19 @@ func TestReleaseNotesCommand(t *testing.T) {
 	empty.command(ctx, "")
 	if len(ctx.Notices) != 1 {
 		t.Error("no notes: a notice")
+	}
+}
+
+func TestDisplayVersion(t *testing.T) {
+	for in, want := range map[string]string{
+		"v0.0.0-20261006170515-07b1cdb5aac6":         "dev+07b1cdb",
+		"v0.2.1-0.20261006170515-07b1cdb5aac6+dirty": "dev+07b1cdb",
+		"0.1.0":   "v0.1.0",
+		"v1.2.0":  "v1.2.0",
+		"dev+abc": "dev+abc",
+	} {
+		if got := displayVersion(in); got != want {
+			t.Errorf("displayVersion(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

@@ -6,10 +6,12 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/KaitouKid1412/mantle/pkg/ext"
 	"github.com/KaitouKid1412/mantle/pkg/proto"
@@ -121,13 +123,25 @@ func termWidth(ctx ext.Ctx) int {
 	return w
 }
 
-// banner is mantle's startup header: names and versions, model and account, the
-// working directory, and where to start.
+// logo is mantle's mark: a hooded cloak, three rows tall. Claude Code's startup header
+// puts its mascot in the same slot; the art here is mantle's own.
+var logo = [3]string{
+	"  ▗▟█▙▖  ",
+	" ▟█▛ ▜█▙ ",
+	"▟██▌ ▐██▙",
+}
+
+// banner is mantle's startup header, laid out like Claude Code's: the logo on the
+// left, and beside it the name and versions, the model and account, and the working
+// directory.
 func (w *welcome) banner(ctx ext.Ctx, cols int) string {
 	t, sr := ctx.Theme(), ctx.Accessibility().ScreenReader
-	head := "mantle " + w.version
+	head := t.Fg(theme.Text).Bold(true).Render("mantle") + " " + dim(t, sr, displayVersion(w.version))
 	if w.s.Version != "" {
-		head += " · Claude Code " + w.s.Version
+		head += dim(t, sr, " · Claude Code v"+w.s.Version)
+	}
+	if sr {
+		head = ansi.Strip(head)
 	}
 	var who []string
 	if w.s.Model != "" {
@@ -139,18 +153,43 @@ func (w *welcome) banner(ctx ext.Ctx, cols int) string {
 	if w.account.Organization != "" {
 		who = append(who, w.account.Organization)
 	}
-	lines := []string{paint(t, sr, theme.Accent, "▟▙ ") + paint(t, sr, theme.Text, head)}
+	text := []string{head}
 	if len(who) > 0 {
-		lines = append(lines, "   "+dim(t, sr, strings.Join(who, " · ")))
+		text = append(text, dim(t, sr, strings.Join(who, " · ")))
 	}
 	if w.s.Cwd != "" {
-		lines = append(lines, "   "+dim(t, sr, abbreviateHome(w.s.Cwd, w.home)))
+		text = append(text, dim(t, sr, abbreviateHome(w.s.Cwd, w.home)))
 	}
-	lines = append(lines, "   "+dim(t, sr, "/help for commands · /mantle to change mantle itself"))
 	if sr {
-		lines[0] = head
+		return strings.Join(truncateLines(text, cols, 0), "\n")
+	}
+	lines := make([]string, max(len(logo), len(text)))
+	for i := range lines {
+		art := strings.Repeat(" ", ansi.StringWidth(logo[0]))
+		if i < len(logo) {
+			art = paint(t, sr, theme.Accent, logo[i])
+		}
+		lines[i] = art + "  "
+		if i < len(text) {
+			lines[i] += text[i]
+		}
 	}
 	return strings.Join(truncateLines(lines, cols, 0), "\n")
+}
+
+// pseudoVersion matches a Go pseudo-version such as v0.0.0-20261006170515-07b1cdb5aac6.
+var pseudoVersion = regexp.MustCompile(`^v?[0-9.]+-(?:[0-9a-z.]+\.)?[0-9]{14}-([0-9a-f]{12})(\+dirty)?$`)
+
+// displayVersion shortens a pseudo-version to "dev+<revision>" and adds a "v" to a
+// release version.
+func displayVersion(v string) string {
+	if m := pseudoVersion.FindStringSubmatch(v); m != nil {
+		return "dev+" + m[1][:7]
+	}
+	if v != "" && v[0] >= '0' && v[0] <= '9' {
+		return "v" + v
+	}
+	return v
 }
 
 func subscriptionLabel(s string) string {

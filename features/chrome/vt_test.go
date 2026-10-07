@@ -87,7 +87,7 @@ func TestVTBannerBeforeTheEngine(t *testing.T) {
 	// the user types (or a positional prompt) can be echoed above it.
 	hs := startChrome(t, nil)
 	hs.WaitFor(func(string) bool {
-		return strings.Contains(strings.Join(hs.All(), "\n"), "/help for commands")
+		return strings.Contains(strings.Join(hs.All(), "\n"), "▟██▌ ▐██▙")
 	}, 5*time.Second)
 }
 
@@ -136,7 +136,7 @@ func TestVTStatusLineAndFooter(t *testing.T) {
 	// The welcome banner was committed above the live area, once.
 	banners := 0
 	for _, l := range hs.All() {
-		if strings.Contains(l, "/help for commands") {
+		if strings.Contains(l, "▟██▌ ▐██▙") {
 			banners++
 		}
 	}
