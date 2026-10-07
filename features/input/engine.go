@@ -68,6 +68,10 @@ func (s *state) update(c ext.Ctx, msg tea.Msg) tea.Cmd {
 		// Rewind (plan 06) puts the rewound prompt back in the box.
 		s.setText(m.Text)
 		return s.changed(c)
+	case ext.EditorQuoteMsg:
+		// Research mode (plan 13) quotes a selection above the question.
+		s.setQuote(m.Text)
+		return s.changed(c)
 	case ext.SettingsMsg:
 		s.applySettings(c)
 		return s.changed(c)

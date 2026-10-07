@@ -297,6 +297,20 @@ func (s *state) setText(text string) {
 	s.ed.SetValueWithChips(text, s.ed.Chips())
 }
 
+// setQuote replaces the prompt's leading quote block, keeping the question
+// typed below it. Quoting turns bash mode back into a prompt.
+func (s *state) setQuote(text string) {
+	s.search = nil
+	s.help = false
+	s.comp.close()
+	if text != "" {
+		s.mode = modePrompt
+	}
+	s.hist.Reset()
+	s.draft = nil
+	s.ed.SetQuote(text)
+}
+
 func (s *state) clearEditor() {
 	s.ed.Reset()
 	s.mode = modePrompt
