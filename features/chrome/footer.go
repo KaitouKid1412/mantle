@@ -96,7 +96,7 @@ func (f *footer) render(ctx ext.Ctx, w int) string {
 		return ""
 	}
 	t := ctx.Theme()
-	ind := IndicatorFor(f.s.Mode)
+	ind := f.s.indicator()
 	tok := theme.Inactive
 	if !ind.Quiet && ind.Token != "" {
 		tok = theme.Token(ind.Token)

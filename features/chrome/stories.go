@@ -24,6 +24,8 @@ func footerStories() []ext.Story {
 		s.Mode = mode
 		return s
 	}
+	research := st(ModeDefault)
+	research.UIMode = ext.UIModeResearch
 	busy := st(ModeAcceptEdits)
 	busy.Vim, busy.Background, busy.EditorEmpty = "INSERT", 2, false
 	prStory := ext.Story{ID: FooterID + "/pr-links", Render: func(ctx ext.Ctx, a ext.Area) ext.Rendered {
@@ -46,6 +48,7 @@ func footerStories() []ext.Story {
 		mk("bypass", st(ModeBypass), false),
 		mk("dont-ask", st(ModeDontAsk), true),
 		mk("vim-background", busy, false),
+		mk("research", research, false),
 	}
 }
 
