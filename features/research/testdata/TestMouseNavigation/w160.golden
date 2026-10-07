@@ -1,0 +1,4 @@
+[38;2;139;139;147m❯ [m[38;2;230;227;222mHow does the scheduler pick the next goroutine?[m
+[38;2;139;139;147m  ⋮ answer[m
+[38;2;139;139;147m▾ [m[38;2;230;227;222mWhat is the run queue?[m
+[38;2;147;180;251m▾ [m[38;2;147;180;251mAnd the network poller?[m

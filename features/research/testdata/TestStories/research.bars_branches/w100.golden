@@ -1,0 +1,8 @@
+[38;2;139;139;147m❯ [m[38;2;230;227;222mExplain the trade-offs of B-trees versus LSM trees for a write-heavy workload.[m
+[38;2;139;139;147m  ⋮ answer[m
+[38;2;147;180;251m▾ [m[38;2;147;180;251mWhat is write amplification?[m
+[38;2;139;139;147m▾ [m[38;2;230;227;222mre "LSM trees batch writes in memory" How big is the memtable usually?[m
+[38;2;139;139;147m▾ [m[38;2;230;227;222mWhich one compresses better?[m
+[38;2;139;139;147m▾ [m[38;2;230;227;222mHow do range scans compare?[m
+[38;2;139;139;147m▾ [m[38;2;230;227;222mSummarize in one table[m[38;2;139;139;147m · answering[m[38;2;111;194;139m ●[m
+[38;2;139;139;147m… 2 more[m

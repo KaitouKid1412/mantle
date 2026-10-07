@@ -228,10 +228,10 @@ type BranchedMsg struct{ EngineID, SessionID, At, Tag string; Restarted bool; Er
   `batonwatch report` once the run ends.
 
 ### 13b (UI) [Part A]
-- [ ] `feature.go` (Register `research`, `Parity: MT-R*`), `state.go` (view state, navigation).
-- [ ] `scope.go`, `bars.go`, `actions.go`, `picker.go`, `stories.go`.
-- [ ] `features/all/all_research.go` with `//go:build !no_research`.
-- [ ] exttest goldens at widths 60/100/160:
+- [x] `feature.go` (Register `research`, `Parity: MT-R*`), `state.go` (view state, navigation).
+- [x] `scope.go`, `bars.go`, `actions.go`, `picker.go`, `stories.go`.
+- [x] `features/all/all_research.go` with `//go:build !no_research`.
+- [x] exttest goldens at widths 60/100/160:
   - bar caps;
   - mouse row → navigation;
   - keyboard navigation;

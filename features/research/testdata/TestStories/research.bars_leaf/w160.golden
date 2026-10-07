@@ -1,0 +1,4 @@
+[38;2;139;139;147m▸ [m[38;2;230;227;222mExplain the trade-offs of B-trees versus LSM trees for a write-heavy workload.[m[38;2;139;139;147m · 7 branches[m
+[38;2;139;139;147m❯ [m[38;2;230;227;222mHow big is the memtable usually?[m
+[38;2;139;139;147m  ⋮ answer[m
+[38;2;85;85;92m↳ type to ask a follow-up[m
