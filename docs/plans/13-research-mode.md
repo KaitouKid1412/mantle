@@ -401,6 +401,10 @@ Q1, Q2; restart with `--resume=<sid> --resume-session-at=<Q1 leaf>`, then Q3; th
   `{"type":"last-prompt","leafUuid":<message>,"explicit":true,"rewound":true}`, which is
   the "lag" above. Research selects an off-branch node the same way
   (`SelectBranch`), at the nearest message: a trailing attachment is not on the chain.
+- **mantle's only session-file write (user-approved 2026-10-07).** Before a resume-at
+  restart to another branch, `SelectBranch` appends one `last-prompt` record to the
+  session JSONL. It is append-only, and the record has the shape the engine writes
+  itself. mantle writes nothing else to session files.
 - **Fixture hygiene.** The spike keeps only each attachment's `type` and drops its
   `rendered*` fields, which carry the engine's own prompt text. Paths are rewritten to
   `/work/demo`.
