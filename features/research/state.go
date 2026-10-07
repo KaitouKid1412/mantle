@@ -32,6 +32,8 @@ type feature struct {
 	sid  string // the main engine's session ("" before it starts)
 	cwd  string
 	busy bool // the main engine runs a turn
+	// lastMode is the main engine's last known permission mode.
+	lastMode string
 	// sideLoaded is set once sid's sidecar was read: before that nothing is saved,
 	// so a fresh start never overwrites it.
 	sideLoaded bool

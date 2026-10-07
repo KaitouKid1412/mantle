@@ -238,13 +238,44 @@ type BranchedMsg struct{ EngineID, SessionID, At, Tag string; Restarted bool; Er
   - scoped content for nodes on and off the current branch.
 
 ### 13c (integration) [Part B]
-- [ ] `stage.go`, `branch.go`, `mode.go`, the subscriptions and the sidecar wiring.
-- [ ] e2e vt test (mantle-ui + fakeapi):
+- [x] `stage.go`, `branch.go`, `mode.go`, the subscriptions and the sidecar wiring.
+- [x] e2e vt test (mantle-ui + fakeapi), `test/e2e/research`, `make e2e-research`:
   1. Ask Q1, then Q2. Go back to Q1 and ask Q3.
   2. Assert Q1 has two child bars and only one node is on screen.
   3. Click the parent bar.
   4. Quit, run `--resume`, and assert the same tree and the same viewed node.
-- [ ] Manual checklist run, then tick MT-R1…R8.
+  5. (added) From the resumed session, ask a follow-up to Q2, off the engine's branch:
+     the engine restarts at Q2 (resume-at) in the same session file.
+  `TestResearchEntryPoints` covers shift+tab, ctrl+t and `/research off`.
+- [x] Checklist run, then tick MT-R1…R8. The run was the automated vt runs (no human
+  pass), plus unit tests:
+
+  | ID | Evidence |
+  |---|---|
+  | MT-R1 | `TestResearchEntryPoints` (shift+tab), `TestResearchTree` (`--research`), `TestEnterAndLeave`, `TestEnterRefused`, `TestEnvEntersOnStart`, `TestResearchEnteredElsewhereIsManual` (05) |
+  | MT-R2 | `TestResearchTree` (one node on screen), 13b scope tests |
+  | MT-R3 | `TestResearchTree` (click on `▸ alpha question`), 13b bar tests |
+  | MT-R4 | `TestResearchTree` (click on `▾ beta question`), 13b bar tests |
+  | MT-R5 | `TestResearchTree` (alt+up), `TestResearchEntryPoints` (ctrl+t), 13b key tests |
+  | MT-R6 | `TestResearchTree` (rewind and resume-at follow-ups), `TestRouteRewindThenResubmit`, `TestRouteResumeAt`, `TestRouteBlocked`, `TestSelectBranch` |
+  | MT-R7 | `TestQuoteOnSelect`, 12's `TestVTResearchQuoteKey`, 04's `TestEditorQuote` |
+  | MT-R8 | `TestResearchTree` (`--resume`), `TestSidecarRoundTrip`, `TestForkCopiesSidecar` |
+
+13c notes:
+- **Permission mode.** Research does not refuse other modes. Plan 05 pins `userMode` to
+  default on `UIModeChangedMsg{research}` and switches a running engine, so `/research`
+  and `--research` work from auto (2.1.292's default). Research leaves only when the mode
+  changes *away from* default.
+- **Off-branch follow-ups write one record.** See the spike note on chain selection
+  below. Before a Resume plan, `research.SelectBranch` appends an explicit `last-prompt`
+  record for the target's nearest message. This is the only write mantle makes to a
+  session file. Request `13-06-branch-resume-failure.md` asks 06 to report a failed
+  resume-at instead of replying success.
+- **Fork.** Only `--resume --fork-session` restarts are seen (EngineStartMsg). `/branch`
+  forks into a background `claude --bg`, whose session id mantle never learns, so its
+  sidecar is not copied.
+- **Queued prompts.** While the tip's answer runs, a follow-up is blocked
+  (`ReasonRunning`) rather than queued into the running turn.
 
 ## Risks
 - **Restart cost.** A Resume restart re-runs SessionStart hooks (source `resume`) and
@@ -330,6 +361,16 @@ Q1, Q2; restart with `--resume=<sid> --resume-session-at=<Q1 leaf>`, then Q3; th
   compact summary, after the boundary. A follow-up there keeps the compacted context, so
   `NeedsConfirm` is set only when branching above the node whose span holds the
   boundary.
+- **resume-at only reaches the loaded chain** (found by 13c's e2e test, 2.1.292).
+  `--resume` loads one chain: the branch of the newest `last-prompt` record's `leafUuid`,
+  walked up to a user or assistant message (the newest entry wins when it descends from
+  that leaf). `--resume-session-at` searches only that chain's messages. For an `At` on
+  another branch, the engine prints `No message found with message.uuid of: <At>` and
+  carries on as a new session. The spike only branched to an ancestor of the loaded
+  chain, so it did not see this. `rewind_conversation` itself writes
+  `{"type":"last-prompt","leafUuid":<message>,"explicit":true,"rewound":true}`, which is
+  the "lag" above. Research selects an off-branch node the same way
+  (`SelectBranch`), at the nearest message: a trailing attachment is not on the chain.
 - **Fixture hygiene.** The spike keeps only each attachment's `type` and drops its
   `rendered*` fields, which carry the engine's own prompt text. Paths are rewritten to
   `/work/demo`.

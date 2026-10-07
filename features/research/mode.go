@@ -125,11 +125,10 @@ func (f *feature) command(ctx ext.Ctx, args string) tea.Cmd {
 
 // refusal says why research mode cannot start now, or "".
 func (f *feature) refusal(ctx ext.Ctx) string {
+	// The permission mode is not checked: research runs in default, and plan 05
+	// switches the engine there on UIModeChangedMsg.
 	if ctx.Accessibility().ScreenReader || config.ReadEnv(f.env.getenv).DisableAltScreen {
 		return "Research mode needs the fullscreen layout, which is off (the alternate screen is disabled or screen-reader mode is on)"
-	}
-	if pm := ctx.Session().PermissionMode; pm != "" && pm != "default" {
-		return "Research mode runs in the default permission mode: switch to it first (shift+tab)"
 	}
 	return ""
 }
@@ -207,8 +206,14 @@ func (f *feature) onSession(ctx ext.Ctx, m ext.SessionChangedMsg) tea.Cmd {
 		return nil
 	}
 	var cmds []tea.Cmd
-	if pm := m.Info.PermissionMode; f.active && pm != "" && pm != "default" {
+	// Only a change away from default is external: entered from another mode, research
+	// waits for the switch to default first.
+	pm := m.Info.PermissionMode
+	if f.active && pm != "" && pm != "default" && f.lastMode == "default" {
 		cmds = append(cmds, f.leave(ctx, "Research mode ended: the permission mode changed to "+pm))
+	}
+	if pm != "" {
+		f.lastMode = pm
 	}
 	if sid := m.Info.SessionID; sid != "" && sid != f.sid {
 		cmds = append(cmds, f.saveSidecar()) // the old session's state, as it was

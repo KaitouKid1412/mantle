@@ -22,7 +22,7 @@ PKGS_11 = ./internal/cli/... ./features/cli/... ./scripts/drift/...
 PKGS_12 = ./features/fullscreen/... ./test/...
 PKGS_13 = ./internal/research/... ./features/research/... ./scripts/batonwatch/...
 
-.PHONY: build test lint vet archtest parity parity-side-by-side perf e2e-real drift tags sessions install
+.PHONY: build test lint vet archtest parity parity-side-by-side perf e2e-real e2e-research drift tags sessions install
 
 build:
 	$(GO) build -o bin/ ./cmd/...
@@ -71,6 +71,11 @@ perf:
 e2e-real:
 	@if [ -z "$$MANTLE_E2E_REAL" ]; then echo "e2e-real costs money: set MANTLE_E2E_REAL=1 (and ANTHROPIC_API_KEY)"; exit 1; fi
 	$(GO) test ./test/e2e/real -v -count=1 -timeout 20m
+
+# Research mode end to end (plan 13): mantle-ui, the installed claude and fakeapi
+# (offline, free) in a pty: branching, bars, clicks and --resume.
+e2e-research:
+	MANTLE_E2E=1 $(GO) test ./test/e2e/research -v -count=1 -timeout 10m
 
 # Compare the installed claude's flags, subcommands, keybindings and settings keys with
 # mantle's tables; writes docs/parity-drift.{md,json}. Exit 1 on unclassified items.

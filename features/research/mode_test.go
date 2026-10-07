@@ -176,12 +176,23 @@ func TestRouteRewindThenResubmit(t *testing.T) {
 
 func TestRouteResumeAt(t *testing.T) {
 	r := newRig(t, forked, 100, 30)
-	r.f.sid = testSID
+	r.withSession(forked)
+	r.f.switchSession(testSID, r.ctx.SessionValue.Cwd)
+	r.f.tree = fakeTree(forked)
 	r.enter("q2")
 	v, msgs := r.submit("> big\n\nhow big exactly?")
-	req, _ := find[ext.BranchRequestMsg](msgs)
-	if v != ext.Consumed || req.At != "q2-a" || req.DropPrompt != "" {
-		t.Fatalf("verdict %v, request %+v", v, req)
+	sel, ok := find[branchSelectedMsg](msgs)
+	if v != ext.Consumed || !ok || sel.err != nil {
+		t.Fatalf("verdict %v, selection %+v (%v)", v, sel, msgs)
+	}
+	// q2's branch is now the one the engine resumes.
+	path, _ := r.f.env.layout.FindSession(testSID, r.f.cwd)
+	if tr, _ := sessions.Load(path); tr.Meta.LeafUUID != "q2-a" {
+		t.Fatalf("last-prompt leaf %q, want q2-a", tr.Meta.LeafUUID)
+	}
+	req, _ := find[ext.BranchRequestMsg](r.deliver(sel))
+	if req.At != "q2-a" || req.DropPrompt != "" || req.SessionID != testSID {
+		t.Fatalf("request %+v", req)
 	}
 	out := r.deliver(ext.BranchedMsg{Tag: req.Tag, Err: errors.New("engine exited")})
 	if s, ok := find[ext.EditorSetTextMsg](out); !ok || s.Text != "> big\n\nhow big exactly?" {
@@ -282,7 +293,6 @@ func TestEnterRefused(t *testing.T) {
 				return ""
 			}
 		},
-		"plan mode": func(r *rig) { r.ctx.SessionValue.PermissionMode = "plan" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			r := newRig(t, forked, 100, 30)
@@ -306,6 +316,14 @@ func TestExternalModeChangeLeaves(t *testing.T) {
 	if !r.f.active {
 		t.Fatal("not active")
 	}
+	// Entered from auto: research waits for plan 05's switch to default.
+	r.ctx.SessionValue.PermissionMode = "auto"
+	r.sessionChanged()
+	if !r.f.active {
+		t.Fatal("left before reaching default")
+	}
+	r.ctx.SessionValue.PermissionMode = "default"
+	r.sessionChanged()
 	r.ctx.SessionValue.PermissionMode = "acceptEdits"
 	out := r.sessionChanged()
 	if r.f.active {

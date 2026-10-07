@@ -31,6 +31,7 @@ type pendingSend struct {
 
 func (f *feature) setupStage(r ext.Registrar) {
 	r.AddPromptStage(StageRoute, PrioRoute, f.route)
+	ext.Subscribe(r, FeatureID+".branchSelected", f.onBranchSelected)
 }
 
 func (f *feature) route(ctx ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
@@ -64,14 +65,57 @@ func (f *feature) route(ctx ext.Ctx, d *ext.Draft) (ext.Verdict, tea.Cmd) {
 	p.draft.Attachments = append([]ext.Attachment(nil), d.Attachments...)
 	f.branching = p
 	req := ext.BranchRequestMsg{EngineID: ext.MainEngine, SessionID: f.sid, At: plan.At, Tag: p.tag}
+	var send tea.Cmd
 	if plan.Kind == research.Rewind {
 		req.DropPrompt = plan.DropPrompt
+		send = ext.Msg(req)
+	} else {
+		// Off the engine's chain: select the node's branch for the restart first.
+		send = f.selectBranch(req, questionText(node))
 	}
 	ctx.Log().Debug("research: branching", "kind", plan.Kind.String(), "at", plan.At, "drop", req.DropPrompt)
 	return ext.Consumed, tea.Batch(
 		ctx.Notify(ext.Notice{Key: "research.send", Text: "Branching from " + quoteLabel(node.Prompt) + "…", Source: FeatureID}),
-		ext.Msg(req),
+		send,
 	)
+}
+
+// branchSelectedMsg reports SelectBranch's result for the held follow-up.
+type branchSelectedMsg struct {
+	req ext.BranchRequestMsg
+	err error
+}
+
+// selectBranch selects req.At's branch in the session file (off the UI goroutine)
+// and then asks for the branch, resuming at the message SelectBranch returns.
+func (f *feature) selectBranch(req ext.BranchRequestMsg, prompt string) tea.Cmd {
+	l, cwd := f.env.layout, f.cwd
+	return func() tea.Msg {
+		path, err := l.FindSession(req.SessionID, cwd)
+		if err == nil {
+			req.At, err = research.SelectBranch(path, req.At, prompt)
+		}
+		return branchSelectedMsg{req: req, err: err}
+	}
+}
+
+func (f *feature) onBranchSelected(ctx ext.Ctx, m branchSelectedMsg) tea.Cmd {
+	if f.branching == nil || f.branching.tag != m.req.Tag {
+		return nil
+	}
+	if m.err != nil {
+		ctx.Log().Warn("research: selecting the branch", "at", m.req.At, "err", m.err)
+		return f.onBranched(ctx, ext.BranchedMsg{Tag: m.req.Tag, Err: m.err})
+	}
+	return ext.Msg(m.req)
+}
+
+// questionText is a node's prompt as typed (quote included), for the picker preview.
+func questionText(n *research.Node) string {
+	if n.Quote == "" {
+		return n.Prompt
+	}
+	return strings.TrimSpace(research.FormatQuote(n.Quote) + n.Prompt)
 }
 
 // reject refuses a draft and puts its text back in the editor (the pipeline does
